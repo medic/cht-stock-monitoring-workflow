@@ -1,0 +1,21 @@
+{
+  "name": "stock-monitoring",
+  "version": "1.0.0",
+  "description": "Stock monitoring module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "stock",
+    "monitoring"
+  ],
+  "bin": {
+    "cht-stm": "./index.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^4.1.0",
+    "exceljs": "^4.3.0"
+  }
+}
