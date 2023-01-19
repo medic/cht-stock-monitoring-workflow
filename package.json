@@ -11,11 +11,12 @@
     "monitoring"
   ],
   "bin": {
-    "cht-stm": "./index.js"
+    "cht-workflow-stock-monitoring": "./index.js"
   },
   "license": "ISC",
   "dependencies": {
     "chalk": "^4.1.0",
-    "exceljs": "^4.3.0"
+    "exceljs": "^4.3.0",
+    "inquirer": "^8.2.5"
   }
 }

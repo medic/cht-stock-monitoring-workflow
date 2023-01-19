@@ -2,40 +2,63 @@ const chalk = require('chalk');
 const fs = require('fs');
 const utils = require('./utils');
 const path = require('path');
-const constants = require('./constants');
+const Config = require('./config');
 const ExcelJS = require('exceljs');
+const inquirer = require('inquirer');
+const { join } = require('path');
 
-module.exports = async function (level, formula) {
-  console.log(chalk.blue.bold(`Initializing stock monitoring in level ${level}`));
-
+module.exports = async function () {
+  const appSettings = Config.getAppSettings();
+  const appPlaceTypes = appSettings ? appSettings.place_hierarchy_types : [];
   const processDir = process.cwd();
-  if (utils.alreadyInit()) {
+
+  if (utils.alreadyInit(processDir)) {
     console.log(chalk.red.bold('Stock monitoring module already init'));
     return;
   }
 
+  const answers = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'placeType',
+      message: "Stock management place type",
+      default: appPlaceTypes,
+      choices: appPlaceTypes,
+    },
+    {
+      type: 'input',
+      name: 'expression',
+      message: "Stock count form expression",
+      default: (currentAnswers) => {
+        return `contact.type === '${currentAnswers.placeType}'`;
+      }
+    }
+  ]);
+  const placeType = answers.placeType;
+  const expression = answers.expression;
+  console.log(chalk.blue.bold(`Initializing stock monitoring in level ${placeType}`));
+
   // Create configuration file
-  const configFilePath = path.join(processDir, 'stm.config.json');
+  const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
   const config = {
-    level,
-    expression: formula,
+    placeType: placeType,
+    expression: expression,
   };
   fs.writeFileSync(configFilePath, JSON.stringify(config, null, 4));
 
   // Create stock count form xlsx
   // Copy form template
-  fs.copyFileSync('../templates/stock_count.xlsx', constants.STOCK_COUNT_PATH);
+  fs.copyFileSync(path.join(__dirname, '../templates/stock_count.xlsx'), Config.STOCK_COUNT_PATH);
   // Update level
-  const streamOption = {
-    filename: constants.STOCK_COUNT_PATH,
-    useStyles: true,
-    useSharedStrings: true
-  };
-  const workbook = new ExcelJS.stream.xlsx.WorkbookWriter(streamOption);
-  const formWorkSheet = workbook.getWorksheet(0);
-  formWorkSheet.getCell('A6').value = `db:${level}`;
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(Config.STOCK_COUNT_PATH);
+  const formWorkSheet = workbook.getWorksheet(1);
+  const row = formWorkSheet.getRow(6);
+  console.log(row.getCell(1).value, `db:${placeType}`);
+  row.getCell(1).value = `db:${placeType}`;
+  row.commit();
+  formWorkSheet.getRow(6).commit();
   formWorkSheet.commit();
-  await workbook.commit();
 
   // Add stock count form properties
   const formProperties = {
@@ -43,10 +66,10 @@ module.exports = async function (level, formula) {
     "context": {
       "person": false,
       "place": true,
-      "expression": formula
+      "expression": expression
     }
   }
-  fs.writeFileSync(constants.STOCK_COUNT_PROPERTY_PATH, JSON.stringify(formProperties, null, 4));
+  fs.writeFileSync(Config.STOCK_COUNT_PROPERTY_PATH, JSON.stringify(formProperties, null, 4));
 
   // Add consumption log form xlsx
   // Add consumption log form properties

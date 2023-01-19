@@ -1,5 +1,8 @@
 #! /usr/bin/env node
 const parseArgs = require('minimist');
+const inquirer = require('inquirer');
+const chalk = require('chalk');
+
 const command = require('./command');
 const utils = require('./src/utils');
 
@@ -24,7 +27,9 @@ const utils = require('./src/utils');
       return;
     }
 
-    console.log(actions);
+    if (actions.includes('init')) {      
+      command.init()
+    }
   } catch (e) {
     console.error(e);
     process.exitCode = 1; // emit a non-zero exit code for scripting
