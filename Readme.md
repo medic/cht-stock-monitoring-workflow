@@ -2,6 +2,13 @@
 
 Module to implement stock monitoring in CHT applications.
 
+# Plan
+
+- [x] Initialization command (Create a config file and add stock count and consumption logs forms)
+- [ ] Item add command (Add item in prescription logs, stock count and consumption logs form)
+- [ ] Stock summary
+- [ ] List item command
+
 # Using the stock monitoring module
 
 ## Development setup
