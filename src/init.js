@@ -54,11 +54,8 @@ module.exports = async function () {
   await workbook.xlsx.readFile(Config.STOCK_COUNT_PATH);
   const formWorkSheet = workbook.getWorksheet(1);
   const row = formWorkSheet.getRow(6);
-  console.log(row.getCell(1).value, `db:${placeType}`);
   row.getCell(1).value = `db:${placeType}`;
-  row.commit();
-  formWorkSheet.getRow(6).commit();
-  formWorkSheet.commit();
+  await workbook.xlsx.writeFile(Config.STOCK_COUNT_PATH);
 
   // Add stock count form properties
   const formProperties = {

@@ -2,21 +2,23 @@
 
 Module to implement stock monitoring in CHT applications.
 
-# Installation for testers
+# Using the stock monitoring module
 
-1 - Clone the [app-services-team](https://github.com/medic/app-services-team) repo.
+## Development setup
 
-2- Checkout to branch `stock_monitoring`
+1. Clone the [app-services-team](https://github.com/medic/app-services-team) repo.
 
-3- Move to `stock-monitoring` directory
+2. Checkout to branch `stock_monitoring`
 
-3- Install globally the stock monitoring module with npm
+3. Move to `stock-monitoring` directory
 
-`npm install -g <path_to_directoryh>`
+4. Get the absolute path to `index.js` file
+
+5. Move to your cht project
+
+5. Run `node <PATH TO INDEX FILE> init` for initialisation
 
 
-# Usage
-
-## Initialisation
+## Using npm
 
 `cht-workflow-stock-monitoring init`
