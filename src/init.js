@@ -52,7 +52,7 @@ module.exports = async function () {
   await workbook.xlsx.readFile(Config.STOCK_COUNT_PATH);
   const formWorkSheet = workbook.getWorksheet(1);
   const row = formWorkSheet.getRow(6);
-  row.getCell(1).value = `db:${placeType}`;
+  row.getCell(6).value = `select-contact type-${placeType}`;
   await workbook.xlsx.writeFile(Config.STOCK_COUNT_PATH);
 
   // Add stock count form properties
@@ -72,7 +72,7 @@ module.exports = async function () {
   await cLogWorkbook.xlsx.readFile(Config.CONSUMPTION_LOG_PATH);
   const cLogFormWorkSheet = workbook.getWorksheet(1);
   const cLogRow = cLogFormWorkSheet.getRow(6);
-  cLogRow.getCell(1).value = `db:${placeType}`;
+  row.getCell(6).value = `select-contact type-${placeType}`;
   await cLogWorkbook.xlsx.writeFile(Config.CONSUMPTION_LOG_PATH);
 
   // Add consumption log form properties

@@ -28,7 +28,10 @@ const utils = require('./src/utils');
     }
 
     if (actions.includes('init')) {      
-      command.init()
+      return command.init()
+    }
+    if (actions.includes('add')) {
+      return command.add()
     }
   } catch (e) {
     console.error(e);
