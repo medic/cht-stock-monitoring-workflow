@@ -33,6 +33,12 @@ const utils = require('./src/utils');
     if (actions.includes('add')) {
       return command.add()
     }
+    if (actions.includes('update')) {
+      return command.update()
+    }
+    if (actions.includes('test')) {
+      return command.test()
+    }
   } catch (e) {
     console.error(e);
     process.exitCode = 1; // emit a non-zero exit code for scripting

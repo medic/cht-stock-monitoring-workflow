@@ -2,9 +2,8 @@ const chalk = require('chalk');
 const fs = require('fs');
 const utils = require('./utils');
 const path = require('path');
-const Config = require('./config');
-const ExcelJS = require('exceljs');
 const inquirer = require('inquirer');
+const Config = require('./config');
 
 module.exports = async function () {
   const appSettings = Config.getAppSettings();
@@ -31,58 +30,36 @@ module.exports = async function () {
       default: (currentAnswers) => {
         return `contact.type === '${currentAnswers.placeType}'`;
       }
+    },
+    {
+      type: 'input',
+      name: 'languages',
+      message: "Enter app languages",
+      default: 'fr,en'
     }
   ]);
   const placeType = answers.placeType;
   const expression = answers.expression;
+  const languages = answers.languages.split(',');
   console.log(chalk.blue.bold(`Initializing stock monitoring in level ${placeType}`));
 
   // Create configuration file
   const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
+  const messages = {
+    stock_count_balance_fill: 'Use this form to fill in balances on hand for all commodities as of today',
+    stock_count_commodities_note: '<h3 class=”text-primary”> Commodities Balance on hand </h3>',
+    stock_count_summary_header: 'Results/Summary page',
+    stock_count_submit_note: '<h4 style="text-align:center;">Be sure you Submit to complete this action.</h4>',
+    stock_count_summary_note: 'Stock items you currently have.<I class="fa fa-list-ul"></i>'
+  };
   const config = {
     placeType: placeType,
     expression: expression,
+    languages: languages,
+    messages: {}
   };
+  for (const language of languages) {
+    config.messages[language] = messages;
+  }
   fs.writeFileSync(configFilePath, JSON.stringify(config, null, 4));
-
-  // Create stock count form xlsx
-  // Copy form template
-  fs.copyFileSync(path.join(__dirname, '../templates/stock_count.xlsx'), Config.STOCK_COUNT_PATH);
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(Config.STOCK_COUNT_PATH);
-  const formWorkSheet = workbook.getWorksheet(1);
-  const row = formWorkSheet.getRow(6);
-  row.getCell(6).value = `select-contact type-${placeType}`;
-  await workbook.xlsx.writeFile(Config.STOCK_COUNT_PATH);
-
-  // Add stock count form properties
-  const formProperties = {
-    "icon": "icon-healthcare-medicine",
-    "context": {
-      "person": false,
-      "place": true,
-      "expression": expression
-    }
-  }
-  fs.writeFileSync(Config.STOCK_COUNT_PROPERTY_PATH, JSON.stringify(formProperties, null, 4));
-
-  // Add consumption log form xlsx
-  fs.copyFileSync(path.join(__dirname, '../templates/consumption_log.xlsx'), Config.CONSUMPTION_LOG_PATH);
-  const cLogWorkbook = new ExcelJS.Workbook();
-  await cLogWorkbook.xlsx.readFile(Config.CONSUMPTION_LOG_PATH);
-  const cLogFormWorkSheet = workbook.getWorksheet(1);
-  const cLogRow = cLogFormWorkSheet.getRow(6);
-  row.getCell(6).value = `select-contact type-${placeType}`;
-  await cLogWorkbook.xlsx.writeFile(Config.CONSUMPTION_LOG_PATH);
-
-  // Add consumption log form properties
-  const cLogFormProperties = {
-    "icon": "icon-healthcare-medicine",
-    "context": {
-      "person": false,
-      "place": true,
-      "expression": expression
-    }
-  }
-  fs.writeFileSync(Config.CONSUMPTION_LOG_PROPERTY_PATH, JSON.stringify(cLogFormProperties, null, 4));
 }

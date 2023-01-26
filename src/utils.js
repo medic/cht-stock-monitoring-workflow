@@ -12,7 +12,7 @@ function isChtApp() {
 }
 
 function alreadyInit(directory) {
-  const configFilePath = path.join(directory, 'stm.config.json');
+  const configFilePath = path.join(directory, 'stock-monitoring.config.json');
   if (fs.existsSync(configFilePath)) {
     return true;
   }
