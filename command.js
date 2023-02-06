@@ -12,18 +12,26 @@ async function init() {
   initModule();
 }
 
+function getConfig() {
+  const processDir = process.cwd();
+  if (!utils.alreadyInit(processDir)) {
+    console.log(chalk.red.bold('Stock monitoring module not found'));
+    return;
+  }
+  const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
+  const configStr = fs.readFileSync(configFilePath);
+  const config = JSON.parse(configStr);
+  return config;
+}
+
 module.exports = {
   init,
-  add: addItem,
+  add: async () => {
+    const config = getConfig();
+    await addItem(config);
+  },
   update: async () => {
-    const processDir = process.cwd();
-    if (!utils.alreadyInit(processDir)) {
-      console.log(chalk.red.bold('Stock monitoring module not found'));
-      return;
-    }
-    const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
-    const configStr = fs.readFileSync(configFilePath);
-    const config = JSON.parse(configStr);
+    const config = getConfig();
     await update(config);
   },
   test: async () => {

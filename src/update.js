@@ -4,11 +4,36 @@ const path = require('path');
 const fs = require('fs');
 const Config = require('./config');
 
+function addStockCountItem(workSheet, items) {
+  // Find items group last row number
+  let foundItemBeginGroup = false;
+  let itemEndGroupRowNumber = 0;
+  workSheet.eachRow(function (row, rowNumber) {
+    if (row.values.includes("begin group") && row.values.includes("items")) {
+      foundItemBeginGroup = true;
+      console.log('foundItemBeginGroup', rowNumber);
+    }
+    if (row.values.includes("end group") && foundItemBeginGroup && itemEndGroupRowNumber === 0) {
+      itemEndGroupRowNumber = rowNumber;
+      console.log('end group', rowNumber);
+    }
+  });
+  console.log('itemEndGroupRowNumber', itemEndGroupRowNumber);
+
+  //Insert item
+  workSheet.insertRows(
+    itemEndGroupRowNumber,
+    Array(items.length).fill([]),
+    'i+'
+  );
+}
+
 module.exports = async function ({
   placeType,
   expression,
   languages,
   messages,
+  items,
 }) {
   console.log(chalk.green('INFO Updating files'));
   // Create stock count form xlsx
@@ -54,6 +79,8 @@ module.exports = async function ({
 
   // Add place selection
   row.getCell(6).value = `select-contact type-${placeType}`;
+  addStockCountItem(formWorkSheet, Object.values(items));
+
   await workbook.xlsx.writeFile(Config.STOCK_COUNT_PATH);
 
   // Add stock count form properties

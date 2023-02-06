@@ -44,7 +44,6 @@ module.exports = async function () {
   console.log(chalk.blue.bold(`Initializing stock monitoring in level ${placeType}`));
 
   // Create configuration file
-  const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
   const messages = {
     stock_count_balance_fill: 'Use this form to fill in balances on hand for all commodities as of today',
     stock_count_commodities_note: '<h3 class=”text-primary”> Commodities Balance on hand </h3>',
@@ -56,10 +55,11 @@ module.exports = async function () {
     placeType: placeType,
     expression: expression,
     languages: languages,
-    messages: {}
+    messages: {},
+    items: {},
   };
   for (const language of languages) {
     config.messages[language] = messages;
   }
-  fs.writeFileSync(configFilePath, JSON.stringify(config, null, 4));
+  utils.writeConfig(config);
 }

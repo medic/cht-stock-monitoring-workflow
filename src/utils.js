@@ -19,7 +19,14 @@ function alreadyInit(directory) {
   return false;
 }
 
+function writeConfig(config) {
+  const processDir = process.cwd();
+  const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
+  fs.writeFileSync(configFilePath, JSON.stringify(config, null, 4));
+}
+
 module.exports = {
   isChtApp,
-  alreadyInit
+  alreadyInit,
+  writeConfig,
 }
