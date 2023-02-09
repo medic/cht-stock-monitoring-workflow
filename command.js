@@ -28,7 +28,8 @@ module.exports = {
   init,
   add: async () => {
     const config = getConfig();
-    await addItem(config);
+    const updatedConfig = await addItem(config);
+    await update(updatedConfig);
   },
   update: async () => {
     const config = getConfig();

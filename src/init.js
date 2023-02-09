@@ -28,7 +28,7 @@ module.exports = async function () {
       name: 'expression',
       message: "Stock count form expression",
       default: (currentAnswers) => {
-        return `contact.type === '${currentAnswers.placeType}'`;
+        return `contact.contact_type === '${currentAnswers.placeType}'`;
       }
     },
     {

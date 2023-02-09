@@ -130,4 +130,5 @@ module.exports = async function (config) {
   }
   config.items[answers.name] = properties;
   utils.writeConfig(config);
+  return config;
 }
