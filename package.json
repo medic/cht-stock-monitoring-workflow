@@ -4,7 +4,7 @@
   "description": "Stock monitoring module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha"
   },
   "keywords": [
     "stock",
@@ -21,7 +21,9 @@
   },
   "devDependencies": {
     "@medic/eslint-config": "^1.1.0",
+    "chai": "^4.3.7",
     "eslint": "^8.33.0",
-    "eslint-plugin-json": "^3.1.0"
+    "eslint-plugin-json": "^3.1.0",
+    "mocha": "^10.2.0"
   }
 }
