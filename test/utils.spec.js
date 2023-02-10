@@ -1,25 +1,36 @@
 const assert = require('chai').assert;
 const path = require('path');
-const { getWorkSheet, getRowWithName } = require('../src/utils');
+const { getWorkSheet, getRowWithName, getSheetGroupBeginEnd } = require('../src/utils');
+
+let stockCountWorkSheet = null;
 
 describe('Utils', function () {
+  before(async function () {
+    const stockCountTemplatePath = path.join(__dirname, '../templates/stock_count.xlsx');
+    stockCountWorkSheet = await getWorkSheet(stockCountTemplatePath);
+    assert.isNotNull(stockCountWorkSheet);
+  });
+  describe('#getSheetGroupBeginEnd()', function () {
+    it('group name = romuald - begin = -1, end = -1', function () {
+      const [begin, end] = getSheetGroupBeginEnd(stockCountWorkSheet, 'romuald');
+      assert.equal(begin, -1);
+      assert.equal(end, -1);
+    });
+    it('group name = inputs - begin = 2, end = 12', function () {
+      const [begin, end] = getSheetGroupBeginEnd(stockCountWorkSheet, 'inputs');
+      assert.equal(begin, 2);
+      assert.equal(end, 12);
+    });
+  });
   describe('#getRowWithName()', function () {
-    it('should return null when row with name not present', async function () {
-      const stockCountTemplatePath = path.join(__dirname, '../templates/stock_count.xlsx');
-      const workSheet = await getWorkSheet(stockCountTemplatePath);
-      assert.isNotNull(workSheet);
-
-      const rowWithName = getRowWithName(workSheet, 'romuald');
+    it('row name = romulad - rowWithName = null', async function () {
+      const rowWithName = getRowWithName(stockCountWorkSheet, 'romuald');
       assert.isNull(rowWithName);
     });
-    it('should return row with property name when row with name is present', async function () {
-      const stockCountTemplatePath = path.join(__dirname, '../templates/stock_count.xlsx');
-      const workSheet = await getWorkSheet(stockCountTemplatePath);
-      assert.isNotNull(workSheet);
-
-      const rowWithName = getRowWithName(workSheet, 'items');
+    it('row name = items - rowWithName.name = items', async function () {
+      const rowWithName = getRowWithName(stockCountWorkSheet, 'items');
       assert.isNotNull(rowWithName);
-      assert.deepEqual({ name: 'items' }, { name: 'items' });
+      assert.deepEqual(rowWithName.name, 'items');
     });
   });
 });

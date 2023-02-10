@@ -32,13 +32,22 @@ function getSheetGroupBeginEnd(workSheet, name) {
   let foundItemBeginGroup = false;
   let beginGroupRowNumber = -1;
   let endGroupRowNumber = -1;
+  let interneGroupBegin = false;
   workSheet.eachRow(function (row, rowNumber) {
-    if (row.values.includes('begin group') && row.values[2].trim() === name) {
-      foundItemBeginGroup = true;
-      beginGroupRowNumber = rowNumber;
+    if (row.values.includes('begin group')) {
+      if (foundItemBeginGroup) {
+        interneGroupBegin = true;
+      } else if (row.values[2].trim() === name) {
+        foundItemBeginGroup = true;
+        beginGroupRowNumber = rowNumber;
+      }
     }
-    if (row.values.includes('end group') && foundItemBeginGroup && endGroupRowNumber === -1) {
-      endGroupRowNumber = rowNumber;
+    if (row.values.includes('end group')) {
+      if (interneGroupBegin) {
+        interneGroupBegin = false;
+      } else if (endGroupRowNumber === -1 && foundItemBeginGroup) {
+        endGroupRowNumber = rowNumber;
+      }
     }
   });
   return [beginGroupRowNumber, endGroupRowNumber];
@@ -58,13 +67,11 @@ function getRowWithName(workSheet, name) {
     if (rowNumber === 1) {
       columns = row.values;
     } else if (row.values[2] && row.values[2].trim() === name) {
-      for (const column of columns) {
-        for (const value of row.values) {
-          if (!rowData) {
-            rowData = {};
-          }
-          rowData[column] = value;
-        }
+      if (!rowData) {
+        rowData = {};
+      }
+      for (let i = 0; i < columns.length; i++) {
+        rowData[columns[i]] = row.values[i];
       }
     }
   });
