@@ -10,7 +10,7 @@ const DEFAULT_HINT_COLUMN_INDEX = 11;
 
 function addStockCountItem(workSheet, items, languages) {
   // Find items group last row number
-  const [begin, itemEndGroupRowNumber] = getSheetGroupBeginEnd(workSheet, 'items');
+  const [, itemEndGroupRowNumber] = getSheetGroupBeginEnd(workSheet, 'items');
   const itemRows = [];
   for (const item of items) {
     const itemRow = [
@@ -35,7 +35,7 @@ function addStockCountItem(workSheet, items, languages) {
 
 function addConsumptionItem(workSheet, items, languages, type = 'items_received') {
   // Find items group last row number
-  const [begin, itemEndGroupRowNumber] = getSheetGroupBeginEnd(workSheet, type);
+  const [, itemEndGroupRowNumber] = getSheetGroupBeginEnd(workSheet, type);
   const itemRows = [];
   for (const item of items) {
     const itemRow = [
@@ -57,7 +57,7 @@ function addConsumptionItem(workSheet, items, languages, type = 'items_received'
 }
 
 function addConsumptionLogSummaries(workSheet, items, languages) {
-  const [begin, end] = getSheetGroupBeginEnd(workSheet, 'summary');
+  const [, end] = getSheetGroupBeginEnd(workSheet, 'summary');
   const itemRows = [];
   const returnedItemRows = [];
   for (const item of items) {
@@ -95,7 +95,7 @@ function addConsumptionLogSummaries(workSheet, items, languages) {
 }
 
 function addStockCountSummaries(workSheet, items, languages) {
-  const [begin, end] = getSheetGroupBeginEnd(workSheet, 'summary');
+  const [, end] = getSheetGroupBeginEnd(workSheet, 'summary');
   const itemRows = [];
   for (const item of items) {
     const itemRow = [
@@ -120,7 +120,7 @@ function addStockCountSummaries(workSheet, items, languages) {
 }
 
 function addConsumptionLogCalculation(workSheet, items, languages) {
-  const [begin, end] = getSheetGroupBeginEnd(workSheet, 'out');
+  const [, end] = getSheetGroupBeginEnd(workSheet, 'out');
   const itemRows = [];
   for (const item of items) {
     const itemRow = [
@@ -129,7 +129,7 @@ function addConsumptionLogCalculation(workSheet, items, languages) {
       ...Array(languages.length).fill(''), // Row language
       ...Array(4).fill(''),
       // rome-ignore lint/style/useTemplate: <explanation>
-      '${' + item.name + "}"
+      '${' + item.name + '}'
     ];
     itemRows.push(itemRow);
     const returnedtemRow = [
@@ -138,7 +138,7 @@ function addConsumptionLogCalculation(workSheet, items, languages) {
       ...Array(languages.length).fill(''), // Row language
       ...Array(4).fill(''),
       // rome-ignore lint/style/useTemplate: <explanation>
-      '${' + item.name + "_r}"
+      '${' + item.name + '_r}'
     ];
     itemRows.push(returnedtemRow);
   }
@@ -152,7 +152,7 @@ function addConsumptionLogCalculation(workSheet, items, languages) {
 }
 
 function addStockCountCalculation(workSheet, items, languages) {
-  const [begin, end] = getSheetGroupBeginEnd(workSheet, 'out');
+  const [, end] = getSheetGroupBeginEnd(workSheet, 'out');
   const itemRows = [];
   for (const item of items) {
     const itemRow = [
@@ -161,7 +161,7 @@ function addStockCountCalculation(workSheet, items, languages) {
       ...Array(languages.length).fill(''), // Row language
       ...Array(5).fill(''),
       // rome-ignore lint/style/useTemplate: <explanation>
-      '${'+item.name+"}"
+      '${'+item.name+'}'
     ];
     itemRows.push(itemRow);
   }
@@ -175,7 +175,6 @@ function addStockCountCalculation(workSheet, items, languages) {
 }
 
 module.exports = async function ({
-  placeType,
   expression,
   languages,
   messages,
@@ -242,13 +241,13 @@ module.exports = async function ({
 
   // Add stock count form properties
   const formProperties = {
-    "icon": "icon-healthcare-medicine",
-    "context": {
-      "person": false,
-      "place": true,
-      "expression": expression
+    'icon': 'icon-healthcare-medicine',
+    'context': {
+      'person': false,
+      'place': true,
+      'expression': expression
     }
-  }
+  };
   fs.writeFileSync(Config.STOCK_COUNT_PROPERTY_PATH, JSON.stringify(formProperties, null, 4));
 
   // Add consumption log form xlsx
@@ -264,16 +263,16 @@ module.exports = async function ({
 
   // Add consumption log form properties
   const cLogFormProperties = {
-    "icon": "icon-healthcare-medicine",
-    "context": {
-      "person": false,
-      "place": true,
-      "expression": expression
+    'icon': 'icon-healthcare-medicine',
+    'context': {
+      'person': false,
+      'place': true,
+      'expression': expression
     }
-  }
+  };
   fs.writeFileSync(Config.CONSUMPTION_LOG_PROPERTY_PATH, JSON.stringify(cLogFormProperties, null, 4));
   console.log(chalk.green('INFO File updated successfully'));
 
   // Get items
 
-}
+};

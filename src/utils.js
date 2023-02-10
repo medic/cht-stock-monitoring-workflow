@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const ExcelJS = require('exceljs');
 
 const DEFAULT_STOCK_COUNT_FILE_NB_ROWS = 40;
 
@@ -32,11 +33,11 @@ function getSheetGroupBeginEnd(workSheet, name) {
   let beginGroupRowNumber = -1;
   let endGroupRowNumber = -1;
   workSheet.eachRow(function (row, rowNumber) {
-    if (row.values.includes("begin group") && row.values[2].trim() === name) {
+    if (row.values.includes('begin group') && row.values[2].trim() === name) {
       foundItemBeginGroup = true;
       beginGroupRowNumber = rowNumber;
     }
-    if (row.values.includes("end group") && foundItemBeginGroup && endGroupRowNumber === -1) {
+    if (row.values.includes('end group') && foundItemBeginGroup && endGroupRowNumber === -1) {
       endGroupRowNumber = rowNumber;
     }
   });
@@ -50,10 +51,39 @@ function updateColoumnsStyle(formWorkSheet, cellIndex) {
   }
 }
 
+function getRowWithName(workSheet, name) {
+  let columns = [];
+  let rowData = null;
+  workSheet.eachRow(function (row, rowNumber) {
+    if (rowNumber === 1) {
+      columns = row.values;
+    } else if (row.values[2] && row.values[2].trim() === name) {
+      for (const column of columns) {
+        for (const value of row.values) {
+          if (!rowData) {
+            rowData = {};
+          }
+          rowData[column] = value;
+        }
+      }
+    }
+  });
+  return rowData;
+}
+
+async function getWorkSheet(excelFilePath, workSheetNumber = 1) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(excelFilePath);
+  return workbook.getWorksheet(workSheetNumber);
+}
+
 module.exports = {
   isChtApp,
   alreadyInit,
   writeConfig,
   getSheetGroupBeginEnd,
-  updateColoumnsStyle
-}
+  updateColoumnsStyle,
+  getRowWithName,
+  getWorkSheet,
+};
+

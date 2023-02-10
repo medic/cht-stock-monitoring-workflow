@@ -1,7 +1,5 @@
 const chalk = require('chalk');
-const fs = require('fs');
 const utils = require('./utils');
-const path = require('path');
 const inquirer = require('inquirer');
 const Config = require('./config');
 
@@ -19,14 +17,14 @@ module.exports = async function () {
     {
       type: 'list',
       name: 'placeType',
-      message: "Stock management place type",
+      message: 'Stock management place type',
       default: appPlaceTypes,
       choices: appPlaceTypes,
     },
     {
       type: 'input',
       name: 'expression',
-      message: "Stock count form expression",
+      message: 'Stock count form expression',
       default: (currentAnswers) => {
         return `contact.contact_type === '${currentAnswers.placeType}'`;
       }
@@ -34,7 +32,7 @@ module.exports = async function () {
     {
       type: 'input',
       name: 'languages',
-      message: "Enter app languages",
+      message: 'Enter app languages',
       default: 'fr,en'
     }
   ]);
@@ -45,11 +43,11 @@ module.exports = async function () {
 
   // Create configuration file
   const messages = {
-    stock_count_balance_fill: 'Use this form to fill in balances on hand for all commodities as of today',
-    stock_count_commodities_note: '<h3 class=”text-primary”> Commodities Balance on hand </h3>',
-    stock_count_summary_header: 'Results/Summary page',
-    stock_count_submit_note: '<h4 style="text-align:center;">Be sure you Submit to complete this action.</h4>',
-    stock_count_summary_note: 'Stock items you currently have.<I class="fa fa-list-ul"></i>'
+    'stock_count_balance_fill': 'Use this form to fill in balances on hand for all commodities as of today',
+    'stock_count_commodities_note': '<h3 class=”text-primary”> Commodities Balance on hand </h3>',
+    'stock_count_summary_header': 'Results/Summary page',
+    'stock_count_submit_note': '<h4 style="text-align:center;">Be sure you Submit to complete this action.</h4>',
+    'stock_count_summary_note': 'Stock items you currently have.<I class="fa fa-list-ul"></i>'
   };
   const config = {
     placeType: placeType,
@@ -62,4 +60,4 @@ module.exports = async function () {
     config.messages[language] = messages;
   }
   utils.writeConfig(config);
-}
+};

@@ -1,0 +1,34 @@
+{
+  "env": {
+    "node": true,
+    "browser": true,
+    "commonjs": true,
+    "es2021": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 12
+  },
+  "extends": [
+    "@medic"
+  ],
+  "rules": {
+    "max-len": "off",
+    "no-console": "off",
+    "no-var": "off",
+    "no-debugger": "off",
+    "camelcase": [
+      2,
+      {
+        "properties": "always"
+      }
+    ],
+    "quotes": [
+      "error",
+      "single",
+      {
+        "allowTemplateLiterals": true,
+        "avoidEscape": true
+      }
+    ]
+  }
+}

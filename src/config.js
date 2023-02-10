@@ -18,5 +18,6 @@ module.exports = {
     const rawConfigData = fs.readFileSync(path.join(processDir, 'app_settings', 'base_settings.json'));
     config = JSON.parse(rawConfigData);
     return config;
-  }
-}
+  },
+  STOCK_MONITORING_AREA_ROW_NAME: 'stock_monitoring_area_id',
+};

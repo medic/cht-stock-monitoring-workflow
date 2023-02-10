@@ -1,5 +1,8 @@
 const inquirer = require('inquirer');
 const utils = require('./utils');
+const path = require('path');
+const fs = require('fs');
+const { STOCK_MONITORING_AREA_ROW_NAME } = require('./config');
 
 function getPreviousItemValue(config, form, item, param) {
   if (config.items?.[item]) {
@@ -32,18 +35,32 @@ module.exports = async function (config) {
     {
       type: 'input',
       name: 'form',
-      message: "Form ID",
+      message: 'Form ID',
+      validate: async (input) => {
+        //Find stock_monitoring_area_id
+        const processDir = process.cwd();
+        const formPath = path.join(processDir, 'forms', 'app', `${input}.xlsx`);
+        if (!fs.existsSync(formPath)) {
+          return `Form ${input} not found`;
+        }
+        const workSheet = await utils.getWorkSheet(formPath);
+        const stockMonitoringAreaIdRow = utils.getRowWithName(workSheet, STOCK_MONITORING_AREA_ROW_NAME);
+        if (!stockMonitoringAreaIdRow) {
+          return `${STOCK_MONITORING_AREA_ROW_NAME} calculated row not found in form. Please add it with value the parent ${config.placeType} _id`;
+        }
+        return true;
+      }
     },
     {
       type: 'input',
       name: 'name',
-      message: "Item name"
+      message: 'Item name'
     },
     ...languageSpecificQuestions,
     {
       type: 'input',
       name: 'unit',
-      message: "Item unit",
+      message: 'Item unit',
       default: (answers) => {
         return getPreviousItemValue(config, answers.form, answers.name, 'unit');
       }
@@ -51,7 +68,7 @@ module.exports = async function (config) {
     {
       type: 'input',
       name: 'reception_min',
-      message: "Minimum reception count",
+      message: 'Minimum reception count',
       validate: (input) => {
         const isValid = Number(input) >= 0;
         if (!isValid) {
@@ -66,7 +83,7 @@ module.exports = async function (config) {
     {
       type: 'input',
       name: 'reception_max',
-      message: "Maximum reception count",
+      message: 'Maximum reception count',
       validate: (input, answers) => {
         const isValid = Number(answers.reception_min) < Number(input);
         if (!isValid) {
@@ -81,7 +98,7 @@ module.exports = async function (config) {
     {
       type: 'input',
       name: 'warning_count',
-      message: "Item warning stock",
+      message: 'Item warning stock',
       validate: (input, answers) => {
         const isValid = Number(answers.reception_min) < Number(input) && Number(answers.reception_max) > Number(input);
         if (!isValid) {
@@ -96,7 +113,7 @@ module.exports = async function (config) {
     {
       type: 'input',
       name: 'danger_count',
-      message: "Item danger stock",
+      message: 'Item danger stock',
       validate: (input, answers) => {
         const isValid = Number(answers.warning_count) > Number(input) && Number(input) > 0;
         if (!isValid) {
@@ -111,7 +128,7 @@ module.exports = async function (config) {
     {
       type: 'input',
       name: 'expression',
-      message: "Xform count expression",
+      message: 'Xform count expression',
       default: (answers) => {
         return getPreviousItemValue(config, answers.form, answers.name, 'expression');
       }
@@ -131,4 +148,4 @@ module.exports = async function (config) {
   config.items[answers.name] = properties;
   utils.writeConfig(config);
   return config;
-}
+};

@@ -1,6 +1,5 @@
 #! /usr/bin/env node
 const parseArgs = require('minimist');
-const inquirer = require('inquirer');
 const chalk = require('chalk');
 
 const command = require('./command');
@@ -20,7 +19,6 @@ const utils = require('./src/utils');
     }
 
     const actions = cmdArgs['_'];
-    const formNames = cmdArgs['--'] || [];
 
     if (cmdArgs.version) {
       command.info(require('./package.json').version);
@@ -28,16 +26,16 @@ const utils = require('./src/utils');
     }
 
     if (actions.includes('init')) {      
-      return command.init()
+      return command.init();
     }
     if (actions.includes('add')) {
-      return command.add()
+      return command.add();
     }
     if (actions.includes('update')) {
-      return command.update()
+      return command.update();
     }
     if (actions.includes('test')) {
-      return command.test()
+      return command.test();
     }
   } catch (e) {
     console.error(e);

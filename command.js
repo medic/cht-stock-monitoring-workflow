@@ -4,7 +4,6 @@ const path = require('path');
 const initModule = require('./src/init');
 const utils = require('./src/utils');
 const addItem = require('./src/add-item');
-const test = require('./src/test');
 const update = require('./src/update');
 
 //Stock monitoring module initialization
@@ -35,10 +34,7 @@ module.exports = {
     const config = getConfig();
     await update(config);
   },
-  test: async () => {
-    await test()
-  },
   info: function (message) {
     console.log(chalk.blue.italic(message));
   }
-}
+};
