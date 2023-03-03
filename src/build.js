@@ -386,7 +386,6 @@ async function updateStockCount(configs) {
 }
 
 module.exports = async function (configs) {
-  console.log(chalk.green('INFO Updating files'));
   // Create stock count form xlsx
   await updateStockCount(configs);
 

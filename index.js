@@ -8,35 +8,45 @@ const utils = require('./src/utils');
 (async () => {
   try {
     const argv = process.argv;
-    const cmdArgs = parseArgs(argv.slice(1), {
-      boolean: true,
-      '--': true
-    });
+    const cmdArgs = parseArgs(argv.slice(2));
 
     if (!utils.isChtApp()) {
       console.log(chalk.red.bold('Not a CHT app'));
       return;
     }
 
-    const actions = cmdArgs['_'];
+    const [action, type] = cmdArgs['_'];
 
     if (cmdArgs.version) {
       command.info(require('./package.json').version);
       return;
     }
 
-    if (actions.includes('init')) {      
+    if (action === 'init') {      
       return command.init();
     }
-    if (actions.includes('add')) {
-      return command.add();
+    if (action === 'add') {
+      if (!type) {
+        console.log(chalk.red('ERROR No type found. Options are: item and feature'));
+        return;
+      }
+      switch (type) {
+      case 'item':
+        return command.addItem();
+      case 'feature':
+        return command.addFeature();
+      default:
+        break;
+      }
     }
-    if (actions.includes('update')) {
-      return command.update();
+    if (action === 'build') {
+      console.log(chalk.green('INFO Building stock monitoring configs'));
+      return command.build();
     }
-    if (actions.includes('test')) {
-      return command.test();
-    }
+    // if (actions.includes('test')) {
+    //   return command.test();
+    // }
+    console.log('cmdArgs', action, type);
   } catch (e) {
     console.error(e);
     process.exitCode = 1; // emit a non-zero exit code for scripting

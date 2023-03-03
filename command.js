@@ -2,7 +2,7 @@ const chalk = require('chalk');
 const fs = require('fs');
 const path = require('path');
 const utils = require('./src/utils');
-const update = require('./src/update');
+const build = require('./src/build');
 const { getInitConfigs, createConfigFile } = require('./src/init');
 const { getItemConfig, addConfigItem } = require('./src/add-item');
 
@@ -18,7 +18,7 @@ async function init() {
   const answers = await getInitConfigs();
   console.log('answers', answers);
   const config = createConfigFile(answers);
-  await update(config);
+  await build(config);
 }
 
 function getConfig() {
@@ -35,15 +35,18 @@ function getConfig() {
 
 module.exports = {
   init,
-  add: async () => {
+  addItem: async () => {
     const config = getConfig();
     const itemConfig = await getItemConfig(config);
     const updatedConfig = await addConfigItem(config, itemConfig);
-    await update(updatedConfig);
+    await build(updatedConfig);
   },
-  update: async () => {
+  addFeature: async () => {
+    
+  },
+  build: async () => {
     const config = getConfig();
-    await update(config);
+    await build(config);
   },
   info: function (message) {
     console.log(chalk.blue.italic(message));
