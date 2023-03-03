@@ -2,8 +2,6 @@ const path = require('path');
 const fs = require('fs');
 const ExcelJS = require('exceljs');
 
-const DEFAULT_STOCK_COUNT_FILE_NB_ROWS = 40;
-
 function isChtApp() {
   const processDir = process.cwd();
   const formDir = path.join(processDir, 'forms');
@@ -53,29 +51,28 @@ function getSheetGroupBeginEnd(workSheet, name) {
   return [beginGroupRowNumber, endGroupRowNumber];
 }
 
-function updateColoumnsStyle(formWorkSheet, cellIndex) {
-  for (let index = 0; index < DEFAULT_STOCK_COUNT_FILE_NB_ROWS; index++) {
-    const style = formWorkSheet.getRow(index + 1).getCell(1).style;
-    formWorkSheet.getRow(index + 1).getCell(cellIndex).style = style;
-  }
-}
-
-function getRowWithName(workSheet, name) {
+function getRowWithValueAtPosition(workSheet, value, position = 2) {
   let columns = [];
   let rowData = null;
+  let index = -1;
   workSheet.eachRow(function (row, rowNumber) {
     if (rowNumber === 1) {
       columns = row.values;
-    } else if (row.values[2] && row.values[2].trim() === name) {
+      //The row.values first element is undefined
+      columns.shift();
+    }
+    
+    if (row.values[position] && row.values[position].trim() === value) {
       if (!rowData) {
         rowData = {};
       }
       for (let i = 0; i < columns.length; i++) {
         rowData[columns[i]] = row.values[i];
       }
+      index = rowNumber;
     }
   });
-  return rowData;
+  return [index, rowData];
 }
 
 async function getWorkSheet(excelFilePath, workSheetNumber = 1) {
@@ -84,13 +81,36 @@ async function getWorkSheet(excelFilePath, workSheetNumber = 1) {
   return workbook.getWorksheet(workSheetNumber);
 }
 
+/**
+ * Build row value using header values order.
+ * @param {Array} header workSheet header row values
+ * @param {Object} values row values with name {type: 'integer', name: 'question_1'}
+ * @returns Array
+ */
+function buildRowValues(header, values) {
+  const rowValues = [];
+  for (const cell of header) {
+    if (!cell) {
+      rowValues.push('');
+      continue;
+    }
+    const value = values[cell.trim()];
+    if (value && value.length > 0) {
+      rowValues.push(value);
+    } else {
+      rowValues.push('');
+    }
+  }
+  return rowValues;
+}
+
 module.exports = {
   isChtApp,
   alreadyInit,
   writeConfig,
   getSheetGroupBeginEnd,
-  updateColoumnsStyle,
-  getRowWithName,
+  getRowWithValueAtPosition,
   getWorkSheet,
+  buildRowValues,
 };
 

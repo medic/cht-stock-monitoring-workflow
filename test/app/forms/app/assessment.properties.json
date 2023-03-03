@@ -1,0 +1,8 @@
+{
+  "title": "Assessment",
+  "context": {
+    "person": true,
+    "place": false,
+    "expression": "contact.contact-type === 'c92_household'"
+  }
+}

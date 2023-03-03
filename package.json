@@ -4,7 +4,9 @@
   "description": "Stock monitoring module",
   "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "pretest": "cd test && mkdir app && cd app && cht initialise-project-layout",
+    "test": "mocha test/{**,}/*.spec.js --timeout 30000 --slow 500",
+    "clear": "rm -rf test/app"
   },
   "keywords": [
     "stock",
@@ -17,13 +19,15 @@
   "dependencies": {
     "chalk": "^4.1.0",
     "exceljs": "^4.3.0",
-    "inquirer": "^8.2.5"
+    "inquirer": "^8.2.5",
+    "rxjs": "^7.8.0"
   },
   "devDependencies": {
     "@medic/eslint-config": "^1.1.0",
     "chai": "^4.3.7",
     "eslint": "^8.33.0",
     "eslint-plugin-json": "^3.1.0",
-    "mocha": "^10.2.0"
+    "mocha": "^10.2.0",
+    "rewire": "^6.0.0"
   }
 }

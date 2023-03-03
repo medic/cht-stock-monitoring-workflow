@@ -20,4 +20,5 @@ module.exports = {
     return config;
   },
   STOCK_MONITORING_AREA_ROW_NAME: 'stock_monitoring_area_id',
+  ADDITIONAL_DOC_NAME: 'additional_doc'
 };

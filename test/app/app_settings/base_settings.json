@@ -1,0 +1,282 @@
+{
+  "locales": [
+    {
+      "code": "en",
+      "name": "English"
+    },
+    {
+      "code": "fr",
+      "name": "French"
+    }
+  ],
+  "locale": "fr",
+  "roles": {
+    "supervisor": {
+      "name": "usertype.supervisor",
+      "offline": true
+    },
+    "chw": {
+      "name": "usertype.chw",
+      "offline": true
+    }
+  },
+  "replication_depth": [
+    {
+      "role": "supervisor",
+      "depth": 1
+    }
+  ],
+  "permissions": {
+    "can_access_gateway_api": [],
+    "can_aggregate_targets": [],
+    "can_bulk_delete_reports": [],
+    "can_configure": [],
+    "can_create_people": [
+      "chw"
+    ],
+    "can_create_places": [
+      "chw"
+    ],
+    "can_create_records": [
+      "chw"
+    ],
+    "can_create_users": [],
+    "can_delete_contacts": [],
+    "can_delete_messages": [],
+    "can_delete_reports": [],
+    "can_delete_users": [],
+    "can_edit": [
+      "supervisor",
+      "chw"
+    ],
+    "can_edit_profile": [],
+    "can_edit_verification": [
+      "supervisor"
+    ],
+    "can_export_all": [],
+    "can_export_contacts": [],
+    "can_export_dhis": [],
+    "can_export_feedback": [],
+    "can_export_messages": [],
+    "can_log_out_on_android": [],
+    "can_update_places": [
+      "chw"
+    ],
+    "can_update_reports": [],
+    "can_update_users": [],
+    "can_verify_reports": [
+      "supervisor",
+      "chw"
+    ],
+    "can_view_analytics": [
+      "chw"
+    ],
+    "can_view_analytics_tab": [
+      "chw"
+    ],
+    "can_view_call_action": [],
+    "can_view_contacts": [
+      "supervisor",
+      "chw"
+    ],
+    "can_view_contacts_tab": [
+      "supervisor",
+      "chw"
+    ],
+    "can_view_last_visited_date": [],
+    "can_view_message_action": [],
+    "can_view_messages": [],
+    "can_view_messages_tab": [],
+    "can_view_outgoing_messages": [],
+    "can_view_reports": [
+      "supervisor"
+    ],
+    "can_view_reports_tab": [
+      "supervisor"
+    ],
+    "can_view_tasks": [
+      "supervisor",
+      "chw"
+    ],
+    "can_view_tasks_tab": [
+      "supervisor",
+      "chw"
+    ],
+    "can_view_uhc_stats": [],
+    "can_view_unallocated_data_records": [],
+    "can_view_users": [],
+    "can_write_wealth_quintiles": [],
+    "can_create_chw": []
+  },
+  "place_hierarchy_types": [
+    "c40_health_area",
+    "c50_supervision_area",
+    "c60_chw_site",
+    "c70_village",
+    "c80_concession",
+    "c90_household"
+  ],
+  "contact_types": [
+    {
+      "id": "c40_health_area",
+      "name_key": "contact.type.c40_health_area",
+      "group_key": "contact.type.c40_health_area.plural",
+      "create_key": "contact.type.c40_health_area.new",
+      "edit_key": "contact.type.c40_health_area.edit",
+      "parents": [
+        "c30_district"
+      ],
+      "icon": "icon-health-area",
+      "create_form": "form:contact:c40_health_area:create",
+      "edit_form": "form:contact:c40_health_area:edit"
+    },
+    {
+      "id": "c50_supervision_area",
+      "name_key": "contact.type.c50_supervision_area",
+      "group_key": "contact.type.c50_supervision_area.plural",
+      "create_key": "contact.type.c50_supervision_area.new",
+      "edit_key": "contact.type.c50_supervision_area.edit",
+      "parents": [
+        "c40_health_area"
+      ],
+      "icon": "icon-manager",
+      "create_form": "form:contact:c50_supervision_area:create",
+      "edit_form": "form:contact:c50_supervision_area:edit"
+    },
+    {
+      "id": "c60_chw_site",
+      "name_key": "contact.type.c60_chw_site",
+      "group_key": "contact.type.c60_chw_site.plural",
+      "create_key": "contact.type.c60_chw_site.new",
+      "edit_key": "contact.type.c60_chw_site.edit",
+      "parents": [
+        "c50_supervision_area"
+      ],
+      "icon": "icon-chw-area",
+      "create_form": "form:contact:c60_chw_site:create",
+      "edit_form": "form:contact:c60_chw_site:edit"
+    },
+    {
+      "id": "c70_village",
+      "name_key": "contact.type.c70_village",
+      "group_key": "contact.type.c70_village.plural",
+      "create_key": "contact.type.c70_village.new",
+      "edit_key": "contact.type.c70_village.edit",
+      "parents": [
+        "c60_chw_site"
+      ],
+      "icon": "icon-community",
+      "create_form": "form:contact:c70_village:create",
+      "edit_form": "form:contact:c70_village:edit"
+    },
+    {
+      "id": "c80_concession",
+      "name_key": "contact.type.c80_concession",
+      "group_key": "contact.type.c80_concession.plural",
+      "create_key": "contact.type.c80_concession.new",
+      "edit_key": "contact.type.c80_concession.edit",
+      "parents": [
+        "c70_village"
+      ],
+      "icon": "icon-community",
+      "create_form": "form:contact:c80_concession:create",
+      "edit_form": "form:contact:c80_concession:edit"
+    },
+    {
+      "id": "c90_household",
+      "name_key": "contact.type.c90_household",
+      "group_key": "contact.type.c90_household.plural",
+      "create_key": "contact.type.c90_household.new",
+      "edit_key": "contact.type.c90_household.edit",
+      "parents": [
+        "c80_concession"
+      ],
+      "icon": "icon-household",
+      "create_form": "form:contact:c90_household:create",
+      "edit_form": "form:contact:c90_household:edit"
+    },
+    {
+      "id": "c42_health_area",
+      "name_key": "contact.type.c42_health_area",
+      "group_key": "contact.type.c42_health_area.plural",
+      "create_key": "contact.type.c42_health_area.new",
+      "edit_key": "contact.type.c42_health_area.edit",
+      "parents": [
+        "c40_health_area"
+      ],
+      "icon": "medic-person",
+      "create_form": "form:contact:c42_health_area:create",
+      "edit_form": "form:contact:c42_health_area:edit",
+      "person": true
+    },
+    {
+      "id": "c52_supervisor",
+      "name_key": "contact.type.c52_supervisor",
+      "group_key": "contact.type.c52_supervisor.plural",
+      "create_key": "contact.type.c52_supervisor.new",
+      "edit_key": "contact.type.c52_supervisor.edit",
+      "parents": [
+        "c50_supervision_area"
+      ],
+      "icon": "icon-manager",
+      "create_form": "form:contact:c52_supervisor:create",
+      "edit_form": "form:contact:c52_supervisor:edit",
+      "person": true
+    },
+    {
+      "id": "c62_chw",
+      "name_key": "contact.type.c62_chw",
+      "group_key": "contact.type.c62_chw.plural",
+      "create_key": "contact.type.c62_chw.new",
+      "edit_key": "contact.type.c62_chw.edit",
+      "parents": [
+        "c60_chw_site"
+      ],
+      "icon": "icon-chw",
+      "create_form": "form:contact:c62_chw:create",
+      "edit_form": "form:contact:c62_chw:edit",
+      "person": true
+    },
+    {
+      "id": "c72_village",
+      "name_key": "contact.type.c72_village",
+      "group_key": "contact.type.c72_village.plural",
+      "create_key": "contact.type.c72_village.new",
+      "edit_key": "contact.type.c72_village.edit",
+      "parents": [
+        "c70_village"
+      ],
+      "icon": "medic-person",
+      "edit_form": "form:contact:c72_village:edit",
+      "person": true
+    },
+    {
+      "id": "c82_concession",
+      "name_key": "contact.type.c82_concession",
+      "group_key": "contact.type.c82_concession.plural",
+      "create_key": "contact.type.c82_concession.new",
+      "edit_key": "contact.type.c82_concession.edit",
+      "parents": [
+        "c80_concession"
+      ],
+      "icon": "medic-person",
+      "edit_form": "form:contact:c82_concession:edit",
+      "person": true
+    },
+    {
+      "id": "c92_household",
+      "name_key": "contact.type.c92_household",
+      "group_key": "contact.type.c92_household.plural",
+      "create_key": "contact.type.c92_household.new",
+      "edit_key": "contact.type.c92_household.edit",
+      "parents": [
+        "c90_household"
+      ],
+      "icon": "medic-person",
+      "create_form": "form:contact:c92_household:create",
+      "edit_form": "form:contact:c92_household:edit",
+      "person": true,
+      "sort_by_dob": true
+    }
+  ]
+}

@@ -1,14 +1,24 @@
 const chalk = require('chalk');
 const fs = require('fs');
 const path = require('path');
-const initModule = require('./src/init');
 const utils = require('./src/utils');
-const addItem = require('./src/add-item');
 const update = require('./src/update');
+const { getInitConfigs, createConfigFile } = require('./src/init');
+const { getItemConfig, addConfigItem } = require('./src/add-item');
 
 //Stock monitoring module initialization
 async function init() {
-  initModule();
+  const processDir = process.cwd();
+
+  if (utils.alreadyInit(processDir)) {
+    console.log(chalk.red.bold('Stock monitoring module already init'));
+    return;
+  }
+
+  const answers = await getInitConfigs();
+  console.log('answers', answers);
+  const config = createConfigFile(answers);
+  await update(config);
 }
 
 function getConfig() {
@@ -27,7 +37,8 @@ module.exports = {
   init,
   add: async () => {
     const config = getConfig();
-    const updatedConfig = await addItem(config);
+    const itemConfig = await getItemConfig(config);
+    const updatedConfig = await addConfigItem(config, itemConfig);
     await update(updatedConfig);
   },
   update: async () => {

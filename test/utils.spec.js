@@ -1,6 +1,6 @@
 const assert = require('chai').assert;
 const path = require('path');
-const { getWorkSheet, getRowWithName, getSheetGroupBeginEnd } = require('../src/utils');
+const { getWorkSheet, getRowWithValueAtPosition, getSheetGroupBeginEnd } = require('../src/utils');
 
 let stockCountWorkSheet = null;
 
@@ -22,13 +22,13 @@ describe('Utils', function () {
       assert.equal(end, 12);
     });
   });
-  describe('#getRowWithName()', function () {
+  describe('#getRowWithValueAtPosition()', function () {
     it('row name = romulad - rowWithName = null', async function () {
-      const rowWithName = getRowWithName(stockCountWorkSheet, 'romuald');
+      const [,rowWithName] = getRowWithValueAtPosition(stockCountWorkSheet, 'romuald');
       assert.isNull(rowWithName);
     });
     it('row name = items - rowWithName.name = items', async function () {
-      const rowWithName = getRowWithName(stockCountWorkSheet, 'items');
+      const [,rowWithName] = getRowWithValueAtPosition(stockCountWorkSheet, 'items');
       assert.isNotNull(rowWithName);
       assert.deepEqual(rowWithName.name, 'items');
     });

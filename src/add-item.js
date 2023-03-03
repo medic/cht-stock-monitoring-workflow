@@ -2,150 +2,218 @@ const inquirer = require('inquirer');
 const utils = require('./utils');
 const path = require('path');
 const fs = require('fs');
-const { STOCK_MONITORING_AREA_ROW_NAME } = require('./config');
 
-function getPreviousItemValue(config, form, item, param) {
-  if (config.items?.[item]) {
-    const properties = config.items[item];
-    if (param === 'expression') {
-      return properties.forms[form] || '';
-    }
-    if (param.startsWith('label')) {
-      const language = param.split('.')[1];
-      return properties.label[language];
-    }
-    return properties[param];
-  }
-  return '';
-}
+/**
+ * Config
+ * - expression
+ * - languages
+ * - useItemCategory
+ * - confirmItemSupply
+ * - messages
+ * - categories = {}
+ * - items = {}
+ * - forms = {}
+ */
+async function getItemConfig(config) {
+  const processDir = process.cwd();
+  let categoryConfig = null;
+  let itemConfig = null;
+  let formConfig = {};
 
-module.exports = async function (config) {
-  const languageSpecificQuestions = [];
-  for (const language of config.languages) {
-    languageSpecificQuestions.push({
-      type: 'input',
-      name: `label:${language}`,
-      message: `Item label in ${language}`,
-      default: (answers) => {
-        return getPreviousItemValue(config, answers.form, answers.name, `label.${language}`);
-      }
-    });
-  }
-  const answers = await inquirer.prompt([
+  // Get form id
+  const formAnswer = await inquirer.prompt([
     {
       type: 'input',
       name: 'form',
       message: 'Form ID',
       validate: async (input) => {
         //Find stock_monitoring_area_id
-        const processDir = process.cwd();
         const formPath = path.join(processDir, 'forms', 'app', `${input}.xlsx`);
         if (!fs.existsSync(formPath)) {
           return `Form ${input} not found`;
         }
-        const workSheet = await utils.getWorkSheet(formPath);
-        const stockMonitoringAreaIdRow = utils.getRowWithName(workSheet, STOCK_MONITORING_AREA_ROW_NAME);
-        if (!stockMonitoringAreaIdRow) {
-          return `${STOCK_MONITORING_AREA_ROW_NAME} calculated row not found in form. Please add it with value the parent ${config.placeType} _id`;
-        }
         return true;
       }
-    },
-    {
-      type: 'input',
-      name: 'name',
-      message: 'Item name'
-    },
-    ...languageSpecificQuestions,
-    {
-      type: 'input',
-      name: 'unit',
-      message: 'Item unit',
-      default: (answers) => {
-        return getPreviousItemValue(config, answers.form, answers.name, 'unit');
-      }
-    },
-    {
-      type: 'input',
-      name: 'reception_min',
-      message: 'Minimum reception count',
-      validate: (input) => {
-        const isValid = Number(input) >= 0;
-        if (!isValid) {
-          return 'Must be greater than or equal to 0';
-        }
-        return isValid;
-      },
-      default: (answers) => {
-        return getPreviousItemValue(config, answers.form, answers.name, 'reception_min');
-      }
-    },
-    {
-      type: 'input',
-      name: 'reception_max',
-      message: 'Maximum reception count',
-      validate: (input, answers) => {
-        const isValid = Number(answers.reception_min) < Number(input);
-        if (!isValid) {
-          return `Must be greater than ${answers.reception_min}`;
-        }
-        return isValid;
-      },
-      default: (answers) => {
-        return getPreviousItemValue(config, answers.form, answers.name, 'reception_max');
-      }
-    },
-    {
-      type: 'input',
-      name: 'warning_count',
-      message: 'Item warning stock',
-      validate: (input, answers) => {
-        const isValid = Number(answers.reception_min) < Number(input) && Number(answers.reception_max) > Number(input);
-        if (!isValid) {
-          return `Must be between ${answers.reception_min} and ${answers.reception_max}`;
-        }
-        return isValid;
-      },
-      default: (answers) => {
-        return getPreviousItemValue(config, answers.form, answers.name, 'warning_count');
-      }
-    },
-    {
-      type: 'input',
-      name: 'danger_count',
-      message: 'Item danger stock',
-      validate: (input, answers) => {
-        const isValid = Number(answers.warning_count) > Number(input) && Number(input) > 0;
-        if (!isValid) {
-          return `Must be lower than ${answers.warning_count}`;
-        }
-        return isValid;
-      },
-      default: (answers) => {
-        return getPreviousItemValue(config, answers.form, answers.name, 'danger_count');
-      }
-    },
-    {
-      type: 'input',
-      name: 'expression',
-      message: 'Xform count expression',
-      default: (answers) => {
-        return getPreviousItemValue(config, answers.form, answers.name, 'expression');
-      }
-    },
+    }
   ]);
-  const { form, expression, ...properties } = answers;
-  properties.forms = {};
-  if (config.items?.[answers.name]) {
-    properties.forms = config.items[answers.name].forms;
+
+  // Find if place_id calculation exist in form
+  const form = formAnswer.form;
+  formConfig = config.forms[form] || {
+    items: {}
+  };
+  formConfig.name = form;
+
+  if (!formConfig.place_id) {
+    const formPath = path.join(processDir, 'forms', 'app', `${form}.xlsx`);
+    const workSheet = await utils.getWorkSheet(formPath);
+    const [, stockMonitoringAreaIdRow] = utils.getRowWithValueAtPosition(workSheet, 'place_id');
+    if (!stockMonitoringAreaIdRow) {
+      // Ask place_id
+      const placeAnswer = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'place_id',
+          message: 'Add form place_id calculation'
+        }
+      ]);
+      formConfig['place_id'] = placeAnswer.place_id;
+    }
   }
-  properties.forms[form] = expression;
-  properties.label = {};
-  for (const language of config.languages) {
-    properties.label[language] = answers[`label:${language}`];
-    properties[`label:${language}`] = undefined;
+
+  // Find existing items not in form to propose them
+  const configItems = Object.keys(config.items);
+  const formItems = Object.keys(formConfig.items);
+  const existingItems = configItems.filter((it) => !formItems.includes(it));
+
+  // Propose to select item
+  if (existingItems.length > 0) {
+    const choices = existingItems.map((it) => {
+      return {
+        name: config.items[it].label[config.languages[0]],
+        value: it,
+      };
+    });
+    choices.push({
+      name: 'Create new item',
+      value: '___new_item___'
+    });
+    const itemSelect = await inquirer.prompt([{
+      type: 'list',
+      name: 'item',
+      message: 'Select item',
+      choices,
+    }]);
+    if (itemSelect.item !== '___new_item___') {
+      itemConfig = config.items[itemSelect.item];
+      if (itemConfig.category) {
+        categoryConfig = config.categories[itemConfig.category];
+      }
+    }
   }
-  config.items[answers.name] = properties;
-  utils.writeConfig(config);
-  return config;
+
+  if (!itemConfig) {
+    if (config.useItemCategory) {
+      if (config.categories && Object.keys(config.categories).length > 0) {
+        // Propose category to select
+        const choices = Object.values(config.categories).map((it) => ({
+          name: it.label[config.languages[0]],
+          value: it.name,
+        }));
+        choices.push({
+          name: 'Create new category',
+          value: '___new_category___'
+        });
+        const categorySelect = await inquirer.prompt([{
+          type: 'list',
+          name: 'category',
+          message: 'Select category',
+          choices,
+        }]);
+        if (categorySelect.category !== '___new_category___') {
+          categoryConfig = config.categories[categorySelect.category];
+        }
+      }
+      if (!categoryConfig) {
+        categoryConfig = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'name',
+            message: 'Enter category name',
+          },
+          ...config.languages.map((language) => ({
+            type: 'input',
+            name: `label.${language}`,
+            message: `Enter category label in ${language}`
+          })),
+          ...config.languages.map((language) => ({
+            type: 'input',
+            name: `description.${language}`,
+            message: `Enter category description in ${language}`
+          }))
+        ]);
+      }
+    }
+    itemConfig = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'name',
+        message: 'Enter item name',
+      },
+      ...config.languages.map((language) => ({
+        type: 'input',
+        name: `label.${language}`,
+        message: `Enter item label in ${language}`
+      })),
+      {
+        type: 'input',
+        name: 'unit',
+        message: 'Enter item unit',
+      },
+      {
+        type: 'number',
+        name: 'warning_total',
+        message: 'Warning total',
+      },
+      {
+        type: 'number',
+        name: 'danger_total',
+        message: 'Danger total',
+      }
+    ]);
+    if (categoryConfig) {
+      itemConfig.category = categoryConfig.name;
+    }
+  }
+
+  const itemDeduction = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'deduction_type',
+      message: 'How is the item deduced ?',
+      choices: [
+        {
+          name: 'User select quantity',
+          value: 'by_user'
+        },
+        {
+          name: 'Custom automatic formula',
+          value: 'formula'
+        }
+      ]
+    }
+  ]);
+
+  const formularRequest = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'formular',
+      message: itemDeduction.deduction_type === 'formula' ? 'Enter formular' : 'In what condition ask the quantity?'
+    }
+  ]);
+  itemDeduction.formular = formularRequest.formular;
+  
+  formConfig.items[itemConfig.name] = itemDeduction;
+  return {
+    formConfig,
+    categoryConfig,
+    itemConfig
+  };
+}
+
+function addConfigItem(appConfig, {
+  formConfig,
+  categoryConfig,
+  itemConfig
+}) {
+  appConfig.items[itemConfig.name] = itemConfig;
+  appConfig.categories[categoryConfig.name] = categoryConfig;
+  appConfig.forms[formConfig.name] = formConfig;
+  utils.writeConfig(appConfig);
+  return appConfig;
+}
+
+module.exports = {
+  getItemConfig,
+  addConfigItem,
 };
