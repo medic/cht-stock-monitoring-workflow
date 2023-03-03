@@ -20,12 +20,6 @@ describe('Init', function () {
 
     initModule.__set__('utils', utilsModule);
     updateModule.__set__('utils', utilsModule);
-    updateModule.__set__('Config', {
-      STOCK_COUNT_PATH: path.join(__dirname, 'app', 'forms', 'app', 'stock_count.xlsx'),
-      STOCK_COUNT_PROPERTY_PATH: path.join(__dirname, 'app', 'forms', 'app', 'stock_count.properties.json'),
-      CONSUMPTION_LOG_PATH: path.join(__dirname, 'app', 'forms', 'app', 'consumption_log.xlsx'),
-      CONSUMPTION_LOG_PROPERTY_PATH: path.join(__dirname, 'app', 'forms', 'app', 'consumption_log.properties.json'),
-    });
 
     // Copy test files
     fs.copyFileSync('./test/files/assessment.properties.json', './test/app/forms/app/assessment.properties.json');

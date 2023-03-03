@@ -266,12 +266,13 @@ function getItemRows(items, languages, header) {
 }
 
 async function updateStockCount(configs) {
-  const { languages, messages } = configs;
   const processDir = process.cwd();
+  const stockCountPath = path.join(processDir, 'forms', 'app', `${configs.stockCountName}.xlsx`);
+  const { languages, messages } = configs;
   const items = Object.values(configs.items);
-  fs.copyFileSync(path.join(__dirname, '../templates/stock_count.xlsx'), Config.STOCK_COUNT_PATH);
+  fs.copyFileSync(path.join(__dirname, '../templates/stock_count.xlsx'), stockCountPath);
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(Config.STOCK_COUNT_PATH);
+  await workbook.xlsx.readFile(stockCountPath);
   const surveyWorkSheet = workbook.getWorksheet('survey');
   const settingWorkSheet = workbook.getWorksheet('settings');
 
@@ -362,7 +363,6 @@ async function updateStockCount(configs) {
   addStockCountCalculation(surveyWorkSheet, Object.values(configs.items), languages);
   settingWorkSheet.getRow(2).getCell(1).value = messages[languages[0]].stock_count_form_display_name;
 
-  const stockCountPath = path.join(processDir, 'forms', 'app', `${configs.stockCountName}.xlsx`);
   await workbook.xlsx.writeFile(stockCountPath);
 
   // Add stock count form properties
