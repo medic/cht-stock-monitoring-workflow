@@ -3,13 +3,8 @@ const utils = require('./utils');
 const inquirer = require('inquirer');
 
 async function getInitConfigs() {
+  const appSettings = utils.getAppSettings();
   const answers = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'languages',
-      message: 'Enter app languages',
-      default: 'en'
-    },
     {
       type: 'confirm',
       name: 'useItemCategory',
@@ -18,37 +13,30 @@ async function getInitConfigs() {
     },
     {
       type: 'input',
-      name: 'stockCountName',
+      name: 'features.stock_count.form_name',
       message: 'Stock count form (Used to fill in balances on hand) ID or name',
       default: 'stock_count',
     },
     {
       type: 'input',
-      name: 'expression.stockCount',
+      name: 'features.stock_count.expression',
       message: 'Stock count form expression',
-    }
-  ]);
-
-  const languages = answers.languages.split(',');
-  const formDisplayNames = await inquirer.prompt([
-    ...languages.map((lang) => {
+    },
+    ...appSettings.locales.map((locale) => {
       return {
         type: 'input',
-        name: `stock_count_form_display_name.${lang}`,
-        message: `Stock count form display name in ${lang}`,
+        name: `features.stock_count.title.${locale.code}`,
+        message: `Stock count form title in ${locale.name}`,
         default: 'Stock count'
       };
     }),
   ]);
-
-  return {
-    ...answers,
-    ...formDisplayNames,
-  };
+  return answers;
 }
 
 function createConfigFile(configs) {
-  const languages = configs.languages.split(',');
+  const appSettings = utils.getAppSettings();
+  const languages = appSettings.locales.map((locale) => locale.code);
   console.log(chalk.blue.bold(`Initializing stock monitoring in level`));
 
   // Create configuration file
@@ -75,12 +63,10 @@ function createConfigFile(configs) {
     'consumption_log_summary_followup_note': 'If you have stockouts, follow up with your supervisor to know when to go for a refill'
   };
   configs.languages = languages;
+  configs.defaultLanguage = appSettings.locale;
   configs.messages = {};
   for (const language of languages) {
-    const msg = { ...messages };
-    msg['stock_count_form_display_name'] = configs['stock_count_form_display_name'][language];
-    // msg['consumption_log_form_display_name'] = configs['consumption_log_form_display_name'][language];
-    configs.messages[language] = msg;
+    configs.messages[language] = messages;
   }
   configs.forms = {};
   configs.items = {};

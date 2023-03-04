@@ -12,6 +12,16 @@ function isChtApp() {
   return false;
 }
 
+function getAppSettings() {
+  const processDir = process.cwd();
+  const baseSettingFile = path.join(processDir, 'app_settings', 'base_settings.json');
+  const rawSettings = fs.readFileSync(baseSettingFile, {
+    encoding: 'utf-8'
+  });
+  const settings = JSON.parse(rawSettings);
+  return settings;
+}
+
 function alreadyInit(directory) {
   const configFilePath = path.join(directory, 'stock-monitoring.config.json');
   if (fs.existsSync(configFilePath)) {
@@ -106,6 +116,7 @@ function buildRowValues(header, values) {
 
 module.exports = {
   isChtApp,
+  getAppSettings,
   alreadyInit,
   writeConfig,
   getSheetGroupBeginEnd,

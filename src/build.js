@@ -267,7 +267,8 @@ function getItemRows(items, languages, header) {
 
 async function updateStockCount(configs) {
   const processDir = process.cwd();
-  const stockCountPath = path.join(processDir, 'forms', 'app', `${configs.stockCountName}.xlsx`);
+  const stockCountConfigs = configs.features.stock_count;
+  const stockCountPath = path.join(processDir, 'forms', 'app', `${stockCountConfigs.form_name}.xlsx`);
   const { languages, messages } = configs;
   const items = Object.values(configs.items);
   fs.copyFileSync(path.join(__dirname, '../templates/stock_count.xlsx'), stockCountPath);
@@ -361,7 +362,8 @@ async function updateStockCount(configs) {
   );
   addStockCountSummaries(surveyWorkSheet, Object.values(configs.items), languages);
   addStockCountCalculation(surveyWorkSheet, Object.values(configs.items), languages);
-  settingWorkSheet.getRow(2).getCell(1).value = messages[languages[0]].stock_count_form_display_name;
+  settingWorkSheet.getRow(2).getCell(1).value = stockCountConfigs.title[configs.defaultLanguage];
+  settingWorkSheet.getRow(2).getCell(2).value = stockCountConfigs.form_name;
 
   await workbook.xlsx.writeFile(stockCountPath);
 
@@ -371,23 +373,32 @@ async function updateStockCount(configs) {
     'context': {
       'person': false,
       'place': true,
-      'expression': configs.expression.stockCount
+      'expression': stockCountConfigs.expression
     },
     title: languages.map((lang) => {
       return {
         locale: lang,
-        content: messages[lang].stock_count_form_display_name
+        content: stockCountConfigs.title[lang]
       };
     }),
   };
-  const stockCountPropertyPath = path.join(processDir, 'forms', 'app', `${configs.stockCountName}.properties.json`);
+  const stockCountPropertyPath = path.join(processDir, 'forms', 'app', `${stockCountConfigs.form_name}.properties.json`);
   fs.writeFileSync(stockCountPropertyPath, JSON.stringify(formProperties, null, 4));
-  console.log(chalk.green(`INFO ${messages[languages[0]].stock_count_form_display_name} form updated successfully`));
+  console.log(chalk.green(`INFO ${stockCountConfigs.title[configs.defaultLanguage]} form updated successfully`));
 }
 
 module.exports = async function (configs) {
-  // Create stock count form xlsx
-  await updateStockCount(configs);
+  for (const feature of Object.keys(configs.features)) {
+    switch (feature) {
+    case 'stock_count':
+      // Create stock count form xlsx
+      await updateStockCount(configs);
+      break;
+    
+    default:
+      break;
+    }
+  }
 
   // Add consumption log form xlsx
   // await updateConsumptionLog({
