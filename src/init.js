@@ -4,6 +4,62 @@ const inquirer = require('inquirer');
 
 async function getInitConfigs() {
   const appSettings = utils.getAppSettings();
+  const roles = Object.keys(appSettings.roles);
+  const appPersonTypes = appSettings.contact_types.filter((ct) => ct.person);
+  console.log(chalk.green(`INFO Stock monitoring configuration`));
+  const monitoringType = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'monitoring_type',
+      message: 'Type',
+      choices: [
+        {
+          name: '2 levels (supervisor + chw)',
+          value: '2_levels'
+        },
+        {
+          name: '3 levels (Health center + supervisor + chw)',
+          value: '3_levels'
+        }
+      ],
+    }
+  ]);
+
+  let nbLevels = 2;
+  if (monitoringType.monitoring_type === '3_levels') {
+    nbLevels = 3;
+  }
+
+  let levels = {};
+  for (let index = 1; index <= nbLevels; index++) {
+    const levelNumber = nbLevels + 1 - index;
+    const level = await inquirer.prompt([
+      {
+        type: 'list',
+        name: `${levelNumber}.contact_type`,
+        message: `Select level ${levelNumber} contact type`,
+        choices: appPersonTypes.map((p) => p.id),
+      },
+      {
+        type: 'list',
+        name: `${levelNumber}.role`,
+        message: `Select level ${levelNumber} role`,
+        choices: roles,
+      }
+    ]);
+    levels = {
+      ...levels,
+      ...level,
+    };
+  }
+  for (const levelNumber of Object.keys(levels)) {
+    const level = levels[levelNumber];
+    // Get parents
+    const contactTypeDetails = appSettings.contact_types.find((ct) => ct.id === level.contact_type);
+    const contactPlace = contactTypeDetails.parents[0];
+    levels[levelNumber]['place_type'] = contactPlace;
+  }
+
   const answers = await inquirer.prompt([
     {
       type: 'confirm',
@@ -14,13 +70,14 @@ async function getInitConfigs() {
     {
       type: 'input',
       name: 'features.stock_count.form_name',
-      message: 'Stock count form (Used to fill in balances on hand) ID or name',
+      message: 'Stock count form (Used to fill in balances on hand) ID',
       default: 'stock_count',
     },
     {
-      type: 'input',
-      name: 'features.stock_count.expression',
-      message: 'Stock count form expression',
+      type: 'checkbox',
+      name: 'features.stock_count.contact_types',
+      message: 'Select stock count form levels',
+      choices: Object.values(levels).map(l => l.contact_type),
     },
     ...appSettings.locales.map((locale) => {
       return {
@@ -31,7 +88,11 @@ async function getInitConfigs() {
       };
     }),
   ]);
-  return answers;
+
+  return {
+    ...answers,
+    levels,
+  };
 }
 
 function createConfigFile(configs) {
@@ -40,34 +101,8 @@ function createConfigFile(configs) {
   console.log(chalk.blue.bold(`Initializing stock monitoring in level`));
 
   // Create configuration file
-  const messages = {
-    'stock_count_balance_fill': 'Use this form to fill in balances on hand for all commodities as of today',
-    'stock_count_commodities_note': '<h3 class=”text-primary”> Commodities Balance on hand </h3>',
-    'stock_count_summary_header': 'Results/Summary page',
-    'stock_count_submit_note': '<h4 style="text-align:center;">Be sure you Submit to complete this action.</h4>',
-    'stock_count_summary_note': 'Stock items you currently have.<I class="fa fa-list-ul"></i>',
-    'consumption_log_item_received_header': 'Use this form to report on quantity received and quantity returned to the health facility',
-    'consumption_log_item_question': 'What would you like to report',
-    'consumption_log_item_returned_note': 'Quantity Returned for redistribution to oters or expiry issues',
-    'consumption_log_item_received_note': 'Quantity Received refers to stock received. Can be either issued by health assistant or any other health facility staff',
-    'consumption_log_item_quantity_received_label': 'Quantity Received',
-    'consumption_log_item_quantity_received_note': '<h3 class=”text-primary”> Please input the quantities that you have received for all commodities </h3>',
-    'consumption_log_item_quantity_returned_label': 'Quantity Returned',
-    'consumption_log_item_quantity_returned_note': '<h3 class=”text-primary”> Please input the quantities that you have returned to the health facility for all the commodities </h3>',
-    'consumption_log_summary_header': 'Results/Summary page',
-    'consumption_log_summary_note_1': '<h4 style="text-align:center;">Be sure you Submit to complete this action.</h4>',
-    'consumption_log_summary_note_2': 'Stock Item Details <I class="fa fa-list-ul"></i>',
-    'consumption_log_summary_note_3': '<h4 style="text-align:center;">Quantity received</h4>',
-    'consumption_log_summary_note_4': '<h4 style="text-align:center;">Quantity returned to the health facility</h4>',
-    'consumption_log_summary_followup': 'Follow Up',
-    'consumption_log_summary_followup_note': 'If you have stockouts, follow up with your supervisor to know when to go for a refill'
-  };
   configs.languages = languages;
   configs.defaultLanguage = appSettings.locale;
-  configs.messages = {};
-  for (const language of languages) {
-    configs.messages[language] = messages;
-  }
   configs.forms = {};
   configs.items = {};
   configs.categories = {};

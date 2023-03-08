@@ -1,6 +1,6 @@
 {
-  "name": "stock-monitoring",
-  "version": "1.0.0",
+  "name": "@medic/stock-monitoring",
+  "version": "0.0.1",
   "description": "Stock monitoring module",
   "main": "index.js",
   "scripts": {
@@ -13,21 +13,24 @@
     "monitoring"
   ],
   "bin": {
-    "cht-workflow-stock-monitoring": "./index.js"
+    "cht-workflow-stock-monitoring": "./main.js"
   },
   "license": "ISC",
-  "dependencies": {
-    "chalk": "^4.1.0",
-    "exceljs": "^4.3.0",
-    "inquirer": "^8.2.5",
-    "rxjs": "^7.8.0"
-  },
   "devDependencies": {
     "@medic/eslint-config": "^1.1.0",
     "chai": "^4.3.7",
-    "eslint": "^8.33.0",
-    "eslint-plugin-json": "^3.1.0",
+    "chalk": "^4.1.0",
+    "cht-nootils": "^4.2.0",
+    "eslint": "^6.8.0",
+    "eslint-plugin-json": "^2.0.1",
+    "exceljs": "^4.3.0",
+    "fs-extra": "^11.1.0",
+    "inquirer": "^8.2.5",
     "mocha": "^10.2.0",
     "rewire": "^6.0.0"
+  },
+  "dependencies": {
+    "fractional": "^1.0.0",
+    "luxon": "^3.3.0"
   }
 }

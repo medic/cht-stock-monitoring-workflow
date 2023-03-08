@@ -1,10 +1,11 @@
 const chalk = require('chalk');
-const fs = require('fs');
+const fs = require('fs-extra');
 const path = require('path');
 const utils = require('./src/utils');
 const build = require('./src/build');
 const { getInitConfigs, createConfigFile } = require('./src/init');
 const { getItemConfig, addConfigItem } = require('./src/add-item');
+const { getFeatureConfigs, addFeatureConfigs } = require('./src/add-feature');
 
 //Stock monitoring module initialization
 async function init() {
@@ -16,7 +17,6 @@ async function init() {
   }
 
   const answers = await getInitConfigs();
-  console.log('answers', answers);
   const config = createConfigFile(answers);
   await build(config);
 }
@@ -42,7 +42,10 @@ module.exports = {
     await build(updatedConfig);
   },
   addFeature: async () => {
-    
+    const config = getConfig();
+    const featureConfigs = await getFeatureConfigs(config);
+    const updatedConfig = await addFeatureConfigs(config, featureConfigs);
+    await build(updatedConfig);
   },
   build: async () => {
     const config = getConfig();

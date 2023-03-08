@@ -1,5 +1,5 @@
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs-extra');
 
 const processDir = process.cwd();
 let config = null;
@@ -16,5 +16,6 @@ module.exports = {
     return config;
   },
   STOCK_MONITORING_AREA_ROW_NAME: 'stock_monitoring_area_id',
+  MESSAGES_FILE_NAME: 'stock-monitoring.messages.json',
   ADDITIONAL_DOC_NAME: 'additional_doc'
 };

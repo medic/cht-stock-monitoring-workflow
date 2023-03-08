@@ -1,6 +1,9 @@
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs-extra');
 const ExcelJS = require('exceljs');
+const chalk = require('chalk');
+
+const TRANSLATION_PREFIX = 'cht-workflow-stock-monitoring.';
 
 function isChtApp() {
   const processDir = process.cwd();
@@ -30,10 +33,104 @@ function alreadyInit(directory) {
   return false;
 }
 
+function getTranslations(removePrefix = true) {
+  const appSettings = getAppSettings();
+  const processDir = process.cwd();
+  const locales = appSettings.locales.map(l => l.code);
+  return locales
+    .map((locale) => {
+      // Get cht app messages path
+      const messagePath = path.join(processDir, 'translations', `messages-${locale}.properties`);
+      const messages = fs.readFileSync(messagePath).toString().split('\n');
+      return [
+        locale,
+        messages
+          .map(message => message.split(/=(.*)/))
+          .filter(line => line.length > 2 && line[0].startsWith(TRANSLATION_PREFIX))
+          .map((line) => {
+            const ln = [...line];
+            if (removePrefix) {
+              ln[0] = ln[0].replace(TRANSLATION_PREFIX, '');
+            }
+            return ln;
+          })
+          .reduce((prev, next) => ({ ...prev, [next[0].trim()]: next[1].trim() }), {})];
+    }).reduce((prev, next) => ({ ...prev, [next[0]]: next[1] }), {});
+}
+
+function updateTranslations(configs) {
+  const appSettings = getAppSettings();
+  const processDir = process.cwd();
+  const items = Object.values(configs.items);
+
+  const locale = appSettings.locale;
+  const locales = appSettings.locales.map(l => l.code);
+  // Get cht app messages path
+  const chtAppMsg = getTranslations(false);
+
+  const rawCompMessages = fs.readFileSync(path.join(__dirname, '../templates/stock-monitoring.messages.json'));
+  const compMsgs = JSON.parse(rawCompMessages);
+
+  const chtAppMsgKeys = Object.keys(chtAppMsg[locale]);
+  const compMsgKeys = Object.keys(compMsgs);
+
+  // Feature messages
+  const missingFeaturesKeys = [].concat(
+    ...Object.keys(configs.features).map((feature) => {
+      const featureKeys = Object.keys(compMsgs).filter((key) => key.startsWith(`${feature}.`));
+      return [].concat(
+        ...featureKeys.map((featureKey) => {
+          const featureKeys = compMsgKeys.filter(k => k.startsWith(featureKey));
+          return featureKeys.filter((fKey) => !chtAppMsgKeys.includes(`cht-workflow-stock-monitoring.${fKey}`));
+        })
+      );
+    })
+  );
+  const missingFeatureMsgs = missingFeaturesKeys.reduce((prev, next) =>
+    ({ ...prev, [`cht-workflow-stock-monitoring.${next}`]: compMsgs[next] }), {});
+  const missingMsgs = {};
+  for (const lang of locales) {
+    missingMsgs[lang] = { ...missingFeatureMsgs };
+  }
+
+  for (const item of items) {
+    for (const lang of locales) {
+      const key = `cht-workflow-stock-monitoring.items.${item.name}.label`;
+      if (!chtAppMsgKeys.includes(key)) {
+        missingMsgs[lang][key] = item.label[lang];
+      }
+    }
+  }
+
+  // Append missing locales
+  for (const lang of locales) {
+    const localFilePath = path.join(processDir, 'translations', `messages-${lang}.properties`);
+    const langMsg = Object.keys(missingMsgs[lang]).map(k => `${k} = ${missingMsgs[lang][k].replaceAll("'", '"')}`).join('\n');
+    if (fs.existsSync(localFilePath)) {
+      fs.appendFileSync(localFilePath, `\n${langMsg}`);
+    }
+  }
+
+  const nbNewKeys = Object.keys(missingMsgs[locale]).length;
+  if (nbNewKeys > 0) {
+    console.log(chalk.green(`INFO ${nbNewKeys} new messages added`));
+  } else {
+    console.log(chalk.green(`INFO no new message added`));
+  }
+}
+
 function writeConfig(config) {
   const processDir = process.cwd();
   const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
   fs.writeFileSync(configFilePath, JSON.stringify(config, null, 4));
+  updateTranslations(config);
+}
+
+function getConfigs() {
+  const processDir = process.cwd();
+  const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
+  const content = fs.readFileSync(configFilePath);
+  return JSON.parse(content);
 }
 
 function getSheetGroupBeginEnd(workSheet, name) {
@@ -71,7 +168,7 @@ function getRowWithValueAtPosition(workSheet, value, position = 2) {
       //The row.values first element is undefined
       columns.shift();
     }
-    
+
     if (row.values[position] && row.values[position].trim() === value) {
       if (!rowData) {
         rowData = {};
@@ -123,5 +220,8 @@ module.exports = {
   getRowWithValueAtPosition,
   getWorkSheet,
   buildRowValues,
+  getConfigs,
+  updateTranslations,
+  getTranslations,
 };
 

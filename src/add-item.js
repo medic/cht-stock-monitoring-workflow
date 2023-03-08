@@ -1,7 +1,7 @@
 const inquirer = require('inquirer');
 const utils = require('./utils');
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs-extra');
 
 /**
  * Config
