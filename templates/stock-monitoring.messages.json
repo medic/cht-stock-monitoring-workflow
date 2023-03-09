@@ -17,6 +17,8 @@
   "stock_supply.confirmation.item_received_question": "Did you received {{qty}} {{unit}} of {{item}}",
   "stock_supply.choices.yes_no.yes": "Yes",
   "stock_supply.choices.yes_no.no": "No",
+  "stock_supply.forms.additional_doc_title": "Stock uses",
+  "stock_supply.forms.item_used_question": "Quantity of {{item}}",
   "stock_supply.confirmation.qty_received_question": "Enter the quantitity received",
   "stock_supply.confirmation.summary_note": "Stock items you received.<I class='fa fa-list-ul'></i>",
   "consumption_log.item_question": "What would you like to report",

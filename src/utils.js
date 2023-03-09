@@ -133,6 +133,12 @@ function getConfigs() {
   return JSON.parse(content);
 }
 
+/**
+ * Get xform group begin and end index. If not found begin and end = -1
+ * @param {WorkSheet} workSheet Xform worksheet
+ * @param {string} name Group name
+ * @returns [groupBeginIndex, groupEndIndex]
+ */
 function getSheetGroupBeginEnd(workSheet, name) {
   let foundItemBeginGroup = false;
   let beginGroupRowNumber = -1;

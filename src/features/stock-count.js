@@ -18,7 +18,7 @@ function addStockCountSummaries(workSheet, items, languages) {
       appearance: '',
     };
     for (const language of languages) {
-      itemRow[`label:${language}`] = `<h5 style="text-align:center;"> ${item.label[language]}: **` + '${' + item.name + '} ' + `${item.unit}** </h5>`; // Row label
+      itemRow[`label::${language}`] = `<h5 style="text-align:center;"> ${item.label[language]}: **` + '${' + item.name + '} ' + `${item.unit}** </h5>`; // Row label
     }
     itemRows.push(buildRowValues(header, itemRow));
   }
@@ -64,7 +64,7 @@ function getItemRows(items, languages, header) {
       'constraint_message': '',
     };
     for (const language of languages) {
-      itemRow[`label:${language}`] = item.label[language] || ''; // Row label
+      itemRow[`label::${language}`] = item.label[language] || ''; // Row label
     }
 
     itemRows.push(buildRowValues(header, itemRow));
@@ -91,7 +91,7 @@ async function updateStockCount(configs) {
   for (const language of languages) {
     labelColumns.push(
       [
-        `label:${language}`,
+        `label::${language}`,
         'Patient',
         'Source',
         'Source ID',
@@ -148,7 +148,7 @@ async function updateStockCount(configs) {
         'constraint_message': '',
       };
       for (const language of languages) {
-        categoryRow[`label:${language}`] = `### ${category.label[language]} - ${category.description[language]}` || ''; // Row label
+        categoryRow[`label::${language}`] = `### ${category.label[language]} - ${category.description[language]}` || ''; // Row label
       }
       itemRows.push(buildRowValues(header, categoryRow));
       itemRows.push(

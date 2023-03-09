@@ -1,6 +1,7 @@
 const inquirer = require('inquirer');
 const utils = require('./utils');
 const path = require('path');
+const chalk = require('chalk');
 const fs = require('fs-extra');
 
 /**
@@ -14,7 +15,7 @@ const fs = require('fs-extra');
  * - items = {}
  * - forms = {}
  */
-async function getItemConfig(config) {
+async function getItemConfig(configs) {
   const processDir = process.cwd();
   let categoryConfig = null;
   let itemConfig = null;
@@ -39,30 +40,20 @@ async function getItemConfig(config) {
 
   // Find if place_id calculation exist in form
   const form = formAnswer.form;
-  formConfig = config.forms[form] || {
+  formConfig = configs.forms[form] || {
     items: {}
   };
   formConfig.name = form;
-
-  if (!formConfig.place_id) {
-    const formPath = path.join(processDir, 'forms', 'app', `${form}.xlsx`);
-    const workSheet = await utils.getWorkSheet(formPath);
-    const [, stockMonitoringAreaIdRow] = utils.getRowWithValueAtPosition(workSheet, 'place_id');
-    if (!stockMonitoringAreaIdRow) {
-      // Ask place_id
-      const placeAnswer = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'place_id',
-          message: 'Add form place_id calculation'
-        }
-      ]);
-      formConfig['place_id'] = placeAnswer.place_id;
-    }
+  const referenceToLevel = `${configs.levels['1'].place_type}_id`;
+  const formPath = path.join(processDir, 'forms', 'app', `${form}.xlsx`);
+  const workSheet = await utils.getWorkSheet(formPath);
+  const [, stockMonitoringAreaIdRow] = utils.getRowWithValueAtPosition(workSheet, referenceToLevel);
+  if (!stockMonitoringAreaIdRow) {
+    console.log(chalk.green(`WARN Please add ${referenceToLevel} calculation in your form.`));
   }
 
   // Find existing items not in form to propose them
-  const configItems = Object.keys(config.items);
+  const configItems = Object.keys(configs.items);
   const formItems = Object.keys(formConfig.items);
   const existingItems = configItems.filter((it) => !formItems.includes(it));
 
@@ -70,7 +61,7 @@ async function getItemConfig(config) {
   if (existingItems.length > 0) {
     const choices = existingItems.map((it) => {
       return {
-        name: config.items[it].label[config.languages[0]],
+        name: configs.items[it].label[configs.languages[0]],
         value: it,
       };
     });
@@ -85,19 +76,19 @@ async function getItemConfig(config) {
       choices,
     }]);
     if (itemSelect.item !== '___new_item___') {
-      itemConfig = config.items[itemSelect.item];
+      itemConfig = configs.items[itemSelect.item];
       if (itemConfig.category) {
-        categoryConfig = config.categories[itemConfig.category];
+        categoryConfig = configs.categories[itemConfig.category];
       }
     }
   }
 
   if (!itemConfig) {
-    if (config.useItemCategory) {
-      if (config.categories && Object.keys(config.categories).length > 0) {
+    if (configs.useItemCategory) {
+      if (configs.categories && Object.keys(configs.categories).length > 0) {
         // Propose category to select
-        const choices = Object.values(config.categories).map((it) => ({
-          name: it.label[config.languages[0]],
+        const choices = Object.values(configs.categories).map((it) => ({
+          name: it.label[configs.languages[0]],
           value: it.name,
         }));
         choices.push({
@@ -111,7 +102,7 @@ async function getItemConfig(config) {
           choices,
         }]);
         if (categorySelect.category !== '___new_category___') {
-          categoryConfig = config.categories[categorySelect.category];
+          categoryConfig = configs.categories[categorySelect.category];
         }
       }
       if (!categoryConfig) {
@@ -121,12 +112,12 @@ async function getItemConfig(config) {
             name: 'name',
             message: 'Enter category name',
           },
-          ...config.languages.map((language) => ({
+          ...configs.languages.map((language) => ({
             type: 'input',
             name: `label.${language}`,
             message: `Enter category label in ${language}`
           })),
-          ...config.languages.map((language) => ({
+          ...configs.languages.map((language) => ({
             type: 'input',
             name: `description.${language}`,
             message: `Enter category description in ${language}`
@@ -140,7 +131,7 @@ async function getItemConfig(config) {
         name: 'name',
         message: 'Enter item name',
       },
-      ...config.languages.map((language) => ({
+      ...configs.languages.map((language) => ({
         type: 'input',
         name: `label.${language}`,
         message: `Enter item label in ${language}`

@@ -655,7 +655,7 @@ async function updateStockSupply(configs) {
   fs.writeFileSync(stockSupplyPropertyPath, JSON.stringify(formProperties, null, 4));
   console.log(chalk.green(`INFO ${featureConfigs.title[configs.defaultLanguage]} form updated successfully`));
   if (configs.features.stock_supply && configs.features.stock_supply.confirm_supply) {
-    updateStockConfirmation(configs, messages);
+    await updateStockConfirmation(configs, messages);
   }
 }
 

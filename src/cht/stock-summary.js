@@ -1,6 +1,6 @@
 // const messages = require('/stock-monitoring.messages.json');
 const { Fraction } = require('fractional');
-const { TRANSLATION_PREFIX, SUPPLY_ADDITIONAL_DOC } = require('../constants');
+const { TRANSLATION_PREFIX, SUPPLY_ADDITIONAL_DOC, FORM_ADDITIONAL_DOC_NAME } = require('../constants');
 const { DateTime } = require('luxon');
 let Utils = {};
 
@@ -19,7 +19,8 @@ function getItemCount(itemName, listReports, dynamicFormNames) {
   for (const report of listReports) {
     switch (report.form) {
       case SUPPLY_ADDITIONAL_DOC:
-        total -= Number(Utils.getField(report, `${itemName}_out`));
+      case FORM_ADDITIONAL_DOC_NAME:
+        total -= Number(Utils.getField(report, `${itemName}_out`) || 0);
         break;
       case dynamicFormNames.supplyConfirm:
         total += Number(Utils.getField(report, `out.${itemName}_confirmed`));
@@ -76,7 +77,7 @@ function getSummary(configs, reports, _Utils) {
       stockReports.push(
         lastStockCount,
         ...reports.filter((report) => {
-          const forms = [SUPPLY_ADDITIONAL_DOC];
+          const forms = [SUPPLY_ADDITIONAL_DOC, FORM_ADDITIONAL_DOC_NAME];
           if (configs.features.stock_supply && configs.features.stock_supply.confirm_supply && configs.features.stock_supply.confirm_supply.active) {
             dynamicFormNames.supplyConfirm = configs.features.stock_supply.confirm_supply.form_name;
             forms.push(dynamicFormNames.supplyConfirm);

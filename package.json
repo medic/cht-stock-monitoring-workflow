@@ -3,11 +3,6 @@
   "version": "0.0.1",
   "description": "Stock monitoring module",
   "main": "index.js",
-  "scripts": {
-    "pretest": "cd test && mkdir app && cd app && cht initialise-project-layout",
-    "test": "mocha test/{**,}/*.spec.js --timeout 30000 --slow 500",
-    "clear": "rm -rf test/app"
-  },
   "keywords": [
     "stock",
     "monitoring"
