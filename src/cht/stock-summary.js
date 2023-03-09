@@ -1,15 +1,36 @@
 // const messages = require('/stock-monitoring.messages.json');
 const { Fraction } = require('fractional');
-const { TRANSLATION_PREFIX } = require('./utils');
+const { TRANSLATION_PREFIX, SUPPLY_ADDITIONAL_DOC } = require('../constants');
+const { DateTime } = require('luxon');
 let Utils = {};
 
 const NEGATIVE_STOCK_MSG = '(Ensure that you have entered all stock received)';
 
-function getItemCount(itemName, reports) {
-  const lastStockCount = Utils.getMostRecentReport(reports, 'commodity_count');
-  const initialCount = Utils.getField(lastStockCount, `out.${itemName}_availables`);
+const getDynamicReportedDate = report => {
+  const specifiedDate = Utils.getField(report, 's_reported.s_reported_date') || Utils.getField(report, 'supervision_date');
+  return (specifiedDate && DateTime.fromISO(specifiedDate)) ||
+    DateTime.fromMillis(parseInt((report && report.reported_date) || 0));
+};
+
+function getItemCount(itemName, listReports, dynamicFormNames) {
+  const lastStockCount = Utils.getMostRecentReport(listReports, dynamicFormNames.stockCount);
+  let total = Number(Utils.getField(lastStockCount, `out.${itemName}_availables`));
+
+  for (const report of listReports) {
+    switch (report.form) {
+      case SUPPLY_ADDITIONAL_DOC:
+        total -= Number(Utils.getField(report, `${itemName}_out`));
+        break;
+      case dynamicFormNames.supplyConfirm:
+        total += Number(Utils.getField(report, `out.${itemName}_confirmed`));
+        break;
+      default:
+        break;
+    }
+
+  }
   //TODO: Update calculation
-  return Number(initialCount);
+  return total;
 }
 
 const htmlGenerator = (value, item) => {
@@ -33,9 +54,13 @@ function getSummary(configs, reports, _Utils) {
   // TODO: Try to remove this params. I had webpack issue
   Utils = _Utils;
   const stockCountFeature = configs.features.stock_count;
+  const dynamicFormNames = {
+    stockCount: stockCountFeature.form_name,
+    supplyConfirm: '',
+  };
 
   // Get last stock count
-  const lastStockCount = Utils.getMostRecentReport(reports, 'commodity_count');
+  const lastStockCount = Utils.getMostRecentReport(reports, dynamicFormNames.stockCount);
   const items = Object.values(configs.items);
   if (!lastStockCount) {
     return [];
@@ -45,8 +70,23 @@ function getSummary(configs, reports, _Utils) {
     const levels = Object.values(configs.levels);
     const contactLevel = levels.find((l) => l.contact_type === contact_type);
     const placeType = contactLevel.place_type;
+    const stockReports = [];
+    const lastStockCount = Utils.getMostRecentReport(reports, dynamicFormNames.stockCount);
+    if (lastStockCount) {
+      stockReports.push(
+        lastStockCount,
+        ...reports.filter((report) => {
+          const forms = [SUPPLY_ADDITIONAL_DOC];
+          if (configs.features.stock_supply && configs.features.stock_supply.confirm_supply && configs.features.stock_supply.confirm_supply.active) {
+            dynamicFormNames.supplyConfirm = configs.features.stock_supply.confirm_supply.form_name;
+            forms.push(dynamicFormNames.supplyConfirm);
+          }
+          return forms.includes(report.form) && getDynamicReportedDate(report) > getDynamicReportedDate(lastStockCount);
+        })
+      );
+    }
     const itemsFields = items.map((item) => {
-      const value = getItemCount(item.name, reports);
+      const value = getItemCount(item.name, stockReports, dynamicFormNames);
       return {
         name: item.name,
         label: `${TRANSLATION_PREFIX}items.${item.name}.label`,

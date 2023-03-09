@@ -211,6 +211,19 @@ function buildRowValues(header, values) {
   return rowValues;
 }
 
+function getNumberOfParent(fromLevel, toLevel, initialNbParent = 0) {
+  const appSettings = getAppSettings();
+  const fromLevelDetail = appSettings.contact_types.find((settings) => settings.id === fromLevel);
+  if (fromLevelDetail && fromLevelDetail.parents) {
+    if (fromLevelDetail.parents.includes(toLevel)) {
+      return initialNbParent + 1;
+    } else {
+      return getNumberOfParent(toLevel, fromLevelDetail.parents[0], initialNbParent + 1);
+    }
+  }
+  return null;
+}
+
 module.exports = {
   isChtApp,
   getAppSettings,
@@ -223,5 +236,6 @@ module.exports = {
   getConfigs,
   updateTranslations,
   getTranslations,
+  getNumberOfParent,
 };
 

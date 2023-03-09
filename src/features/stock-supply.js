@@ -1,8 +1,9 @@
-const { getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations } = require('../utils');
+const { getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getAppSettings, getNumberOfParent } = require('../utils');
 const chalk = require('chalk');
 const path = require('path');
 const fs = require('fs-extra');
 const ExcelJS = require('exceljs');
+const { SUPPLY_ADDITIONAL_DOC } = require('../constants');
 
 function addStockSupplyCalculation(workSheet, items) {
   const [, end] = getSheetGroupBeginEnd(workSheet, 'out');
@@ -38,7 +39,7 @@ function addStockSupplySummaries(workSheet, items, languages) {
       appearance: '',
     };
     for (const language of languages) {
-      itemRow[`label:${language}`] = `<h5 style="text-align:center;"> ${item.label[language]}: **` + '${' + `supply_${item.name}` + '} ' + `${item.unit}** </h5>`; // Row label
+      itemRow[`label::${language}`] = `<h5 style="text-align:center;"> ${item.label[language]}: **` + '${' + `supply_${item.name}` + '} ' + `${item.unit}** </h5>`; // Row label
     }
     itemRows.push(buildRowValues(header, itemRow));
   }
@@ -51,13 +52,312 @@ function addStockSupplySummaries(workSheet, items, languages) {
   );
 }
 
-async function updateStockConfirmation(configs) {
+function addStockConfirmCalculation(workSheet, items) {
+  const [, end] = getSheetGroupBeginEnd(workSheet, 'out');
+  const header = workSheet.getRow(1).values;
+  header.shift();
+  const itemRows = [
+    ...items.map((item) => buildRowValues(header, {
+      type: 'calculate', // Row type
+      name: `${item.name}_confirmed`, // Row name
+      calculation: 'if(${have_receive_' + item.name + "_qty} = 'yes',${" + item.name + '_received},${' + item.name + '_real_qty})',
+    }))
+  ];
+
+  //Insert item
+  workSheet.insertRows(
+    end,
+    itemRows,
+    'i+'
+  );
+}
+
+function addStockConfirmSummaries(workSheet, items, languages) {
+  const [, end] = getSheetGroupBeginEnd(workSheet, 'summary');
+  const header = workSheet.getRow(1).values;
+  header.shift();
+  const itemRows = [];
+  for (const item of items) {
+    const itemRow = {
+      type: 'note', // Row type
+      name: `s_${item.name}`, // Row name
+      required: '',
+      relevant: '${' + item.name + '_received} > 0',
+      appearance: '',
+    };
+    for (const language of languages) {
+      itemRow[`label::${language}`] = `<h5 style="text-align:center;"> ${item.label[language]}: **` + '${' + `${item.name}_confirmed` + '} ' + `${item.unit}** </h5>`; // Row label
+    }
+    itemRows.push(buildRowValues(header, itemRow));
+  }
+
+  //Insert item
+  workSheet.insertRows(
+    end,
+    itemRows,
+    'i+'
+  );
+}
+
+function getAdditionalDoc(formName, languages, header, items) {
+  return [
+    buildRowValues(header, {
+      type: 'begin group',
+      name: SUPPLY_ADDITIONAL_DOC,
+      appearance: 'field-list',
+      'instance::db-doc': 'true',
+      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'form',
+      calculation: `"${SUPPLY_ADDITIONAL_DOC}"`
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'place_id',
+      calculation: '${supply_place_id}'
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'type',
+      calculation: '"data_record"'
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'created_from',
+      calculation: '.',
+      'instance::db-doc-ref': `/${formName}`
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'content_type',
+      calculation: '"xml"'
+    }),
+    buildRowValues(header, {
+      type: 'begin group',
+      name: 'contact',
+      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: '_id',
+      calculation: '${supply_place_id}'
+    }),
+    buildRowValues(header, {
+      type: 'end group',
+      name: 'contact',
+    }),
+    buildRowValues(header, {
+      type: 'begin group',
+      name: 'fields',
+      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+    }),
+    ...items.map((item) => buildRowValues(header, {
+      type: 'calculate', // Row type
+      name: `${item.name}_out`, // Row name
+      calculation: '${' + item.name + '_supply}',
+    })),
+    buildRowValues(header, {
+      type: 'end group',
+      name: 'fields',
+    }),
+    buildRowValues(header, {
+      type: 'end group'
+    })
+  ];
+}
+
+async function updateStockConfirmation(configs, messages) {
   const processDir = process.cwd();
   const supplyConfigs = configs.features.stock_supply;
   const confirmConfigs = supplyConfigs.confirm_supply;
+  const items = Object.values(configs.items);
+  const { languages } = configs;
 
   const stockConfirmPath = path.join(processDir, 'forms', 'app', `${confirmConfigs.form_name}.xlsx`);
   fs.copyFileSync(path.join(__dirname, '../../templates/stock_supply.xlsx'), stockConfirmPath);
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(stockConfirmPath);
+  const surveyWorkSheet = workbook.getWorksheet('survey');
+  const choiceWorkSheet = workbook.getWorksheet('choices');
+  const settingWorkSheet = workbook.getWorksheet('settings');
+
+  const choiceLabelColumns = configs.languages.map((l) => [
+    `label::${l}`
+  ]);
+  let choiceLastColumn = 2;
+  for (const choiceLabelColumn of choiceLabelColumns) {
+    choiceWorkSheet.getColumn(choiceLastColumn + 1).values = choiceLabelColumn;
+    choiceLastColumn++;
+  }
+  const choiceHeader = choiceWorkSheet.getRow(1).values;
+  choiceHeader.shift();
+  const choices = ['yes', 'no'].map((ch) => {
+    const row = {
+      list_name: 'yes_no',
+      name: ch,
+    };
+    for (const language of configs.languages) {
+      row[`label::${language}`] = messages[language][`stock_supply.choices.yes_no.${ch}`];
+    }
+    return buildRowValues(choiceHeader, row);
+  });
+  choiceWorkSheet.insertRows(
+    2,
+    choices,
+    'i+'
+  );
+
+  // Add language column
+  const labelColumns = [];
+  const hintColumns = [];
+  for (const language of configs.languages) {
+    labelColumns.push(
+      [
+        `label::${language}`,
+        'Patient',
+        'Source',
+        'Source ID',
+        'NO_LABEL',
+        'NO_LABEL',
+        '',
+        'NO_LABEL',
+        'NO_LABEL',
+        'NO_LABEL',
+        ...Array(6).fill(''),
+        messages[language]['stock_supply.summary_header'],
+        messages[language]['stock_supply.submit_note'],
+        messages[language]['stock_supply.confirmation.summary_note'],
+        ...Array(2).fill(''),
+        'NO_LABEL',
+      ]
+    );
+    hintColumns.push(
+      [
+        `hint:${language}`,
+      ]
+    );
+  }
+  // Add languages and hints columns
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  let lastColumnIndex = Object.keys(firstRowData).length;
+  for (const labelColumn of labelColumns) {
+    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
+    lastColumnIndex++;
+  }
+  for (const hintColumn of hintColumns) {
+    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
+    lastColumnIndex++;
+  }
+
+  // Add calculation
+  const header = surveyWorkSheet.getRow(1).values;
+  header.shift();
+  const inputs = items.map((item) => {
+    const itemCalc = {
+      type: 'hidden',
+      name: `${item.name}_received`,
+    };
+    for (const language of configs.languages) {
+      itemCalc[`label::${language}`] = 'NO_LABEL'; // Row label
+    }
+    return buildRowValues(header, itemCalc);
+  });
+  inputs.push(
+    buildRowValues(header, {
+      type: 'hidden',
+      name: 'supply_place_id',
+      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+    })
+  );
+  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);
+  surveyWorkSheet.insertRows(
+    position + 1,
+    inputs,
+    'i+'
+  );
+
+  const rows = [];
+  if (configs.useItemCategory) {
+    const categories = Object.values(configs.categories);
+    for (const category of categories) {
+      const categoryItems = items.filter((it) => it.category === category.name);
+      const catHeader = {
+        type: 'begin group',
+        name: `category_${category.name}`,
+        relevant: categoryItems.map((item) => '${' + item.name + '_received} > 0').join(' or '),
+        appearance: 'field-list',
+      };
+      for (const language of configs.languages) {
+        catHeader[`label::${language}`] = category.label[language]; // Row label
+      }
+      rows.push(buildRowValues(header, catHeader));
+      for (const categoryItem of categoryItems) {
+        const confirmationRow = {
+          type: 'select_one yes_no',
+          name: `have_receive_${categoryItem.name}_qty`,
+          required: 'yes',
+          relevant: '${' + categoryItem.name + '_received} > 0'
+        };
+        for (const language of configs.languages) {
+          let msg = messages[language]['stock_supply.confirmation.item_received_question'];
+          msg = msg.replace('{{qty}}', '${' + categoryItem.name + '_received}');
+          msg = msg.replace('{{unit}}', categoryItem.unit);
+          msg = msg.replace('{{item}}', categoryItem.label[language]);
+          confirmationRow[`label::${language}`] = msg;
+        }
+        rows.push(buildRowValues(header, confirmationRow));
+
+        const qtyRow = {
+          type: 'decimal',
+          name: `${categoryItem.name}_real_qty`,
+          required: 'yes',
+          constraint: '. != ${' + categoryItem.name +'_received}',
+          relevant: '${have_receive_' + categoryItem.name + "_qty} = 'no'"
+        };
+        for (const language of configs.languages) {
+          qtyRow[`label::${language}`] = messages[language]['stock_supply.confirmation.qty_received_question'];
+        }
+        rows.push(buildRowValues(header, qtyRow));
+      }
+      rows.push(buildRowValues(header, {
+        type: 'end group'
+      }));
+    }
+  }
+  const [placePosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  surveyWorkSheet.insertRows(
+    placePosition + 1,
+    rows,
+    'i+'
+  );
+  addStockConfirmCalculation(surveyWorkSheet, items);
+  addStockConfirmSummaries(surveyWorkSheet, items, languages);
+
+  settingWorkSheet.getRow(2).getCell(1).value = confirmConfigs.title[configs.defaultLanguage];
+  settingWorkSheet.getRow(2).getCell(2).value = confirmConfigs.form_name;
+
+  await workbook.xlsx.writeFile(stockConfirmPath);
+
+  // Add stock count form properties
+  const formProperties = {
+    'icon': 'icon-healthcare-medicine',
+    'context': {
+      'person': false,
+      'place': false,
+      'expression': `user.role === '${configs.levels[1].role}'`,
+    },
+    title: languages.map((lang) => {
+      return {
+        locale: lang,
+        content: confirmConfigs.title[lang]
+      };
+    }),
+  };
+  const configStockPropertyPath = path.join(processDir, 'forms', 'app', `${confirmConfigs.form_name}.properties.json`);
+  fs.writeFileSync(configStockPropertyPath, JSON.stringify(formProperties, null, 4));
+  console.log(chalk.green(`INFO ${confirmConfigs.title[configs.defaultLanguage]} form updated successfully`));
 }
 
 async function updateStockSupply(configs) {
@@ -80,7 +380,7 @@ async function updateStockSupply(configs) {
   for (const language of configs.languages) {
     labelColumns.push(
       [
-        `label:${language}`,
+        `label::${language}`,
         'Patient',
         'Source',
         'Source ID',
@@ -115,12 +415,18 @@ async function updateStockSupply(configs) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
     lastColumnIndex++;
   }
+  surveyWorkSheet.getColumn(lastColumnIndex + 1).values = [
+    `instance::db-doc`,
+  ];
+  surveyWorkSheet.getColumn(lastColumnIndex + 2).values = [
+    `instance::db-doc-ref`,
+  ];
   settingWorkSheet.getRow(2).getCell(1).value = featureConfigs.title[configs.defaultLanguage];
   settingWorkSheet.getRow(2).getCell(2).value = featureConfigs.form_name;
 
   //Add choices
   const choiceLabelColumns = configs.languages.map((l) => [
-    `label:${l}`
+    `label::${l}`
   ]);
   let choiceLastColumn = 2;
   for (const choiceLabelColumn of choiceLabelColumns) {
@@ -135,7 +441,7 @@ async function updateStockSupply(configs) {
       name: item.name,
     };
     for (const language of configs.languages) {
-      row[`label:${language}`] = item.label[language]; // Row label
+      row[`label::${language}`] = item.label[language]; // Row label
     }
     return buildRowValues(choiceHeader, row);
   });
@@ -147,6 +453,37 @@ async function updateStockSupply(configs) {
 
   const header = surveyWorkSheet.getRow(1).values;
   header.shift();
+  // Get level 2
+  const nbParents = getNumberOfParent(configs.levels[1].place_type, configs.levels[2].place_type);
+  const contactParentRows = [];
+  for (let i = 0; i < nbParents; i++) {
+    contactParentRows.push(
+      buildRowValues(header, {
+        type: 'begin group',
+        name: `parent`,
+        appearance: `hidden`,
+        ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      }),
+      buildRowValues(header, {
+        type: 'string',
+        name: `_id`,
+        ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      })
+    );
+  }
+  for (let i = 0; i < nbParents; i++) {
+    contactParentRows.push(
+      buildRowValues(header, {
+        type: 'end group',
+      })
+    );
+  }
+  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 2);
+  surveyWorkSheet.insertRows(
+    contactPosition + 3,
+    contactParentRows,
+    'i+'
+  );
   const rows = items.map((item) => {
     return buildRowValues(header, {
       type: 'calculate',
@@ -154,6 +491,13 @@ async function updateStockSupply(configs) {
       calculation: `instance('contact-summary')/context/stock_monitoring_${item.name}_qty`
     });
   });
+  rows.push(
+    buildRowValues(header, {
+      type: 'calculate',
+      name: `supply_place_id`,
+      calculation: `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`
+    })
+  );
   const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
   const selectPage = {
     type: 'begin group',
@@ -161,7 +505,7 @@ async function updateStockSupply(configs) {
     appearance: 'field-list',
   };
   for (const language of configs.languages) {
-    selectPage[`label:${language}`] = messages[language]['stock_supply.page_1.header']; // Row label
+    selectPage[`label::${language}`] = messages[language]['stock_supply.page_1.header']; // Row label
   }
   rows.push(buildRowValues(header, selectPage));
   const selectRow = {
@@ -170,7 +514,7 @@ async function updateStockSupply(configs) {
     appearance: ''
   };
   for (const language of configs.languages) {
-    selectRow[`label:${language}`] = messages[language]['stock_supply.page_1.select_input']; // Row label
+    selectRow[`label::${language}`] = messages[language]['stock_supply.page_1.select_input']; // Row label
   }
   for (const language of configs.languages) {
     selectRow[`hint:${language}`] = messages[language]['stock_supply.page_1.select_input_hint']; // Row label
@@ -187,7 +531,7 @@ async function updateStockSupply(configs) {
         appearance: 'field-list',
       };
       for (const language of configs.languages) {
-        catHeader[`label:${language}`] = category.label[language]; // Row label
+        catHeader[`label::${language}`] = category.label[language]; // Row label
       }
       rows.push(buildRowValues(header, catHeader));
       const categoryItems = items.filter((it) => it.category === category.name);
@@ -198,7 +542,7 @@ async function updateStockSupply(configs) {
           relevant: 'selected(${selected_items},' + `'${categoryItem.name}')`
         };
         for (const language of configs.languages) {
-          titleRow[`label:${language}`] = `<h3 style="text-align:center; font-weight:bold; background-color:#93C47E;">${categoryItem.label[language]}</h3>`;
+          titleRow[`label::${language}`] = `<h3 style="text-align:center; font-weight:bold; background-color:#93C47E;">${categoryItem.label[language]}</h3>`;
         }
         rows.push(buildRowValues(header, titleRow));
         const noteRow = {
@@ -207,7 +551,7 @@ async function updateStockSupply(configs) {
           relevant: 'selected(${selected_items},' + `'${categoryItem.name}')`
         };
         for (const language of configs.languages) {
-          noteRow[`label:${language}`] = messages[language]['stock_supply.item.stock_on_hand'];
+          noteRow[`label::${language}`] = messages[language]['stock_supply.item.stock_on_hand'];
           noteRow[`hint:${language}`] = '${' + `stock_monitoring_${categoryItem.name}_qty` + '}';
         }
         rows.push(buildRowValues(header, noteRow));
@@ -219,7 +563,7 @@ async function updateStockSupply(configs) {
           default: 0,
         };
         for (const language of configs.languages) {
-          rowQty[`label:${language}`] = messages[language]['stock_supply.item.quantity_of'] + ' ' + categoryItem.unit;
+          rowQty[`label::${language}`] = messages[language]['stock_supply.item.quantity_of'] + ' ' + categoryItem.unit;
         }
         rows.push(buildRowValues(header, rowQty));
       }
@@ -234,7 +578,7 @@ async function updateStockSupply(configs) {
       appearance: 'field-list',
     };
     for (const language of configs.languages) {
-      pageHeader[`label:${language}`] = 'Quantity'; // Row label
+      pageHeader[`label::${language}`] = 'Quantity'; // Row label
     }
     rows.push(buildRowValues(header, pageHeader));
     for (const item of items) {
@@ -244,7 +588,7 @@ async function updateStockSupply(configs) {
         relevant: 'selected(${selected_items},' + `'${item.name}')`
       };
       for (const language of configs.languages) {
-        titleRow[`label:${language}`] = `<h3 style="text-align:center; font-weight:bold; background-color:#93C47E;">${item.label[language]}</h3>`;
+        titleRow[`label::${language}`] = `<h3 style="text-align:center; font-weight:bold; background-color:#93C47E;">${item.label[language]}</h3>`;
       }
       rows.push(buildRowValues(header, titleRow));
       const noteRow = {
@@ -253,7 +597,7 @@ async function updateStockSupply(configs) {
         relevant: 'selected(${selected_items},' + `'${item.name}')`
       };
       for (const language of configs.languages) {
-        noteRow[`label:${language}`] = messages[language]['stock_supply.item.stock_on_hand'];
+        noteRow[`label::${language}`] = messages[language]['stock_supply.item.stock_on_hand'];
         noteRow[`hint:${language}`] = '${' + `stock_monitoring_${item.name}_qty` + '}';
       }
       rows.push(buildRowValues(header, noteRow));
@@ -265,7 +609,7 @@ async function updateStockSupply(configs) {
         default: 0,
       };
       for (const language of configs.languages) {
-        rowQty[`label:${language}`] = messages[language]['stock_supply.item.quantity_of'] + ' ' + item.unit;
+        rowQty[`label::${language}`] = messages[language]['stock_supply.item.quantity_of'] + ' ' + item.unit;
       }
       rows.push(buildRowValues(header, rowQty));
     }
@@ -280,6 +624,13 @@ async function updateStockSupply(configs) {
   );
   addStockSupplySummaries(surveyWorkSheet, Object.values(configs.items), languages);
   addStockSupplyCalculation(surveyWorkSheet, Object.values(configs.items), languages);
+  const [, end] = getSheetGroupBeginEnd(surveyWorkSheet, 'out');
+  const additionalDocRows = getAdditionalDoc(featureConfigs.form_name, languages, header, items);
+  surveyWorkSheet.insertRows(
+    end + 2,
+    additionalDocRows,
+    'i+'
+  );
   if (!featureConfigs.confirm_supply.active) {
     //TODO: Add additional docs and auto deduct
   }
@@ -304,7 +655,7 @@ async function updateStockSupply(configs) {
   fs.writeFileSync(stockSupplyPropertyPath, JSON.stringify(formProperties, null, 4));
   console.log(chalk.green(`INFO ${featureConfigs.title[configs.defaultLanguage]} form updated successfully`));
   if (configs.features.stock_supply && configs.features.stock_supply.confirm_supply) {
-    updateStockConfirmation(configs);
+    updateStockConfirmation(configs, messages);
   }
 }
 

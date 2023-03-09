@@ -1,5 +1,5 @@
 const { DateTime } = require('luxon');
-const { TRANSLATION_PREFIX } = require('./utils');
+const { TRANSLATION_PREFIX } = require('../constants');
 
 const getDynamicReportedDate = report => {
   const specifiedDate = Utils.getField(report, 's_reported.s_reported_date') || Utils.getField(report, 'supervision_date');
@@ -39,6 +39,7 @@ function getStockTask(configs) {
               for (const item of items) {
                 content[`${item.name}_received`] = Utils.getField(report, `out.${item.name}_supply`);
               }
+              content['supply_place_id'] = Utils.getField(report, `supply_place_id`);
             }
           }
         ]
