@@ -34,5 +34,21 @@
   "consumption_log.summary_note_3": "<h4 style='text-align:center;'>Quantity received</h4>",
   "consumption_log.summary_note_4": "<h4 style='text-align:center;'>Quantity returned to the health facility</h4>",
   "consumption_log.summary_followup": "Follow Up",
-  "consumption_log.summary_followup_note": "If you have stockouts, follow up with your supervisor to know when to go for a refill"
+  "consumption_log.summary_followup_note": "If you have stockouts, follow up with your supervisor to know when to go for a refill",
+  "stock_return.forms.select_category_label": "Categories selection",
+  "stock_return.forms.select_category": "Select the category of what you want to return",
+  "stock_return.forms.select_items": "Select the different item you want to return",
+  "stock_return.forms.select_items.return_reason": "Reason for return",
+  "stock_return.forms.specify": "Specify reason",
+  "stock_return.forms.qty_before": "Quantity before",
+  "stock_return.forms.qty_after": "Quantity after",
+  "stock_return.forms.qty_returned": "Quantity to return",
+  "stock_return.summary_note": "Stock items you returned.<I class='fa fa-list-ul'></i>",
+  "stock_return.confirmation.item_received_question": "Did you received {{qty}} {{unit}} of {{item}}",
+  "stock_return.confirmation.qty_received_question": "Enter the quantitity received",
+  "stock_return.tasks.return-confirmation": "Return confirmation",
+  "stock_return.forms.select_items.reason.excess": "Excess",
+  "stock_return.forms.select_items.reason.damaged": "Damaged",
+  "stock_return.forms.select_items.reason.expired": "Expired",
+  "stock_return.forms.select_items.reason.other": "Other"
 }

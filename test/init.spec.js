@@ -1,7 +1,7 @@
 const assert = require('chai').assert;
 const rewire = require('rewire');
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs-extra');
 
 const initModule = rewire('../src/init');
 const utilsModule = rewire('../src/utils.js');

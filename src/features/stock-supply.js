@@ -1,9 +1,45 @@
-const { getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getAppSettings, getNumberOfParent } = require('../utils');
+const { getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getNumberOfParent } = require('../utils');
 const chalk = require('chalk');
 const path = require('path');
 const fs = require('fs-extra');
 const ExcelJS = require('exceljs');
+const inquirer = require('inquirer');
 const { SUPPLY_ADDITIONAL_DOC } = require('../constants');
+
+function getLabelColumns(languages, messages) {
+  // Add language column
+  const labelColumns = [];
+  const hintColumns = [];
+  for (const language of languages) {
+    labelColumns.push(
+      [
+        `label::${language}`,
+        'Patient',
+        'Source',
+        'Source ID',
+        'NO_LABEL',
+        'NO_LABEL',
+        '',
+        'NO_LABEL',
+        'NO_LABEL',
+        'NO_LABEL',
+        ...Array(6).fill(''),
+        messages[language]['stock_supply.summary_header'],
+        messages[language]['stock_supply.submit_note'],
+        messages[language]['stock_supply.confirmation.summary_note'],
+        ...Array(2).fill(''),
+        'NO_LABEL',
+      ]
+    );
+    hintColumns.push(
+      [
+        `hint:${language}`,
+      ]
+    );
+  }
+
+  return [labelColumns, hintColumns];
+}
 
 function addStockSupplyCalculation(workSheet, items) {
   const [, end] = getSheetGroupBeginEnd(workSheet, 'out');
@@ -209,36 +245,7 @@ async function updateStockConfirmation(configs, messages) {
     'i+'
   );
 
-  // Add language column
-  const labelColumns = [];
-  const hintColumns = [];
-  for (const language of configs.languages) {
-    labelColumns.push(
-      [
-        `label::${language}`,
-        'Patient',
-        'Source',
-        'Source ID',
-        'NO_LABEL',
-        'NO_LABEL',
-        '',
-        'NO_LABEL',
-        'NO_LABEL',
-        'NO_LABEL',
-        ...Array(6).fill(''),
-        messages[language]['stock_supply.summary_header'],
-        messages[language]['stock_supply.submit_note'],
-        messages[language]['stock_supply.confirmation.summary_note'],
-        ...Array(2).fill(''),
-        'NO_LABEL',
-      ]
-    );
-    hintColumns.push(
-      [
-        `hint:${language}`,
-      ]
-    );
-  }
+  const [labelColumns, hintColumns] = getLabelColumns(configs.languages, messages);
   // Add languages and hints columns
   const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
   let lastColumnIndex = Object.keys(firstRowData).length;
@@ -487,7 +494,7 @@ async function updateStockSupply(configs) {
   const rows = items.map((item) => {
     return buildRowValues(header, {
       type: 'calculate',
-      name: `stock_monitoring_${item.name}_qty`,
+      name: `${item.name}_current`,
       calculation: `instance('contact-summary')/context/stock_monitoring_${item.name}_qty`
     });
   });
@@ -542,19 +549,9 @@ async function updateStockSupply(configs) {
           relevant: 'selected(${selected_items},' + `'${categoryItem.name}')`
         };
         for (const language of configs.languages) {
-          titleRow[`label::${language}`] = `<h3 style="text-align:center; font-weight:bold; background-color:#93C47E;">${categoryItem.label[language]}</h3>`;
+          titleRow[`label::${language}`] = `<h3 style="text-align:center; font-weight:bold; background-color:#93C47E;">${categoryItem.label[language]}` + ': ${' + `${categoryItem.name}_current` + '}</h3>';
         }
         rows.push(buildRowValues(header, titleRow));
-        const noteRow = {
-          type: 'note',
-          name: `note_current_${categoryItem.name}_qty`,
-          relevant: 'selected(${selected_items},' + `'${categoryItem.name}')`
-        };
-        for (const language of configs.languages) {
-          noteRow[`label::${language}`] = messages[language]['stock_supply.item.stock_on_hand'];
-          noteRow[`hint:${language}`] = '${' + `stock_monitoring_${categoryItem.name}_qty` + '}';
-        }
-        rows.push(buildRowValues(header, noteRow));
 
         const rowQty = {
           type: 'decimal',
@@ -659,8 +656,56 @@ async function updateStockSupply(configs) {
   }
 }
 
+async function getStockSupplyConfigs({
+  languages,
+}) {
+  const configs = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'form_name',
+      message: 'Enter stock supply form ID'
+    },
+    ...languages.map((language) => ({
+      type: 'input',
+      name: `title.${language}`,
+      message: `Enter stock supply form title in ${language}`,
+      default: 'Stock supply'
+    })),
+    {
+      type: 'confirm',
+      name: 'confirm_supply.active',
+      message: 'Activate supply confirmation',
+      default: false,
+    }
+  ]);
+
+  if (configs.confirm_supply.active) {
+    const confirmationConfigs = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'confirm_supply.form_name',
+        message: 'Enter supply confirmation ID',
+      },
+      ...languages.map((language) => ({
+        type: 'input',
+        name: `confirm_supply.title.${language}`,
+        message: `Enter supply confirmation form title in ${language}`,
+        default: 'Stock received'
+      }))
+    ]);
+    confirmationConfigs['confirm_supply'].active = true;
+
+    return {
+      ...configs,
+      ...confirmationConfigs,
+    };
+  }
+  return configs;
+}
+
 module.exports = {
   addStockSupplyCalculation,
   addStockSupplySummaries,
   updateStockSupply,
+  getStockSupplyConfigs,
 };

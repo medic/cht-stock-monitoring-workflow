@@ -14,7 +14,7 @@ const getDynamicReportedDate = report => {
 
 function getItemCount(itemName, listReports, dynamicFormNames) {
   const lastStockCount = Utils.getMostRecentReport(listReports, dynamicFormNames.stockCount);
-  let total = Number(Utils.getField(lastStockCount, `out.${itemName}_availables`));
+  let total = Number(Utils.getField(lastStockCount, `out.${itemName}_availables`)) || 0;
 
   for (const report of listReports) {
     switch (report.form) {
@@ -23,7 +23,10 @@ function getItemCount(itemName, listReports, dynamicFormNames) {
         total -= Number(Utils.getField(report, `${itemName}_out`) || 0);
         break;
       case dynamicFormNames.supplyConfirm:
-        total += Number(Utils.getField(report, `out.${itemName}_confirmed`));
+        total += Number(Utils.getField(report, `out.${itemName}_confirmed`) || 0);
+        break;
+      case dynamicFormNames.stockReturn:
+        total -= Number(Utils.getField(report, `out.${itemName}_out`) || 0);
         break;
       default:
         break;
@@ -58,6 +61,8 @@ function getSummary(configs, reports, _Utils) {
   const dynamicFormNames = {
     stockCount: stockCountFeature.form_name,
     supplyConfirm: '',
+    stockReturn: configs.features.stock_return ? configs.features.stock_return.form_name : 'stock_return',
+    stockReturned: configs.features.stock_return ? configs.features.stock_return.confirmation.form_name : 'stock_returned',
   };
 
   // Get last stock count
@@ -77,7 +82,12 @@ function getSummary(configs, reports, _Utils) {
       stockReports.push(
         lastStockCount,
         ...reports.filter((report) => {
-          const forms = [SUPPLY_ADDITIONAL_DOC, FORM_ADDITIONAL_DOC_NAME];
+          const forms = [
+            SUPPLY_ADDITIONAL_DOC,
+            FORM_ADDITIONAL_DOC_NAME,
+            dynamicFormNames.stockReturn,
+            dynamicFormNames.stockReturned,
+          ];
           if (configs.features.stock_supply && configs.features.stock_supply.confirm_supply && configs.features.stock_supply.confirm_supply.active) {
             dynamicFormNames.supplyConfirm = configs.features.stock_supply.confirm_supply.form_name;
             forms.push(dynamicFormNames.supplyConfirm);
@@ -103,8 +113,9 @@ function getSummary(configs, reports, _Utils) {
       appliesIf: lastStockCount,
       modifyContext: (context) => {
         for (const itemField of itemsFields) {
-          context[`stock_monitoring_${itemField.name}_qty`] = itemField.count;
+          context[`stock_monitoring_${itemField.name}_qty`] = itemField.count || 0;
         }
+        console.log('ctx', context);
       },
       fields: itemsFields
     };

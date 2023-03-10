@@ -7,18 +7,18 @@
     ],
     "messages": {
         "fr": {
-            "stock_count_balance_fill": "Use this form to fill in balances on hand for all commodities as of today",
-            "stock_count_commodities_note": "<h3 class=”text-primary”> Commodities Balance on hand </h3>",
-            "stock_count_summary_header": "Results/Summary page",
-            "stock_count_submit_note": "<h4 style=\"text-align:center;\">Be sure you Submit to complete this action.</h4>",
-            "stock_count_summary_note": "Stock items you currently have.<I class=\"fa fa-list-ul\"></i>"
+            "stock_count.balance_fill": "Use this form to fill in balances on hand for all commodities as of today",
+            "stock_count.commodities_note": "<h3 class=”text-primary”> Commodities Balance on hand </h3>",
+            "stock_count.summary_header": "Results/Summary page",
+            "stock_count.submit_note": "<h4 style=\"text-align:center;\">Be sure you Submit to complete this action.</h4>",
+            "stock_count.summary_note": "Stock items you currently have.<I class=\"fa fa-list-ul\"></i>"
         },
         "en": {
-            "stock_count_balance_fill": "Use this form to fill in balances on hand for all commodities as of today",
-            "stock_count_commodities_note": "<h3 class=”text-primary”> Commodities Balance on hand </h3>",
-            "stock_count_summary_header": "Results/Summary page",
-            "stock_count_submit_note": "<h4 style=\"text-align:center;\">Be sure you Submit to complete this action.</h4>",
-            "stock_count_summary_note": "Stock items you currently have.<I class=\"fa fa-list-ul\"></i>"
+            "stock_count.balance_fill": "Use this form to fill in balances on hand for all commodities as of today",
+            "stock_count.commodities_note": "<h3 class=”text-primary”> Commodities Balance on hand </h3>",
+            "stock_count.summary_header": "Results/Summary page",
+            "stock_count.submit_note": "<h4 style=\"text-align:center;\">Be sure you Submit to complete this action.</h4>",
+            "stock_count.summary_note": "Stock items you currently have.<I class=\"fa fa-list-ul\"></i>"
         }
     },
     "items": {
