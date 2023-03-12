@@ -109,6 +109,7 @@ async function updateForm(configs) {
         return buildRowValues(header, {
           type: itemConfig['deduction_type'] === 'formula' ? 'calculate' : 'decimal',
           name: `${itemId}_out`,
+          relevant: itemConfig['deduction_type'] === 'by_user' ? itemConfig.formular : '',
           calculation: itemConfig['deduction_type'] === 'formula' ? itemConfig.formular : '',
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_count.forms.item_used_question'].replace('{{item}}', item.label[language]) }), {})
         });
@@ -121,8 +122,12 @@ async function updateForm(configs) {
         type: 'end group',
       })
     ];
-
-    surveyWorkSheet.addRows(additionalDocRows);
+    const [, summaryEnd] = getSheetGroupBeginEnd(surveyWorkSheet, 'summary', 2);
+    surveyWorkSheet.insertRows(
+      summaryEnd,
+      additionalDocRows,
+      '+i',
+    );
     await formWorkbook.xlsx.writeFile(formPath);
     console.log(chalk.green(`INFO ${formName} form updated successfully`));
   }

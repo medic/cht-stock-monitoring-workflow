@@ -58,10 +58,6 @@ function getItemRows(items, languages, header) {
       type: 'integer',
       name: item.name,
       required: 'yes',
-      relevant: '',
-      appearance: '',
-      constraint: '',
-      'constraint_message': '',
     };
     for (const language of languages) {
       itemRow[`label::${language}`] = item.label[language] || ''; // Row label
@@ -79,7 +75,7 @@ async function updateStockCount(configs) {
   const { languages } = configs;
   const messages = getTranslations();
   const items = Object.values(configs.items);
-  fs.copyFileSync(path.join(__dirname, '../../templates/stock_count.xlsx'), stockCountPath);
+  fs.copyFileSync(path.join(__dirname, '../../templates/stock_supply.xlsx'), stockCountPath);
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(stockCountPath);
   const surveyWorkSheet = workbook.getWorksheet('survey');
@@ -100,10 +96,7 @@ async function updateStockCount(configs) {
         '',
         'NO_LABEL',
         'NO_LABEL',
-        ...Array(8).fill(''),
-        messages[language]['stock_count.balance_fill'],
-        messages[language]['stock_count.commodities_note'],
-        '', '', '',
+        ...Array(7).fill(''),
         messages[language]['stock_count.summary_header'],
         messages[language]['stock_count.submit_note'],
         messages[language]['stock_count.summary_note'],
@@ -132,27 +125,26 @@ async function updateStockCount(configs) {
 
   // Add items
   // Find items group last row number
-  const [, itemEndGroupRowNumber] = getSheetGroupBeginEnd(surveyWorkSheet, 'items');
+  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
   const itemRows = [];
   const header = surveyWorkSheet.getRow(1).values;
   header.shift();
   if (configs.useItemCategory) {
     for (const category of Object.values(configs.categories)) {
-      const categoryRow = {
-        type: 'note',
-        name: category.name,
-        required: '',
-        relevant: '',
-        appearance: '',
-        constraint: '',
-        'constraint_message': '',
-      };
-      for (const language of languages) {
-        categoryRow[`label::${language}`] = `### ${category.label[language]} - ${category.description[language]}` || ''; // Row label
-      }
-      itemRows.push(buildRowValues(header, categoryRow));
       itemRows.push(
-        ...getItemRows(items.filter((item) => item.category === category.name), languages, header)
+        buildRowValues(
+          header,
+          {
+            type: 'begin group',
+            name: category.name,
+            appearance: 'field-list',
+            ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${category.label[language]} - ${category.description[language]}` || '' }), {})
+          }
+        ),
+        ...getItemRows(items.filter((item) => item.category === category.name), languages, header),
+        buildRowValues(header, {
+          type: 'end group',
+        }),
       );
     }
   } else {
@@ -164,7 +156,7 @@ async function updateStockCount(configs) {
 
   //Insert item
   surveyWorkSheet.insertRows(
-    itemEndGroupRowNumber,
+    position+1,
     itemRows,
     'i+'
   );
