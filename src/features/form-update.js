@@ -110,7 +110,7 @@ async function updateForm(configs) {
           type: itemConfig['deduction_type'] === 'formula' ? 'calculate' : 'decimal',
           name: `${itemId}_out`,
           calculation: itemConfig['deduction_type'] === 'formula' ? itemConfig.formular : '',
-          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_supply.forms.item_used_question'].replace('{{item}}', item.label[language]) }), {})
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_count.forms.item_used_question'].replace('{{item}}', item.label[language]) }), {})
         });
       }),
       buildRowValues(header, {

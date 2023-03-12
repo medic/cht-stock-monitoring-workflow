@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const ExcelJS = require('exceljs');
-const { getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd } = require('../utils');
+const { getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd, getNumberOfParent } = require('../utils');
 
 function getLabelColumns(languages, messages) {
   // Add language column
@@ -62,6 +62,7 @@ function getItemRows(header, languages, messages, items) {
         name: `${item.name}_received_qty`,
         required: 'yes',
         constraint: '. > 0',
+        relevant: '${' + `${item.name}_received} = 'no'`,
         default: 0,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.confirmation.qty_received_question'] }), {})
       }),
@@ -87,16 +88,28 @@ function addReturnedSummaries(workSheet, languages, items, categories = []) {
           relevant: items.filter(it => it.category === category.name).map((item) => '${' + `${item.name}_returned} > 0`).join(' or '),
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
         }),
-        ...items.filter(it => it.category === category.name).map((item) => (buildRowValues(header, {
-          type: 'note',
-          name: `${item.name}_summary`,
-          appearance: 'li',
-          relevant: '${' + `${item.name}_returned} > 0 `,
-          ...languages.reduce((prev, language) => ({
-            ...prev,
-            [`label::${language}`]: `${item.label[language]}: ` + 'if(${' + `${item.name}_received} = 'yes',` + '${' + `${item.name}_returned}, <s>` + '[${' + `${item.name}_returned}]</s>` + '${' + `${item.name}_received})`
-          }), {})
-        }))),
+        ...items.filter(it => it.category === category.name).map((item) => [
+          buildRowValues(header, {
+            type: 'note',
+            name: `${item.name}_summary_no`,
+            appearance: 'li',
+            relevant: '${' + `${item.name}_received} = 'no'`,
+            ...languages.reduce((prev, language) => ({
+              ...prev,
+              [`label::${language}`]: `${item.label[language]}: ` + '<span style="color:red"><s>${' + `${item.name}_returned}</s></span> | ` + '<b><span style="color:green">${' + `${item.name}_received_qty}</span></b>`
+            }), {})
+          }),
+          buildRowValues(header, {
+            type: 'note',
+            name: `${item.name}_summary_yes`,
+            appearance: 'li',
+            relevant: '${' + `${item.name}_received} = 'yes'`,
+            ...languages.reduce((prev, language) => ({
+              ...prev,
+              [`label::${language}`]: `${item.label[language]}: ` + '${' + `${item.name}_returned}`
+            }), {})
+          }),
+        ]).reduce((prev, next) => ([...prev, ...next]), []),
       );
     }
   } else {
@@ -117,8 +130,8 @@ function addExportCalculation(workSheet, items) {
   const itemRows = [
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
-      name: `${item.name}_out`, // Row name
-      calculation: 'if(${' + `${item.name}_returned_qty} != '',` + '${' + `${item.name}_returned_qty},0)`
+      name: `${item.name}_in`, // Row name
+      calculation: 'if(${' + `${item.name}_received} = 'no',` + '${' + `${item.name}_received_qty},` + '${' + `${item.name}_returned})`
     }))
   ];
 
@@ -128,6 +141,80 @@ function addExportCalculation(workSheet, items) {
     itemRows,
     'i+'
   );
+}
+
+function getAdditionalDoc(formName, docFormName, languages, header, items) {
+  return [
+    buildRowValues(header, {
+      type: 'begin group',
+      name: docFormName,
+      appearance: 'field-list',
+      'instance::db-doc': 'true',
+      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'form',
+      calculation: `"${docFormName}"`
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'place_id',
+      calculation: '${level_1_place_id}'
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'type',
+      calculation: '"data_record"'
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'created_from',
+      calculation: '.',
+      'instance::db-doc-ref': `/${formName}`
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'content_type',
+      calculation: '"xml"'
+    }),
+    buildRowValues(header, {
+      type: 'begin group',
+      name: 'contact',
+      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: '_id',
+      calculation: '${level_1_place_id}'
+    }),
+    buildRowValues(header, {
+      type: 'end group',
+      name: 'contact',
+    }),
+    buildRowValues(header, {
+      type: 'begin group',
+      name: 'fields',
+      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+    }),
+    ...items.map((item) => buildRowValues(header, {
+      type: 'calculate', // Row type
+      name: `${item.name}_out`, // Row name
+      calculation: 'if(${' + `${item.name}_received} = 'no',` + '${' + `${item.name}_received_qty},` + '${' + `${item.name}_returned})`
+    })),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'return_id',
+      calculation: '${stock_return_id}',
+    }),
+    buildRowValues(header, {
+      type: 'end group',
+      name: 'fields',
+    }),
+    buildRowValues(header, {
+      type: 'end group'
+    })
+  ];
 }
 
 async function updateStockReturned(configs) {
@@ -167,27 +254,67 @@ async function updateStockReturned(configs) {
   ];
   const header = surveyWorkSheet.getRow(1).values;
   header.shift();
-  const inputs = items.map((item) => {
-    return buildRowValues(header, {
-      type: 'hidden',
-      name: `${item.name}_returned`,
-      ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: 'NO_LABEL' }), {})
-    });
-  });
-  inputs.push(
+
+  // Add parents
+  const nbParents = getNumberOfParent(configs.levels[1].place_type, configs.levels[2].place_type);
+  const contactParentRows = [];
+  for (let i = 0; i < nbParents; i++) {
+    contactParentRows.push(
+      buildRowValues(header, {
+        type: 'begin group',
+        name: `parent`,
+        appearance: `hidden`,
+        ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      }),
+      buildRowValues(header, {
+        type: 'string',
+        name: '_id',
+        ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      })
+    );
+  }
+  for (let i = 0; i < nbParents; i++) {
+    contactParentRows.push(
+      buildRowValues(header, {
+        type: 'end group',
+      })
+    );
+  }
+  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 2);
+  surveyWorkSheet.insertRows(
+    contactPosition + 3,
+    contactParentRows,
+    'i+'
+  );
+  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  surveyWorkSheet.getRow(placeIdPosition).getCell(8).value = `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`;
+
+  const inputs = [
+    ...items.map((item) => {
+      return buildRowValues(header, {
+        type: 'hidden',
+        name: `${item.name}_returned`,
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: 'NO_LABEL' }), {})
+      });
+    }),
     buildRowValues(header, {
       type: 'hidden',
       name: 'level_1_place_id',
       ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+    }),
+    buildRowValues(header, {
+      type: 'hidden',
+      name: 'stock_return_id',
+      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
     })
-  );
+  ];
   const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);
   surveyWorkSheet.insertRows(
     inputPosition + 1,
     inputs,
     'i+'
   );
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+
   const rows = [];
   if (configs.useItemCategory) {
     rows.push(
@@ -215,6 +342,7 @@ async function updateStockReturned(configs) {
   } else {
     //TODO: Add when no category
   }
+  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
   surveyWorkSheet.insertRows(
     position + 1,
     rows,
@@ -222,6 +350,13 @@ async function updateStockReturned(configs) {
   );
   addReturnedSummaries(surveyWorkSheet, languages, items, configs.useItemCategory ? categories : []);
   addExportCalculation(surveyWorkSheet, items);
+  const [, end] = getSheetGroupBeginEnd(surveyWorkSheet, 'out');
+  const additionalDocRows = getAdditionalDoc(returnedConfigs.form_name, returnedConfigs.form_name, languages, header, items);
+  surveyWorkSheet.insertRows(
+    end + 2,
+    additionalDocRows,
+    'i+'
+  );
 
   //CHOICES
   const choiceLabelColumns = languages.map((l) => [

@@ -2,7 +2,7 @@ const inquirer = require('inquirer');
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
-const ExcelJS = require('exceljs');
+const { Workbook } = require('exceljs');
 const { getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd } = require('../utils');
 
 function getLabelColumns(languages, messages) {
@@ -85,7 +85,7 @@ function getItemRows(header, languages, messages, selectionFieldName, items) {
         type: 'decimal',
         name: `${item.name}_returned_qty`,
         required: 'yes',
-        constraint: '. > 0',
+        constraint: '. > 0 and . < ${' + item.name + '_current}',
         default: 0,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.qty_returned'] }), {})
       }),
@@ -177,7 +177,7 @@ async function updateStockReturn(configs) {
 
   const returnFormPath = path.join(processDir, 'forms', 'app', `${returnConfigs.form_name}.xlsx`);
   fs.copyFileSync(path.join(__dirname, '../../templates/stock_supply.xlsx'), returnFormPath);
-  const workbook = new ExcelJS.Workbook();
+  const workbook = new Workbook();
   await workbook.xlsx.readFile(returnFormPath);
   const surveyWorkSheet = workbook.getWorksheet('survey');
   const choiceWorkSheet = workbook.getWorksheet('choices');
@@ -201,8 +201,8 @@ async function updateStockReturn(configs) {
   lastColumnIndex++;
   const header = surveyWorkSheet.getRow(1).values;
   header.shift();
+  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
 
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
   const rows = items.map((item) => {
     return buildRowValues(header, {
       type: 'calculate',
@@ -270,7 +270,7 @@ async function updateStockReturn(configs) {
     );
   }
   surveyWorkSheet.insertRows(
-    position + 1,
+    placeIdPosition + 1,
     rows,
     'i+'
   );

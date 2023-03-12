@@ -25,8 +25,9 @@ function getItemCount(itemName, listReports, dynamicFormNames) {
       case dynamicFormNames.supplyConfirm:
         total += Number(Utils.getField(report, `out.${itemName}_confirmed`) || 0);
         break;
-      case dynamicFormNames.stockReturn:
-        total -= Number(Utils.getField(report, `out.${itemName}_out`) || 0);
+      case dynamicFormNames.stockReturned:
+        total += Number(Utils.getField(report, `out.${itemName}_in`) || 0);
+        total -= Number(Utils.getField(report, `${itemName}_out`) || 0);
         break;
       default:
         break;
@@ -115,7 +116,6 @@ function getSummary(configs, reports, _Utils) {
         for (const itemField of itemsFields) {
           context[`stock_monitoring_${itemField.name}_qty`] = itemField.count || 0;
         }
-        console.log('ctx', context);
       },
       fields: itemsFields
     };

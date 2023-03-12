@@ -204,6 +204,28 @@ function getAdditionalDoc(formName, languages, header, items) {
   ];
 }
 
+function getItemRows(header, languages, selectionFieldName, items) {
+  return items.map((item) => {
+    return [
+      buildRowValues(header, {
+        type: 'begin group',
+        name: `___${item.name}`,
+        relevant: 'selected(${' + selectionFieldName + `}, '${item.name}')`,
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
+      }),
+      buildRowValues(header, {
+        type: 'decimal',
+        name: `supply_${item.name}`,
+        default: 0,
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
+      }),
+      buildRowValues(header, {
+        type: 'end group',
+      }),
+    ];
+  });
+}
+
 async function updateStockConfirmation(configs, messages) {
   const processDir = process.cwd();
   const supplyConfigs = configs.features.stock_supply;
@@ -320,7 +342,7 @@ async function updateStockConfirmation(configs, messages) {
           type: 'decimal',
           name: `${categoryItem.name}_real_qty`,
           required: 'yes',
-          constraint: '. != ${' + categoryItem.name +'_received}',
+          constraint: '. != ${' + categoryItem.name + '_received}',
           relevant: '${have_receive_' + categoryItem.name + "_qty} = 'no'"
         };
         for (const language of configs.languages) {
@@ -332,6 +354,35 @@ async function updateStockConfirmation(configs, messages) {
         type: 'end group'
       }));
     }
+  } else {
+    for (const item of items) {
+      const confirmationRow = {
+        type: 'select_one yes_no',
+        name: `have_receive_${item.name}_qty`,
+        required: 'yes',
+        relevant: '${' + item.name + '_received} > 0',
+        ...languages.reduce((prev, language) => ({
+          ...prev,
+          [`label::${language}`]: messages[language]['stock_supply.confirmation.item_received_question'].replace('{{qty}}', '${' + item.name + '_received}').replace('{{unit}}', item.unit).replace('{{item}}', item.label[language]),
+        }), {})
+      };
+      rows.push(buildRowValues(header, confirmationRow));
+
+      const qtyRow = {
+        type: 'decimal',
+        name: `${item.name}_real_qty`,
+        required: 'yes',
+        constraint: '. != ${' + item.name + '_received}',
+        relevant: '${have_receive_' + item.name + "_qty} = 'no'"
+      };
+      for (const language of configs.languages) {
+        qtyRow[`label::${language}`] = messages[language]['stock_supply.confirmation.qty_received_question'];
+      }
+      rows.push(buildRowValues(header, qtyRow));
+    }
+    rows.push(buildRowValues(header, {
+      type: 'end group'
+    }));
   }
   const [placePosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
   surveyWorkSheet.insertRows(
@@ -374,6 +425,7 @@ async function updateStockSupply(configs) {
   const messages = getTranslations();
   const stockSupplyPath = path.join(processDir, 'forms', 'app', `${featureConfigs.form_name}.xlsx`);
   const items = Object.values(configs.items);
+  const categories = Object.values(configs.categories);
   fs.copyFileSync(path.join(__dirname, '../../templates/stock_supply.xlsx'), stockSupplyPath);
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(stockSupplyPath);
@@ -428,6 +480,7 @@ async function updateStockSupply(configs) {
   surveyWorkSheet.getColumn(lastColumnIndex + 2).values = [
     `instance::db-doc-ref`,
   ];
+  surveyWorkSheet.getColumn(lastColumnIndex + 3).values = ['choice_filter'];
   settingWorkSheet.getRow(2).getCell(1).value = featureConfigs.title[configs.defaultLanguage];
   settingWorkSheet.getRow(2).getCell(2).value = featureConfigs.form_name;
 
@@ -440,21 +493,36 @@ async function updateStockSupply(configs) {
     choiceWorkSheet.getColumn(choiceLastColumn + 1).values = choiceLabelColumn;
     choiceLastColumn++;
   }
+  choiceWorkSheet.getColumn(choiceLastColumn + 1).values = ['category_filter'];
   const choiceHeader = choiceWorkSheet.getRow(1).values;
   choiceHeader.shift();
-  const choices = items.map((item) => {
-    const row = {
-      list_name: 'items',
-      name: item.name,
-    };
-    for (const language of configs.languages) {
-      row[`label::${language}`] = item.label[language]; // Row label
-    }
-    return buildRowValues(choiceHeader, row);
+  const categoryChoiceRows = categories.map((category) => {
+    return buildRowValues(
+      choiceHeader,
+      {
+        list_name: 'categories',
+        name: category.name,
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
+      }
+    );
+  });
+  const itemsChoiceRows = items.map((item) => {
+    return buildRowValues(
+      choiceHeader,
+      {
+        list_name: 'items',
+        name: item.name,
+        category_filter: item.category,
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
+      }
+    );
   });
   choiceWorkSheet.insertRows(
     2,
-    choices,
+    [
+      ...categoryChoiceRows,
+      ...itemsChoiceRows,
+    ],
     'i+'
   );
 
@@ -506,68 +574,51 @@ async function updateStockSupply(configs) {
     })
   );
   const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
-  const selectPage = {
-    type: 'begin group',
-    name: 'select_items',
-    appearance: 'field-list',
-  };
-  for (const language of configs.languages) {
-    selectPage[`label::${language}`] = messages[language]['stock_supply.page_1.header']; // Row label
-  }
-  rows.push(buildRowValues(header, selectPage));
-  const selectRow = {
-    type: 'select_multiple items',
-    name: 'selected_items',
-    appearance: ''
-  };
-  for (const language of configs.languages) {
-    selectRow[`label::${language}`] = messages[language]['stock_supply.page_1.select_input']; // Row label
-  }
-  for (const language of configs.languages) {
-    selectRow[`hint:${language}`] = messages[language]['stock_supply.page_1.select_input_hint']; // Row label
-  }
-  rows.push(buildRowValues(header, selectRow));
-  rows.push(buildRowValues(header, {
-    type: 'end group'
-  }));
   if (configs.useItemCategory) {
-    for (const category of Object.values(configs.categories)) {
-      const catHeader = {
+    rows.push(
+      buildRowValues(header, {
         type: 'begin group',
-        name: `category_${category.name}`,
+        name: 'select_items',
         appearance: 'field-list',
-      };
-      for (const language of configs.languages) {
-        catHeader[`label::${language}`] = category.label[language]; // Row label
-      }
-      rows.push(buildRowValues(header, catHeader));
-      const categoryItems = items.filter((it) => it.category === category.name);
-      for (const categoryItem of categoryItems) {
-        const titleRow = {
-          type: 'note',
-          name: `note_${categoryItem.name}_title`,
-          relevant: 'selected(${selected_items},' + `'${categoryItem.name}')`
-        };
-        for (const language of configs.languages) {
-          titleRow[`label::${language}`] = `<h3 style="text-align:center; font-weight:bold; background-color:#93C47E;">${categoryItem.label[language]}` + ': ${' + `${categoryItem.name}_current` + '}</h3>';
-        }
-        rows.push(buildRowValues(header, titleRow));
-
-        const rowQty = {
-          type: 'decimal',
-          name: `supply_${categoryItem.name}`,
-          relevant: 'selected(${selected_items},' + `'${categoryItem.name}')`,
-          default: 0,
-        };
-        for (const language of configs.languages) {
-          rowQty[`label::${language}`] = messages[language]['stock_supply.item.quantity_of'] + ' ' + categoryItem.unit;
-        }
-        rows.push(buildRowValues(header, rowQty));
-      }
-      rows.push(buildRowValues(header, {
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_supply.forms.select_category'] }), {})
+      }),
+      buildRowValues(header, {
+        type: 'select_multiple categories',
+        name: 'categories',
+        appearance: '',
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_supply.page_1.select_input'] }), {}),
+      }),
+      buildRowValues(header, {
         type: 'end group'
-      }));
-    }
+      }),
+      ...categories.map((category) => {
+        return [
+          buildRowValues(header, {
+            type: 'begin group',
+            name: category.name,
+            appearance: 'field-list',
+            relevant: 'selected(${categories}, ' + `'${category.name}')`,
+            ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
+          }),
+          buildRowValues(header, {
+            type: 'select_multiple items',
+            required: 'yes',
+            name: `${category.name}_items_selected`,
+            choice_filter: `category_filter = '${category.name}'`,
+            ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.select_items'] }), {})
+          }),
+          ...getItemRows(
+            header,
+            languages,
+            `${category.name}_items_selected`,
+            items.filter((item) => item.category === category.name),
+          ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
+          buildRowValues(header, {
+            type: 'end group',
+          }),
+        ];
+      }).reduce((prev, categoryRows) => ([...prev, ...categoryRows]), []),
+    );
   } else {
     const pageHeader = {
       type: 'begin group',

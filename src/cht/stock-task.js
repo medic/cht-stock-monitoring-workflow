@@ -72,6 +72,14 @@ function getStockTask(configs) {
             },
           },
         ],
+        resolvedIf: function (contact, report) {
+          const confirmationReport = contact.reports.find((current) => {
+            const returnId = Utils.getField(current, 'return_id');
+            return current.form === configs.features.stock_return.confirmation.form_name &&
+              report._id === returnId;
+          });
+          return confirmationReport;
+        },
         actions: [
           {
             form: configs.features.stock_return.confirmation.form_name,
@@ -80,6 +88,7 @@ function getStockTask(configs) {
                 content[`${item.name}_returned`] = Utils.getField(report, `out.${item.name}_out`);
               }
               content['level_1_place_id'] = Utils.getField(report, 'place_id');
+              content['stock_return_id'] = report._id;
             }
           }
         ]

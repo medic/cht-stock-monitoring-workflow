@@ -4,6 +4,7 @@ const { updateStockCount } = require('./features/stock-count');
 const { updateStockReturn } = require('./features/stock-return');
 const { updateStockSupply } = require('./features/stock-supply');
 const { updateTranslations } = require('./utils');
+const { updateStockReturned } = require('./features/stock-returned');
 
 module.exports = async function (configs) {
 
@@ -21,8 +22,10 @@ module.exports = async function (configs) {
         await updateStockSupply(configs);
         break;
       case 'stock_return':
-        // Create stock supply form xlsx
+        // Create stock return form
         await updateStockReturn(configs);
+        // Create stock returned form
+        await updateStockReturned(configs);
         break;
       default:
         break;
