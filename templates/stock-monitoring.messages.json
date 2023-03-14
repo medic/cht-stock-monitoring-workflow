@@ -6,6 +6,7 @@
   "stock_count.submit_note": "<h4 style='text-align:center;'>Be sure you Submit to complete this action.</h4>",
   "stock_count.summary_note": "Stock items you currently have.<I class='fa fa-list-ul'></i>",
   "stock_count.tasks.stock-count": "Stock count",
+  "stock_count.forms.additional_doc_title": "Stock uses",
   "stock_supply.page_1.header": "Select item to supply",
   "stock_supply.forms.select_category": "Select the category of what you want to return",
   "stock_supply.forms.select_items": "Select the different item you want to return",

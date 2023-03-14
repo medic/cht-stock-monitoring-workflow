@@ -8,13 +8,19 @@ const { FORM_ADDITIONAL_DOC_NAME } = require('../constants');
 async function updateForm(configs) {
   const formConfigs = Object.values(configs.forms);
   const languages = configs.languages;
+  const categories = Object.values(configs.categories);
   const messages = getTranslations();
 
   for (const formConfig of formConfigs) {
     const formName = formConfig.name;
     const formItemConfigs = formConfig.items;
     const formItemIds = Object.keys(formConfig.items);
-    const items = configs.items;
+    const items = Object.values(configs.items);
+    const formItems = items.filter(item => formItemIds.includes(item.name));
+    let formCategoryIds = items
+      .filter(item => formItemIds.includes(item.name))
+      .map(item => item.category);
+    formCategoryIds = [...new Set(formCategoryIds)];
 
     const formPath = path.join('forms', 'app', `${formName}.xlsx`);
     if (!fs.existsSync(formPath)) {
@@ -54,7 +60,7 @@ async function updateForm(configs) {
       buildRowValues(header, {
         type: 'begin group',
         name: FORM_ADDITIONAL_DOC_NAME,
-        appearance: 'field-list',
+        appearance: 'field-list summary',
         'instance::db-doc': 'true',
         ...noLabelValues
       }),
@@ -101,19 +107,44 @@ async function updateForm(configs) {
       buildRowValues(header, {
         type: 'begin group',
         name: 'fields',
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_supply.forms.additional_doc_title'] }), {})
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_count.forms.additional_doc_title'] }), {}),
       }),
-      ...formItemIds.map((itemId) => {
-        const itemConfig = formItemConfigs[itemId];
-        const item = items[itemId];
+      ...formCategoryIds.map((categoryId) => {
+        const category = categories.find((category) => category.name === categoryId);
+        const byUserItems = formItems.filter((item) => {
+          const itemConfig = formItemConfigs[item.name];
+          return item.category === category.name && itemConfig['deduction_type'] === 'by_user';
+        });
+        return [
+          buildRowValues(header, {
+            type: 'note',
+            name: `${category.name}_out`,
+            appearance: byUserItems.length > 0 ? 'h1 lime' : 'hidden',
+            ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] + ' <i class="fa fa-cubes"></i>' }), {})
+          }),
+          ...formItems.filter(item => item.category === category.name).map((item) => {
+            const itemConfig = formItemConfigs[item.name];
+            return buildRowValues(header, {
+              type: itemConfig['deduction_type'] === 'formula' ? 'calculate' : 'decimal',
+              name: `${item.name}_out`,
+              relevant: itemConfig['deduction_type'] === 'by_user' ? itemConfig.formular : '',
+              calculation: itemConfig['deduction_type'] === 'formula' ? itemConfig.formular : '',
+              ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_count.forms.item_used_question'].replace('{{item}}', item.label[language]) }), {})
+            });
+          }),
+        ];
+      }).reduce((prev, next) => [...prev, ...next], []),
+      ...(formCategoryIds.length === 0 ? formItems.map((item) => {
+        const itemConfig = formItemConfigs[item.name];
         return buildRowValues(header, {
           type: itemConfig['deduction_type'] === 'formula' ? 'calculate' : 'decimal',
-          name: `${itemId}_out`,
+          name: `${item.name}_out`,
+          required: itemConfig['deduction_type'] === 'formula' ? '' : 'yes',
           relevant: itemConfig['deduction_type'] === 'by_user' ? itemConfig.formular : '',
           calculation: itemConfig['deduction_type'] === 'formula' ? itemConfig.formular : '',
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_count.forms.item_used_question'].replace('{{item}}', item.label[language]) }), {})
         });
-      }),
+      }) : []),
       buildRowValues(header, {
         type: 'end group',
         name: 'fields',
@@ -122,12 +153,19 @@ async function updateForm(configs) {
         type: 'end group',
       })
     ];
-    const [, summaryEnd] = getSheetGroupBeginEnd(surveyWorkSheet, 'summary', 2);
-    surveyWorkSheet.insertRows(
-      summaryEnd,
-      additionalDocRows,
-      '+i',
-    );
+    if (begin !== -1) {
+      console.log('----', begin);
+      surveyWorkSheet.spliceRows(
+        begin,
+        end - begin + 1,
+        ...additionalDocRows
+      );
+    } else {
+      surveyWorkSheet.addRows(
+        additionalDocRows,
+        '+i',
+      );
+    }
     await formWorkbook.xlsx.writeFile(formPath);
     console.log(chalk.green(`INFO ${formName} form updated successfully`));
   }

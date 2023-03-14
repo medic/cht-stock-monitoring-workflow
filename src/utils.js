@@ -143,19 +143,19 @@ function getSheetGroupBeginEnd(workSheet, name) {
   let foundItemBeginGroup = false;
   let beginGroupRowNumber = -1;
   let endGroupRowNumber = -1;
-  let interneGroupBegin = false;
+  let interneGroupBegin = 0;
   workSheet.eachRow(function (row, rowNumber) {
     if (row.values.includes('begin group')) {
       if (foundItemBeginGroup) {
-        interneGroupBegin = true;
+        interneGroupBegin ++;
       } else if (row.values[2].trim() === name) {
         foundItemBeginGroup = true;
         beginGroupRowNumber = rowNumber;
       }
     }
     if (row.values.includes('end group')) {
-      if (interneGroupBegin) {
-        interneGroupBegin = false;
+      if (interneGroupBegin > 0) {
+        interneGroupBegin --;
       } else if (endGroupRowNumber === -1 && foundItemBeginGroup) {
         endGroupRowNumber = rowNumber;
       }
