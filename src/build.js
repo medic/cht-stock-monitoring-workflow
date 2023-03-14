@@ -6,6 +6,7 @@ const { updateStockSupply } = require('./features/stock-supply');
 const { updateTranslations, getTranslations } = require('./utils');
 const { updateStockReturned } = require('./features/stock-returned');
 const { updateStockConfirmation } = require('./features/stock-received');
+const { updateStockDiscrepancy } = require('./features/stock-discrepancy');
 
 module.exports = async function (configs) {
 
@@ -25,6 +26,7 @@ module.exports = async function (configs) {
         if (configs.features.stock_supply && configs.features.stock_supply.confirm_supply) {
           await updateStockConfirmation(configs, messages);
         }
+        await updateStockDiscrepancy(configs);
         break;
       case 'stock_return':
         // Create stock return form

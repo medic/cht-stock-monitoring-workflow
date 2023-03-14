@@ -340,7 +340,13 @@ async function updateStockReturned(configs) {
       }).reduce((prev, categoryRows) => ([...prev, ...categoryRows]), []),
     );
   } else {
-    //TODO: Add when no category
+    rows.push(
+      ...getItemRows(
+        header,
+        languages,
+        messages,
+      ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
+    );
   }
   const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
   surveyWorkSheet.insertRows(

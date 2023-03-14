@@ -47,7 +47,7 @@ function addStockConfirmCalculation(workSheet, items) {
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_confirmed`, // Row name
-      calculation: 'if(${have_receive_' + item.name + "_qty} = 'yes',${" + item.name + '_received},${' + item.name + '_real_qty})',
+      calculation: 'if(${have_receive_' + item.name + "_qty} = 'yes',${" + item.name + '_received},0)',
     }))
   ];
 

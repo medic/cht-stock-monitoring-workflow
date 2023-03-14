@@ -1,5 +1,6 @@
 const chalk = require('chalk');
 const path = require('path');
+const inquirer = require('inquirer');
 const fs = require('fs-extra');
 const ExcelJS = require('exceljs');
 const { getAppSettings, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations } = require('../utils');
@@ -153,6 +154,20 @@ async function updateStockCount(configs) {
     );
   }
 
+  const inputs = [
+    buildRowValues(header, {
+      type: 'hidden',
+      name: 'date_id',
+      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+    }),
+  ];
+  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);
+  surveyWorkSheet.insertRows(
+    inputPosition + 1,
+    inputs,
+    'i+'
+  );
+
 
   //Insert item
   surveyWorkSheet.insertRows(
@@ -180,7 +195,7 @@ async function updateStockCount(configs) {
     'icon': 'icon-healthcare-medicine',
     'context': {
       'person': false,
-      'place': true,
+      'place': stockCountConfigs.type === 'task' ? false : true,
       expression
     },
     title: languages.map((lang) => {
@@ -195,6 +210,88 @@ async function updateStockCount(configs) {
   console.log(chalk.green(`INFO ${stockCountConfigs.title[configs.defaultLanguage]} form updated successfully`));
 }
 
+async function getStockCountConfigs(levels, locales) {
+  const answers = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'useItemCategory',
+      message: 'Categorize stock items',
+      default: false,
+    },
+    {
+      type: 'input',
+      name: 'features.stock_count.form_name',
+      message: 'Stock count form (Used to fill in balances on hand) ID',
+      default: 'stock_count',
+    },
+    {
+      type: 'checkbox',
+      name: 'features.stock_count.contact_types',
+      message: 'Select stock count form levels',
+      choices: Object.values(levels).map(l => l.contact_type),
+    },
+    {
+      type: 'list',
+      name: 'features.stock_count.type',
+      message: 'Select stock count form type',
+      choices: [
+        {
+          name: 'Action form',
+          value: 'action'
+        },
+        {
+          name: 'Task form',
+          value: 'task'
+        }
+      ],
+    },
+  ]);
+
+  if (answers.features.stock_count.type === 'task') {
+    const tasksAnswers = await inquirer.prompt([
+      {
+        type: 'checkbox',
+        name: 'frequency',
+        message: 'Select stock count form frequency',
+        choices: [
+          {
+            name: 'End of each week',
+            value: 'end_of_week'
+          },
+          {
+            name: 'Middle of each month',
+            value: 'middle_of_month'
+          },
+          {
+            name: 'End of each month',
+            value: 'end_of_month'
+          }
+        ],
+      }
+    ]);
+    answers.features.stock_count.frequency = tasksAnswers.frequency;
+  }
+
+  const titleAnswers = await inquirer.prompt([
+    ...locales.map((locale) => {
+      return {
+        type: 'input',
+        name: locale.code,
+        message: `Stock count form title in ${locale.name}`,
+        default: 'Stock count'
+      };
+    }),
+  ]);
+
+  answers.features.stock_count.title = {};
+  for (const locale of locales) {
+    answers.features.stock_count.title[locale.code] = titleAnswers[locale.code];
+  }
+
+  return answers;
+}
+
 module.exports = {
   updateStockCount,
+  getStockCountConfigs,
 };

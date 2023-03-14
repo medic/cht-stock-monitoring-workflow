@@ -1,6 +1,6 @@
 // const messages = require('/stock-monitoring.messages.json');
 const { Fraction } = require('fractional');
-const { TRANSLATION_PREFIX, SUPPLY_ADDITIONAL_DOC, FORM_ADDITIONAL_DOC_NAME } = require('../constants');
+const { TRANSLATION_PREFIX, SUPPLY_ADDITIONAL_DOC, FORM_ADDITIONAL_DOC_NAME, DESCREPANCY_ADD_DOC } = require('../constants');
 const { DateTime } = require('luxon');
 let Utils = {};
 
@@ -22,8 +22,14 @@ function getItemCount(itemName, listReports, dynamicFormNames) {
       case FORM_ADDITIONAL_DOC_NAME:
         total -= Number(Utils.getField(report, `${itemName}_out`) || 0);
         break;
+      case DESCREPANCY_ADD_DOC:
+        total += Number(Utils.getField(report, `${itemName}_out`) || 0);
+        break;
       case dynamicFormNames.supplyConfirm:
         total += Number(Utils.getField(report, `out.${itemName}_confirmed`) || 0);
+        break;
+      case dynamicFormNames.supplyDiscrepancy:
+        total += Number(Utils.getField(report, `out.${itemName}_in`) || 0);
         break;
       case dynamicFormNames.stockReturned:
         total += Number(Utils.getField(report, `out.${itemName}_in`) || 0);
@@ -62,8 +68,9 @@ function getSummary(configs, reports, _Utils) {
   const dynamicFormNames = {
     stockCount: stockCountFeature.form_name,
     supplyConfirm: '',
+    supplyDiscrepancy: configs.features.stock_supply ? configs.features.stock_supply.discrepancy.form_name : '',
     stockReturn: configs.features.stock_return ? configs.features.stock_return.form_name : 'stock_return',
-    stockReturned: configs.features.stock_return ? configs.features.stock_return.confirmation.form_name : 'stock_returned',
+    stockReturned: configs.features.stock_return ? configs.features.stock_return.confirmation.form_name : '',
   };
 
   // Get last stock count

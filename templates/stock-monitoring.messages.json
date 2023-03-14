@@ -5,6 +5,7 @@
   "stock_count.contact_summary.title": "Stock count",
   "stock_count.submit_note": "<h4 style='text-align:center;'>Be sure you Submit to complete this action.</h4>",
   "stock_count.summary_note": "Stock items you currently have.<I class='fa fa-list-ul'></i>",
+  "stock_count.tasks.stock-count": "Stock count",
   "stock_supply.page_1.header": "Select item to supply",
   "stock_supply.forms.select_category": "Select the category of what you want to return",
   "stock_supply.forms.select_items": "Select the different item you want to return",
@@ -22,6 +23,7 @@
   "stock_supply.forms.additional_doc_title": "Stock uses",
   "stock_supply.forms.item_used_question": "Quantity of {{item}}",
   "stock_supply.confirmation.qty_received_question": "Enter the quantitity received",
+  "stock_supply.tasks.stock-descreptancy": "Commodity Discrepancy Resolution",
   "stock_supply.confirmation.summary_note": "Stock items you received.<I class='fa fa-list-ul'></i>",
   "consumption_log.item_question": "What would you like to report",
   "consumption_log.item_returned_note": "Quantity Returned for redistribution to oters or expiry issues",
@@ -53,5 +55,11 @@
   "stock_return.forms.select_items.reason.excess": "Excess",
   "stock_return.forms.select_items.reason.damaged": "Damaged",
   "stock_return.forms.select_items.reason.expired": "Expired",
-  "stock_return.forms.select_items.reason.other": "Other"
+  "stock_return.forms.select_items.reason.other": "Other",
+  "stock_supply.discrepancy.summary_header": "Results/Summary page",
+  "stock_supply.discrepancy.submit_note": "<h4 style='text-align:center;'>Be sure you Submit to complete this action.</h4>",
+  "stock_supply.discrepancy.summary_note": "Discrepancy resolution<I class='fa fa-list-ul'></i>",
+  "stock_supply.discrepancy.quantity_issued": "Quantity issued: {{qty}}",
+  "stock_supply.discrepancy.quantity_confirmed": "Quantity confirmed: {{qty}}",
+  "stock_supply.discrepancy.quantity_final": "What is the final quantity ?"
 }

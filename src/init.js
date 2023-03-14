@@ -1,6 +1,7 @@
 const chalk = require('chalk');
 const utils = require('./utils');
 const inquirer = require('inquirer');
+const { getStockCountConfigs } = require('./features/stock-count');
 
 async function getInitConfigs() {
   const appSettings = utils.getAppSettings();
@@ -60,34 +61,7 @@ async function getInitConfigs() {
     levels[levelNumber]['place_type'] = contactPlace;
   }
 
-  const answers = await inquirer.prompt([
-    {
-      type: 'confirm',
-      name: 'useItemCategory',
-      message: 'Categorize stock items',
-      default: false,
-    },
-    {
-      type: 'input',
-      name: 'features.stock_count.form_name',
-      message: 'Stock count form (Used to fill in balances on hand) ID',
-      default: 'stock_count',
-    },
-    {
-      type: 'checkbox',
-      name: 'features.stock_count.contact_types',
-      message: 'Select stock count form levels',
-      choices: Object.values(levels).map(l => l.contact_type),
-    },
-    ...appSettings.locales.map((locale) => {
-      return {
-        type: 'input',
-        name: `features.stock_count.title.${locale.code}`,
-        message: `Stock count form title in ${locale.name}`,
-        default: 'Stock count'
-      };
-    }),
-  ]);
+  const answers = await getStockCountConfigs(levels, appSettings.locales);
 
   return {
     ...answers,

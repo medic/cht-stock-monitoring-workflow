@@ -450,7 +450,19 @@ async function getStockSupplyConfigs({
       name: 'confirm_supply.active',
       message: 'Activate supply confirmation',
       default: false,
-    }
+    },
+    {
+      type: 'input',
+      name: 'discrepancy.form_name',
+      message: 'Enter discrepancy resolution form ID',
+      default: 'stock_discrepancy_resolution',
+    },
+    ...languages.map((language) => ({
+      type: 'input',
+      name: `discrepancy.title.${language}`,
+      message: `Enter discrepancy resolution form title in ${language}`,
+      default: 'Stock Discrepancy Resolution'
+    }))
   ]);
 
   if (configs.confirm_supply.active) {
