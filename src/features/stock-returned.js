@@ -45,7 +45,7 @@ function getItemRows(header, languages, messages, items) {
       buildRowValues(header, {
         type: 'begin group',
         name: `___${item.name}`,
-        relevant: '${' + `${item.name}_returned} > 0`,
+        relevant: '${' + `${item.name}_return} > 0`,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
       }),
       buildRowValues(header, {
@@ -54,7 +54,7 @@ function getItemRows(header, languages, messages, items) {
         required: 'yes',
         ...languages.reduce((prev, language) => ({
           ...prev,
-          [`label::${language}`]: messages[language]['stock_return.confirmation.item_received_question'].replace('{{qty}}', '${' + item.name + '_returned}').replace('{{unit}}', item.unit).replace('{{item}}', item.label[language])
+          [`label::${language}`]: messages[language]['stock_return.confirmation.item_received_question'].replace('{{qty}}', '${' + item.name + '_return}').replace('{{unit}}', item.unit).replace('{{item}}', item.label[language])
         }), {})
       }),
       buildRowValues(header, {
@@ -85,7 +85,7 @@ function addReturnedSummaries(workSheet, languages, items, categories = []) {
           type: 'note',
           name: `${category.name}_summary`,
           appearance: 'h1 blue',
-          relevant: items.filter(it => it.category === category.name).map((item) => '${' + `${item.name}_returned} > 0`).join(' or '),
+          relevant: items.filter(it => it.category === category.name).map((item) => '${' + `${item.name}_return} > 0`).join(' or '),
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
         }),
         ...items.filter(it => it.category === category.name).map((item) => [
@@ -96,7 +96,7 @@ function addReturnedSummaries(workSheet, languages, items, categories = []) {
             relevant: '${' + `${item.name}_received} = 'no'`,
             ...languages.reduce((prev, language) => ({
               ...prev,
-              [`label::${language}`]: `${item.label[language]}: ` + '<span style="color:red"><s>${' + `${item.name}_returned}</s></span> | ` + '<b><span style="color:green">${' + `${item.name}_received_qty}</span></b>`
+              [`label::${language}`]: `${item.label[language]}: ` + '<span style="color:red"><s>${' + `${item.name}_return}</s></span> | ` + '<b><span style="color:green">${' + `${item.name}_received_qty}</span></b>`
             }), {})
           }),
           buildRowValues(header, {
@@ -106,7 +106,7 @@ function addReturnedSummaries(workSheet, languages, items, categories = []) {
             relevant: '${' + `${item.name}_received} = 'yes'`,
             ...languages.reduce((prev, language) => ({
               ...prev,
-              [`label::${language}`]: `${item.label[language]}: ` + '${' + `${item.name}_returned}`
+              [`label::${language}`]: `${item.label[language]}: ` + '${' + `${item.name}_return}`
             }), {})
           }),
         ]).reduce((prev, next) => ([...prev, ...next]), []),
@@ -131,7 +131,7 @@ function addExportCalculation(workSheet, items) {
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_in`, // Row name
-      calculation: 'if(${' + `${item.name}_received} = 'no',` + '${' + `${item.name}_received_qty},` + '${' + `${item.name}_returned})`
+      calculation: 'if(${' + `${item.name}_received} = 'no',` + '${' + `${item.name}_received_qty},` + '${' + `${item.name}_return})`
     }))
   ];
 
@@ -186,7 +186,7 @@ function getAdditionalDoc(formName, docFormName, languages, header, items) {
     buildRowValues(header, {
       type: 'calculate',
       name: '_id',
-      calculation: '${level_1_place_id}'
+      calculation: '${user_contact_id}'
     }),
     buildRowValues(header, {
       type: 'end group',
@@ -199,8 +199,8 @@ function getAdditionalDoc(formName, docFormName, languages, header, items) {
     }),
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
-      name: `${item.name}_out`, // Row name
-      calculation: 'if(${' + `${item.name}_received} = 'no',` + '${' + `${item.name}_received_qty},` + '${' + `${item.name}_returned})`
+      name: `${item.name}_return_difference`, // Row name
+      calculation: 'if(${' + `${item.name}_received} = 'no',` + '${' + `${item.name}_return}-` + '${' + `${item.name}_received_qty},0)`
     })),
     buildRowValues(header, {
       type: 'calculate',
@@ -293,7 +293,7 @@ async function updateStockReturned(configs) {
     ...items.map((item) => {
       return buildRowValues(header, {
         type: 'hidden',
-        name: `${item.name}_returned`,
+        name: `${item.name}_return`,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: 'NO_LABEL' }), {})
       });
     }),
@@ -315,7 +315,13 @@ async function updateStockReturned(configs) {
     'i+'
   );
 
-  const rows = [];
+  const rows = [
+    buildRowValues(header, {
+      type: 'calculate',
+      name: `user_contact_id`,
+      calculation: `../inputs/user/contact_id`
+    })
+  ];
   if (configs.useItemCategory) {
     rows.push(
       ...categories.map((category) => {
@@ -324,7 +330,7 @@ async function updateStockReturned(configs) {
             type: 'begin group',
             name: category.name,
             appearance: 'field-list',
-            relevant: items.filter(it => it.category === category.name).map((item) => '${' + `${item.name}_returned} > 0`).join(' or '),
+            relevant: items.filter(it => it.category === category.name).map((item) => '${' + `${item.name}_return} > 0`).join(' or '),
             ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
           }),
           ...getItemRows(

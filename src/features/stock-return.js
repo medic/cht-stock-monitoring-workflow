@@ -355,24 +355,26 @@ async function getStockReturnConfigs({
     {
       type: 'input',
       name: 'form_name',
-      message: 'Enter stock return form ID'
+      message: 'Enter stock return form ID',
+      default: 'stock_return'
     },
     ...languages.map((language) => ({
       type: 'input',
       name: `title.${language}`,
       message: `Enter stock return form title in ${language}`,
-      default: 'Stock return'
+      default: 'Stock Return'
     })),
     {
       type: 'input',
       name: 'confirmation.form_name',
-      message: 'Enter stock returned confirmation form ID'
+      message: 'Enter stock returned confirmation form ID',
+      default: 'stock_returned'
     },
     ...languages.map((language) => ({
       type: 'input',
       name: `confirmation.title.${language}`,
       message: `Enter stock returned confirmation form title in ${language}`,
-      default: 'Stock returned confirmation'
+      default: 'Stock Returned'
     })),
   ]);
 

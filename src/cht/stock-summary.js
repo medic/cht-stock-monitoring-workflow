@@ -1,6 +1,6 @@
 // const messages = require('/stock-monitoring.messages.json');
 const { Fraction } = require('fractional');
-const { TRANSLATION_PREFIX, SUPPLY_ADDITIONAL_DOC, FORM_ADDITIONAL_DOC_NAME, DESCREPANCY_ADD_DOC } = require('../constants');
+const { TRANSLATION_PREFIX, SUPPLY_ADDITIONAL_DOC, FORM_ADDITIONAL_DOC_NAME, DESCREPANCY_ADD_DOC, RETURNED_ADD_DOC } = require('../constants');
 const { DateTime } = require('luxon');
 let Utils = {};
 
@@ -35,6 +35,9 @@ function getItemCount(itemName, listReports, dynamicFormNames) {
       case DESCREPANCY_ADD_DOC:
         total += Number(Utils.getField(report, `${itemName}_out`)) || 0;
         break;
+      case RETURNED_ADD_DOC:
+        total += Number(Utils.getField(report, `${itemName}_return_difference`)) || 0;
+        break;
       case dynamicFormNames.supplyConfirm:
         total += Number(Utils.getField(report, `out.${itemName}_confirmed`) || 0);
         break;
@@ -44,9 +47,11 @@ function getItemCount(itemName, listReports, dynamicFormNames) {
           total += finalQty;
         }
         break;
+      case dynamicFormNames.stockReturn:
+        total -= Number(Utils.getField(report, `out.${itemName}_out`) || 0);
+        break;
       case dynamicFormNames.stockReturned:
         total += Number(Utils.getField(report, `out.${itemName}_in`) || 0);
-        total -= Number(Utils.getField(report, `${itemName}_out`) || 0);
         break;
       default:
         break;
@@ -83,7 +88,7 @@ function getSummary(configs, reports, _Utils) {
     supplyForm: configs.features.stock_supply ? configs.features.stock_supply.form_name : '',
     supplyConfirm: '',
     supplyDiscrepancy: (configs.features.stock_supply && configs.features.stock_supply.discrepancy) ? configs.features.stock_supply.discrepancy.form_name : '',
-    stockReturn: configs.features.stock_return ? configs.features.stock_return.form_name : 'stock_return',
+    stockReturn: configs.features.stock_return ? configs.features.stock_return.form_name : '',
     stockReturned: configs.features.stock_return ? configs.features.stock_return.confirmation.form_name : '',
   };
 

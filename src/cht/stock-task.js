@@ -1,5 +1,5 @@
 const { DateTime } = require('luxon');
-const { TRANSLATION_PREFIX, DESCREPANCY_ADD_DOC, SUPPLY_ADDITIONAL_DOC } = require('../constants');
+const { TRANSLATION_PREFIX, DESCREPANCY_ADD_DOC, SUPPLY_ADDITIONAL_DOC, RETURNED_ADD_DOC } = require('../constants');
 
 const getDynamicReportedDate = report => {
   const specifiedDate = Utils.getField(report, 's_reported.s_reported_date') || Utils.getField(report, 'supervision_date');
@@ -218,7 +218,7 @@ function getStockTask(configs) {
         appliesIf: (contact, report) => {
           const confirmationReport = contact
             .reports
-            .find((rp) => rp.form === configs.features.stock_return.confirmation.form_name && Utils.getField(rp, 'inputs.source_id') === report._id);
+            .find((rp) => rp.form === RETURNED_ADD_DOC && Utils.getField(rp, 'return_id') === report._id);
           // eslint-disable-next-line no-undef
           return !confirmationReport && user.role === configs.levels['2'].role;
         },
@@ -231,20 +231,12 @@ function getStockTask(configs) {
             },
           },
         ],
-        resolvedIf: function (contact, report) {
-          const confirmationReport = contact.reports.find((current) => {
-            const returnId = Utils.getField(current, 'return_id');
-            return current.form === configs.features.stock_return.confirmation.form_name &&
-              report._id === returnId;
-          });
-          return confirmationReport;
-        },
         actions: [
           {
             form: configs.features.stock_return.confirmation.form_name,
             modifyContent: function (content, contact, report) {
               for (const item of items) {
-                content[`${item.name}_returned`] = Utils.getField(report, `out.${item.name}_out`);
+                content[`${item.name}_return`] = Utils.getField(report, `out.${item.name}_out`);
               }
               content['level_1_place_id'] = Utils.getField(report, 'place_id');
               content['stock_return_id'] = report._id;
