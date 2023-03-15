@@ -53,7 +53,7 @@ function addStockSupplySummaries(workSheet, items, languages) {
   );
 }
 
-function getAdditionalDoc(formName, languages, header, items) {
+function getAdditionalDoc(formName, languages, header, items, needConfirmation) {
   return [
     buildRowValues(header, {
       type: 'begin group',
@@ -96,7 +96,7 @@ function getAdditionalDoc(formName, languages, header, items) {
     buildRowValues(header, {
       type: 'calculate',
       name: '_id',
-      calculation: '${supply_place_id}'
+      calculation: '${user_contact_id}'
     }),
     buildRowValues(header, {
       type: 'end group',
@@ -107,9 +107,14 @@ function getAdditionalDoc(formName, languages, header, items) {
       name: 'fields',
       ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
     }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'need_confirmation',
+      calculation: needConfirmation ? '"yes"' : '"no"'
+    }),
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
-      name: `${item.name}_out`, // Row name
+      name: `${item.name}_in`, // Row name
       calculation: '${' + item.name + '_supply}',
     })),
     buildRowValues(header, {
@@ -285,21 +290,27 @@ async function updateStockSupply(configs) {
     contactParentRows,
     'i+'
   );
-  const rows = items.map((item) => {
-    return buildRowValues(header, {
-      type: 'calculate',
-      name: `${item.name}_current`,
-      calculation: `instance('contact-summary')/context/stock_monitoring_${item.name}_qty`
-    });
-  });
-  rows.push(
+  const rows = [
+    ...items.map((item) => {
+      return buildRowValues(header, {
+        type: 'calculate',
+        name: `${item.name}_current`,
+        calculation: `instance('contact-summary')/context/stock_monitoring_${item.name}_qty`
+      });
+    }),
     buildRowValues(header, {
       type: 'calculate',
       name: `supply_place_id`,
-      calculation: `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`
+      calculation: `../inputs/contact/_id`
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: `user_contact_id`,
+      calculation: `../inputs/user/contact_id`
     })
-  );
+  ];
   const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  surveyWorkSheet.getRow(position).getCell(8).value = `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`;
   if (configs.useItemCategory) {
     rows.push(
       buildRowValues(header, {
@@ -331,7 +342,7 @@ async function updateStockSupply(configs) {
             required: 'yes',
             name: `${category.name}_items_selected`,
             choice_filter: `category_filter = '${category.name}'`,
-            ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.select_items'] }), {})
+            ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_supply.forms.select_items'] }), {})
           }),
           ...getItemRows(
             header,
@@ -399,7 +410,7 @@ async function updateStockSupply(configs) {
   addStockSupplySummaries(surveyWorkSheet, Object.values(configs.items), languages);
   addStockSupplyCalculation(surveyWorkSheet, Object.values(configs.items), languages);
   const [, end] = getSheetGroupBeginEnd(surveyWorkSheet, 'out');
-  const additionalDocRows = getAdditionalDoc(featureConfigs.form_name, languages, header, items);
+  const additionalDocRows = getAdditionalDoc(featureConfigs.form_name, languages, header, items, featureConfigs.confirm_supply.active);
   surveyWorkSheet.insertRows(
     end + 2,
     additionalDocRows,
@@ -437,32 +448,21 @@ async function getStockSupplyConfigs({
     {
       type: 'input',
       name: 'form_name',
-      message: 'Enter stock supply form ID'
+      message: 'Enter stock supply form ID',
+      default: 'stock_supply'
     },
     ...languages.map((language) => ({
       type: 'input',
       name: `title.${language}`,
       message: `Enter stock supply form title in ${language}`,
-      default: 'Stock supply'
+      default: 'Stock Supply'
     })),
     {
       type: 'confirm',
       name: 'confirm_supply.active',
       message: 'Activate supply confirmation',
       default: false,
-    },
-    {
-      type: 'input',
-      name: 'discrepancy.form_name',
-      message: 'Enter discrepancy resolution form ID',
-      default: 'stock_discrepancy_resolution',
-    },
-    ...languages.map((language) => ({
-      type: 'input',
-      name: `discrepancy.title.${language}`,
-      message: `Enter discrepancy resolution form title in ${language}`,
-      default: 'Stock Discrepancy Resolution'
-    }))
+    }
   ]);
 
   if (configs.confirm_supply.active) {
@@ -471,12 +471,25 @@ async function getStockSupplyConfigs({
         type: 'input',
         name: 'confirm_supply.form_name',
         message: 'Enter supply confirmation ID',
+        default: 'stock_received'
       },
       ...languages.map((language) => ({
         type: 'input',
         name: `confirm_supply.title.${language}`,
         message: `Enter supply confirmation form title in ${language}`,
         default: 'Stock received'
+      })),
+      {
+        type: 'input',
+        name: 'discrepancy.form_name',
+        message: 'Enter discrepancy resolution form ID',
+        default: 'stock_discrepancy_resolution',
+      },
+      ...languages.map((language) => ({
+        type: 'input',
+        name: `discrepancy.title.${language}`,
+        message: `Enter discrepancy resolution form title in ${language}`,
+        default: 'Stock Discrepancy Resolution'
       }))
     ]);
     confirmationConfigs['confirm_supply'].active = true;

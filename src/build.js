@@ -23,10 +23,10 @@ module.exports = async function (configs) {
       case 'stock_supply':
         // Create stock supply form xlsx
         await updateStockSupply(configs);
-        if (configs.features.stock_supply && configs.features.stock_supply.confirm_supply) {
+        if (configs.features.stock_supply && configs.features.stock_supply.confirm_supply && configs.features.stock_supply.confirm_supply.active) {
           await updateStockConfirmation(configs, messages);
+          await updateStockDiscrepancy(configs);
         }
-        await updateStockDiscrepancy(configs);
         break;
       case 'stock_return':
         // Create stock return form

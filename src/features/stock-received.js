@@ -47,7 +47,7 @@ function addStockConfirmCalculation(workSheet, items) {
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_confirmed`, // Row name
-      calculation: 'if(${have_receive_' + item.name + "_qty} = 'yes',${" + item.name + '_received},0)',
+      calculation: 'if(${have_receive_' + item.name + "_qty} = 'yes',${" + item.name + '_received},' + '${' + item.name + '_real_qty})',
     }))
   ];
 
@@ -143,23 +143,18 @@ async function updateStockConfirmation(configs, messages) {
   // Add calculation
   const header = surveyWorkSheet.getRow(1).values;
   header.shift();
-  const inputs = items.map((item) => {
-    const itemCalc = {
+  const inputs = [
+    ...items.map((item) => buildRowValues(header, {
       type: 'hidden',
       name: `${item.name}_received`,
-    };
-    for (const language of configs.languages) {
-      itemCalc[`label::${language}`] = 'NO_LABEL'; // Row label
-    }
-    return buildRowValues(header, itemCalc);
-  });
-  inputs.push(
+      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+    })),
     buildRowValues(header, {
       type: 'hidden',
-      name: 'supply_place_id',
+      name: 'supply_doc_id',
       ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
     })
-  );
+  ];
   const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);
   surveyWorkSheet.insertRows(
     position + 1,

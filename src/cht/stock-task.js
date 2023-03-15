@@ -1,5 +1,5 @@
 const { DateTime } = require('luxon');
-const { TRANSLATION_PREFIX, DESCREPANCY_ADD_DOC } = require('../constants');
+const { TRANSLATION_PREFIX, DESCREPANCY_ADD_DOC, SUPPLY_ADDITIONAL_DOC } = require('../constants');
 
 const getDynamicReportedDate = report => {
   const specifiedDate = Utils.getField(report, 's_reported.s_reported_date') || Utils.getField(report, 'supervision_date');
@@ -10,6 +10,7 @@ const getDynamicReportedDate = report => {
 function getStockTask(configs) {
   const tasks = [];
   const items = Object.values(configs.items);
+  //Stock count task
   if (configs.features.stock_count.type === 'task') {
     const levels = Object
       .values(configs.levels)
@@ -96,25 +97,32 @@ function getStockTask(configs) {
       }
     );
   }
-  if (configs.features.stock_supply && configs.features.stock_supply.confirm_supply) {
+
+  // Supply confirmation task
+  if (configs.features.stock_supply && configs.features.stock_supply.confirm_supply && configs.features.stock_supply.confirm_supply.active) {
     tasks.push(
       {
         name: 'task.stock-monitoring.reception-confirmation',
         title: `${TRANSLATION_PREFIX}stock_supply.tasks.reception-confirmation`,
         icon: 'icon-healthcare-medicine',
         appliesTo: 'reports',
-        appliesToType: [configs.features.stock_supply.form_name],
+        appliesToType: [SUPPLY_ADDITIONAL_DOC],
         appliesIf: (contact, report) => {
+          const needConfirmation = Utils.getField(report, 'need_confirmation');
+          if (needConfirmation === 'no') {
+            return false;
+          }
           const confirmationReport = contact
             .reports
-            .find((rp) => rp.form === configs.features.stock_supply.confirm_supply.form_name && Utils.getField(rp, 'inputs.source_id') === report._id);
+            .find((rp) => rp.form === configs.features.stock_supply.confirm_supply.form_name &&
+              Utils.getField(rp, 'inputs.supply_doc_id') === report._id);
           // eslint-disable-next-line no-undef
           return !confirmationReport && user.role === configs.levels['1'].role;
         },
         events: [
           {
             start: 0,
-            end: 30,
+            end: 3,
             dueDate: function (event, contact, report) {
               return DateTime.fromISO(getDynamicReportedDate(report)).toJSDate();
             },
@@ -125,9 +133,9 @@ function getStockTask(configs) {
             form: configs.features.stock_supply.confirm_supply.form_name,
             modifyContent: function (content, contact, report) {
               for (const item of items) {
-                content[`${item.name}_received`] = Utils.getField(report, `out.${item.name}_supply`);
+                content[`${item.name}_received`] = Utils.getField(report, `${item.name}_in`);
               }
-              content['supply_place_id'] = Utils.getField(report, `supply_place_id`);
+              content['supply_doc_id'] = report._id;
             }
           }
         ]
@@ -140,14 +148,14 @@ function getStockTask(configs) {
         appliesToType: [configs.features.stock_supply.confirm_supply.form_name],
         appliesIf: (contact, report) => {
           const itemDescrepancy = items.find((item) => {
-            const itemReceived = Utils.getField(report, `inputs.${item.name}_received`);
-            const itemConfirmed = Utils.getField(report, `out.${item.name}_confirmed`);
+            const itemReceived = Number(Utils.getField(report, `inputs.${item.name}_received`) || 0);
+            const itemConfirmed = Number(Utils.getField(report, `out.${item.name}_confirmed`) || 0);
             if (itemReceived !== itemConfirmed) {
               return true;
             }
             return false;
           });
-          if (itemDescrepancy.length === 0) {
+          if (!itemDescrepancy) {
             return false;
           }
           const discrepancyConfirm = contact.reports.find((rp) =>
@@ -159,7 +167,7 @@ function getStockTask(configs) {
         events: [
           {
             start: 0,
-            end: 30,
+            end: 3,
             dueDate: function (event, contact, report) {
               return DateTime.fromISO(getDynamicReportedDate(report)).toJSDate();
             },
@@ -197,6 +205,8 @@ function getStockTask(configs) {
       }
     );
   }
+
+  // Stock return confirmation
   if (configs.features.stock_return) {
     tasks.push(
       {
@@ -215,7 +225,7 @@ function getStockTask(configs) {
         events: [
           {
             start: 0,
-            end: 30,
+            end: 3,
             dueDate: function (event, contact, report) {
               return DateTime.fromISO(getDynamicReportedDate(report)).toJSDate();
             },

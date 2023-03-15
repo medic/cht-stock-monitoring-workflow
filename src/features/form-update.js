@@ -154,7 +154,6 @@ async function updateForm(configs) {
       })
     ];
     if (begin !== -1) {
-      console.log('----', begin);
       surveyWorkSheet.spliceRows(
         begin,
         end - begin + 1,

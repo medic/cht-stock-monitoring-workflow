@@ -55,7 +55,7 @@ function getExportCalculations(header, items) {
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_in`, // Row name
-      calculation: 'if(${' + `${item.name}_qty} != '' and `+'${'+`${item.name}_qty} > 0,` + '${' + `${item.name}_received}-` + '${' + `${item.name}_qty},0)`
+      calculation: 'if(${' + `${item.name}_qty} != '' and` + '${' + `${item.name}_qty} > 0,` + '${' + `${item.name}_received}-` + '${' + `${item.name}_qty},0`
     }))
   ];
 }
@@ -103,7 +103,7 @@ function getAdditionalDoc(formName, docFormName, languages, header, items) {
     buildRowValues(header, {
       type: 'calculate',
       name: '_id',
-      calculation: '${level_1_place_id}'
+      calculation: '${user_contact_id}'
     }),
     buildRowValues(header, {
       type: 'end group',
@@ -117,7 +117,7 @@ function getAdditionalDoc(formName, docFormName, languages, header, items) {
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_out`, // Row name
-      calculation: 'if(${' + `${item.name}_qty} != '' and` + '${' + `${item.name}_qty} > 0,` + '${' + `${item.name}_qty},0)`
+      calculation: 'if(${' + `${item.name}_qty} != '' and` + '${' + `${item.name}_qty} > 0,` + '${' + `${item.name}_qty}-`+'${' + `${item.name}_confirmed},0)`
     })),
     buildRowValues(header, {
       type: 'calculate',
@@ -186,7 +186,6 @@ async function updateStockDiscrepancy(configs) {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(formPath);
   const surveyWorkSheet = workbook.getWorksheet('survey');
-  const choiceWorkSheet = workbook.getWorksheet('choices');
   const settingWorkSheet = workbook.getWorksheet('settings');
 
   // Add language column
@@ -301,7 +300,13 @@ async function updateStockDiscrepancy(configs) {
     inputs,
     'i+'
   );
-  const rows = [];
+  const rows = [
+    buildRowValues(header, {
+      type: 'calculate',
+      name: `user_contact_id`,
+      calculation: `../inputs/user/contact_id`
+    })
+  ];
   if (configs.useItemCategory) {
     rows.push(
       ...categories.map((category) => {
