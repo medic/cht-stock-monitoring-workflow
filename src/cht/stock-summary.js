@@ -18,6 +18,11 @@ function getItemCount(itemName, listReports, dynamicFormNames) {
 
   for (const report of listReports) {
     switch (report.form) {
+      /**
+       * *chw - in*
+       * Additional doc created from supervisor stock supply form.
+       * Add item quantity from chw stock
+       */
       case SUPPLY_ADDITIONAL_DOC:
         {
           const needConfirmation = Utils.getField(report, 'need_confirmation');
@@ -26,30 +31,68 @@ function getItemCount(itemName, listReports, dynamicFormNames) {
           }
         }
         break;
+      /**
+       * *supervisor - out*
+       * Supervisor stock supply form to chw
+       * Remove item quantity from supervisor stock
+       */
       case dynamicFormNames.supplyForm:
         total -= Number(Utils.getField(report, `out.${itemName}_supply`) || 0);
         break;
+      /**
+       * *chw - out*
+       * Additional doc created from cht app when chw use items
+       * Remove item quantity from chw stock
+       */
       case FORM_ADDITIONAL_DOC_NAME:
-        total -= Number(Utils.getField(report, `${itemName}_out`) || 0);
+        {
+          const form = Utils.getField(report, 'form');
+          console.log('form', form);
+          total -= Number(Utils.getField(report, `${itemName}_used_in_${form}`) || 0);
+        }
         break;
+      /**
+       * *chw - in/out*
+       * Chw form ajusted by supervisor discrepency
+       */
       case DESCREPANCY_ADD_DOC:
         total += Number(Utils.getField(report, `${itemName}_out`)) || 0;
         break;
+      /**
+       * *supervisor - in/out*
+       * Supervisor enter final quantity in discrepency form
+       */
+      case dynamicFormNames.supplyDiscrepancy:
+        {
+          const qtyDiff = (Number(Utils.getField(report, `out.${itemName}_in`)) || 0);
+          total += qtyDiff;
+        }
+        break;
+      /**
+       * *chw - in/out*
+       * Chw form ajusted by supervisor return connfirmation
+       */
       case RETURNED_ADD_DOC:
         total += Number(Utils.getField(report, `${itemName}_return_difference`)) || 0;
         break;
+      /**
+       * *chw - in*
+       * Item supply confirmed by chw
+       */
       case dynamicFormNames.supplyConfirm:
         total += Number(Utils.getField(report, `out.${itemName}_confirmed`) || 0);
         break;
-      case dynamicFormNames.supplyDiscrepancy:
-        {
-          const finalQty = (Number(Utils.getField(report, `out.${itemName}_in`)) || 0);
-          total += finalQty;
-        }
-        break;
+      /**
+       * *chw - out*
+       * Chw return items to supervisor
+       */
       case dynamicFormNames.stockReturn:
         total -= Number(Utils.getField(report, `out.${itemName}_out`) || 0);
         break;
+      /**
+       * *supervisor - out*
+       * Supervisor received item returned by chw
+       */
       case dynamicFormNames.stockReturned:
         total += Number(Utils.getField(report, `out.${itemName}_in`) || 0);
         break;

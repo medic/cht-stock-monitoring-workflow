@@ -1,11 +1,80 @@
+/* eslint-disable prefer-const */
+/* eslint-disable no-unused-vars */
 const { DateTime } = require('luxon');
-const { TRANSLATION_PREFIX, DESCREPANCY_ADD_DOC, SUPPLY_ADDITIONAL_DOC, RETURNED_ADD_DOC } = require('../constants');
+const { TRANSLATION_PREFIX, DESCREPANCY_ADD_DOC, SUPPLY_ADDITIONAL_DOC, RETURNED_ADD_DOC, FORM_ADDITIONAL_DOC_NAME } = require('../constants');
 
 const getDynamicReportedDate = report => {
   const specifiedDate = Utils.getField(report, 's_reported.s_reported_date') || Utils.getField(report, 'supervision_date');
   return (specifiedDate && DateTime.fromISO(specifiedDate)) ||
     DateTime.fromMillis(parseInt((report && report.reported_date) || 0));
 };
+
+// eslint-disable-next-line no-unused-vars
+function getItemsConsumption(configs, reports) {
+  // let STOCK_SUPPLY = '';
+  // let SUPPLY_CORRECTION = '';
+  // let STOCK_RETURNED = '';
+  // if (configs.features && configs.features.stock_supply) {
+  //   STOCK_SUPPLY = configs.features.stock_supply.form_name;
+  //   if (configs.features.stock_supply.confirm_supply.active) {
+  //     SUPPLY_CORRECTION = configs.features.stock_supply.discrepancy.form_name;
+  //   }
+  // }
+  // if (configs.features && configs.features.stock_return) {
+  //   STOCK_RETURNED = configs.features.stock_return.confirmation.form_name;
+  // }
+  // const items = Object.values(configs.items);
+  // const today = DateTime.now();
+  // const lastWeek = today.startOf('week').minus({
+  //   hour: 1
+  // }).endOf('day');
+  // const threeWeeksBefore = lastWeek.minus({
+  //   weeks: 3
+  // }).startOf('day');
+  //Latest reports
+  // const latestReports = reports.filter((report) => {
+  //   const reportDate = getDynamicReportedDate(report);
+  //   return threeWeeksBefore <= reportDate && reportDate <= lastWeek;
+  // });
+
+  // const itemQuantities = items.reduce((prev, next) => {
+  //   return { ...prev, [next.name]: 0 };
+  // }, {});
+  // console.log('latestReports', latestReports.length);
+  // const itemNames = Object.keys(itemQuantities);
+
+  // for (const report of latestReports) {
+  //   for (const itemName of itemNames) {
+  //     switch (report.form) {
+  //       case FORM_ADDITIONAL_DOC_NAME:
+  //         {
+  //           const form = Utils.getField(report, 'form');
+  //           itemQuantities[itemName] += Number(Utils.getField(report, `${itemName}_used_in_${form}`) || 0);
+  //         }
+  //         break;
+  //       case STOCK_SUPPLY:
+  //         {
+  //           itemQuantities[itemName] += Number(Utils.getField(report, `out.${itemName}_supply`) || 0);
+  //         }
+  //         break;
+  //       case SUPPLY_CORRECTION:
+  //         {
+  //           itemQuantities[itemName] -= (Number(Utils.getField(report, `out.${itemName}_in`)) || 0);
+  //         }
+  //         break;
+  //       case STOCK_RETURNED:
+  //         {
+  //           itemQuantities[itemName] -= Number(Utils.getField(report, `out.${itemName}_in`) || 0);
+  //         }
+  //         break;
+  //       default:
+  //         break;
+  //     }
+  //   }
+  // }
+
+  return [];
+}
 
 function getStockTask(configs) {
   const tasks = [];
@@ -241,6 +310,41 @@ function getStockTask(configs) {
               content['level_1_place_id'] = Utils.getField(report, 'place_id');
               content['stock_return_id'] = report._id;
             }
+          }
+        ]
+      }
+    );
+  }
+
+  // Stock return confirmation
+  if (configs.features.stock_out) {
+    tasks.push(
+      {
+        name: 'task.stock-monitoring.stock_out',
+        title: `${TRANSLATION_PREFIX}stock_out.tasks.stock_out`,
+        icon: 'icon-healthcare-medicine',
+        appliesTo: 'contacts',
+        appliesToType: [configs.levels['1'].place_type],
+        appliesIf: (contact) => {
+          console.log('contact', contact.contact._id, configs.features.stock_out.formular);
+          // if (configs.features.stock_out.formular === 'weekly_qty') {
+          //   console.log('contact', contact.contact._id);
+          // }
+          // eslint-disable-next-line no-undef
+          return true;
+        },
+        events: [
+          {
+            start: 0,
+            end: 3,
+            dueDate: function () {
+              return DateTime.now().toJSDate();
+            },
+          },
+        ],
+        actions: [
+          {
+            form: configs.features.stock_out.form_name,
           }
         ]
       }

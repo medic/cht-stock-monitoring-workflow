@@ -3,6 +3,7 @@ const path = require('path');
 const chalk = require('chalk');
 const ExcelJS = require('exceljs');
 const { getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd, getNumberOfParent } = require('../utils');
+const { RETURNED_ADD_DOC } = require('../constants');
 
 function getLabelColumns(languages, messages) {
   // Add language column
@@ -143,11 +144,11 @@ function addExportCalculation(workSheet, items) {
   );
 }
 
-function getAdditionalDoc(formName, docFormName, languages, header, items) {
+function getAdditionalDoc(formName, languages, header, items) {
   return [
     buildRowValues(header, {
       type: 'begin group',
-      name: docFormName,
+      name: RETURNED_ADD_DOC,
       appearance: 'field-list',
       'instance::db-doc': 'true',
       ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
@@ -155,7 +156,7 @@ function getAdditionalDoc(formName, docFormName, languages, header, items) {
     buildRowValues(header, {
       type: 'calculate',
       name: 'form',
-      calculation: `"${docFormName}"`
+      calculation: `"${RETURNED_ADD_DOC}"`
     }),
     buildRowValues(header, {
       type: 'calculate',
@@ -363,7 +364,7 @@ async function updateStockReturned(configs) {
   addReturnedSummaries(surveyWorkSheet, languages, items, configs.useItemCategory ? categories : []);
   addExportCalculation(surveyWorkSheet, items);
   const [, end] = getSheetGroupBeginEnd(surveyWorkSheet, 'out');
-  const additionalDocRows = getAdditionalDoc(returnedConfigs.form_name, returnedConfigs.form_name, languages, header, items);
+  const additionalDocRows = getAdditionalDoc(returnedConfigs.form_name, languages, header, items);
   surveyWorkSheet.insertRows(
     end + 2,
     additionalDocRows,
