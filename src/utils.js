@@ -230,6 +230,49 @@ function getNumberOfParent(fromLevel, toLevel, initialNbParent = 0) {
   return null;
 }
 
+function addCategoryItemsToChoice(categories, items, choiceWorkSheet, languages) {
+  const choiceLabelColumns = languages.map((l) => [
+    `label::${l}`
+  ]);
+  let choiceLastColumn = 2;
+  for (const choiceLabelColumn of choiceLabelColumns) {
+    choiceWorkSheet.getColumn(choiceLastColumn + 1).values = choiceLabelColumn;
+    choiceLastColumn++;
+  }
+  choiceWorkSheet.getColumn(choiceLastColumn + 1).values = ['category_filter'];
+  const choiceHeader = choiceWorkSheet.getRow(1).values;
+  choiceHeader.shift();
+  const categoryChoiceRows = categories.map((category) => {
+    return buildRowValues(
+      choiceHeader,
+      {
+        list_name: 'categories',
+        name: category.name,
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
+      }
+    );
+  });
+  const itemsChoiceRows = items.map((item) => {
+    return buildRowValues(
+      choiceHeader,
+      {
+        list_name: 'items',
+        name: item.name,
+        category_filter: item.category,
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
+      }
+    );
+  });
+  choiceWorkSheet.insertRows(
+    2,
+    [
+      ...categoryChoiceRows,
+      ...itemsChoiceRows,
+    ],
+    'i+'
+  );
+}
+
 module.exports = {
   isChtApp,
   getAppSettings,
@@ -243,5 +286,6 @@ module.exports = {
   updateTranslations,
   getTranslations,
   getNumberOfParent,
+  addCategoryItemsToChoice,
 };
 

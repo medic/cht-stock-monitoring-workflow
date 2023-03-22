@@ -68,5 +68,16 @@
   "stock_out.message.stock_required": "Stock required: {{qty}}",
   "stock_out.message.summary_header": "Summary",
   "stock_out.message.submit_note": "{{name}} has low stock  of the following items",
-  "stock_out.message.summary_note": "Stock out"
+  "stock_out.message.summary_note": "Stock out",
+  "stock_logs.message.summary_header": "Results/Summary page",
+  "stock_logs.message.submit_note": "<h4 style='text-align:center;'>Be sure you Submit to complete this action.</h4>",
+  "stock_logs.message.summary_note": "Stock items you received/returned.<I class='fa fa-list-ul'></i>",
+  "stock_logs.message.form_description": "Use this form to report on quantity received and quantity",
+  "stock_logs.message.select_categories": "Select the categories of items you received or returned",
+  "stock_logs.message.date": "Logs Date",
+  "stock_logs.message.select_items": "Select the items you received or returned",
+  "stock_logs.message.item_received": "{{item}} received",
+  "stock_logs.message.item_returned": "{{item}} returned",
+  "stock_logs.message.item_qty_received": "<span style='color:green'>{{qty}} {{item}} received </span>",
+  "stock_logs.message.item_qty_returned": "<span style='color:red'>{{qty}} {{item}} returned </span>"
 }

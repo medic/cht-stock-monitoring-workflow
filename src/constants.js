@@ -10,6 +10,6 @@ module.exports = {
     'stock_return': 'Stock return',
     'stock_out': 'Stock out (Task appears immediately when there is a stock out)',
     'stock_order': 'Stock order',
-    'stock_consumption_logs': 'Consumption logs (form filled with received and returned items)',
+    'stock_logs': 'Consumption logs (form filled with received and returned items)',
   }
 };

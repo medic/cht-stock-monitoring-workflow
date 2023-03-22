@@ -6,6 +6,7 @@ const { getStockSupplyConfigs } = require('./features/stock-supply');
 const { getStockReturnConfigs } = require('./features/stock-return');
 const { FEATURES } = require('./constants');
 const { getStockOutConfigs } = require('./features/stock-out');
+const { getStockLogsConfigs } = require('./features/stock-logs');
 
 async function getFeatureConfigs(configs) {
   const remainingFeatures = Object.keys(FEATURES).filter((feature) => !configs.features[feature]);
@@ -37,6 +38,9 @@ async function getFeatureConfigs(configs) {
       break;
     case 'stock_out':
       featureConfigs = await getStockOutConfigs(configs);
+      break;
+    case 'stock_logs':
+      featureConfigs = await getStockLogsConfigs(configs);
       break;
     default:
       break;

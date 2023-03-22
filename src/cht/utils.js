@@ -102,6 +102,18 @@ function getItemCountInReports(itemName, reports, forms) {
         }
         break;
       /**
+       * *chw - in/out*
+       * Additional doc created from supervisor stock supply form.
+       * Add item quantity from chw stock
+       */
+      case forms.stockLogs:
+        {
+          const received = Utils.getField(report, `out.${itemName}_received`);
+          const returned = Utils.getField(report, `out.${itemName}_returned`);
+          total += (received - returned);
+        }
+        break;
+      /**
        * *supervisor - out*
        * Supervisor stock supply form to chw
        * Remove item quantity from supervisor stock
@@ -183,6 +195,7 @@ function getItemCountFromLastStockCount(configs, reports) {
     DESCREPANCY_ADD_DOC,
     stockReturn: configs.features.stock_return ? configs.features.stock_return.form_name : '',
     stockReturned: configs.features.stock_return ? configs.features.stock_return.confirmation.form_name : '',
+    stockLogs: configs.features.stock_logs ? configs.features.stock_logs.form_name : '',
   };
   const lastStockCount = Utils.getMostRecentReport(reports, reportForms.stockCount);
   const reportsFomLastStockCount = reports.filter((report) => {
