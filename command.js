@@ -37,18 +37,27 @@ module.exports = {
   init,
   addItem: async () => {
     const config = getConfig();
+    if (!config) {
+      return;
+    }
     const itemConfig = await getItemConfig(config);
     const updatedConfig = await addConfigItem(config, itemConfig);
     await build(updatedConfig);
   },
   addFeature: async () => {
     const config = getConfig();
+    if (!config) {
+      return;
+    }
     const featureConfigs = await getFeatureConfigs(config);
     const updatedConfig = await addFeatureConfigs(config, featureConfigs);
     await build(updatedConfig);
   },
   build: async () => {
     const config = getConfig();
+    if (!config) {
+      return;
+    }
     await build(config);
   },
   info: function (message) {

@@ -427,7 +427,7 @@ async function updateStockSupply(configs) {
     'context': {
       'person': false,
       'place': true,
-      'expression': `contact.contact_type === '${configs.levels[1].place_type}' && user.role === '${configs.levels[2].role}'`,
+      'expression': `contact.contact_type === '${configs.levels[1].place_type}' && user.parent.contact_type === '${configs.levels[2].place_type}'`,
     },
     title: languages.map((lang) => {
       return {

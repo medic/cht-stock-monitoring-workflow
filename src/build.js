@@ -7,6 +7,7 @@ const { updateTranslations, getTranslations } = require('./utils');
 const { updateStockReturned } = require('./features/stock-returned');
 const { updateStockConfirmation } = require('./features/stock-received');
 const { updateStockDiscrepancy } = require('./features/stock-discrepancy');
+const { updateStockOut } = require('./features/stock-out');
 
 module.exports = async function (configs) {
 
@@ -33,6 +34,9 @@ module.exports = async function (configs) {
         await updateStockReturn(configs);
         // Create stock returned form
         await updateStockReturned(configs);
+        break;
+      case 'stock_out':
+        await updateStockOut(configs);
         break;
       default:
         break;

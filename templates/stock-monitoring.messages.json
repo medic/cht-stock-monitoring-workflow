@@ -62,5 +62,11 @@
   "stock_supply.discrepancy.summary_note": "Discrepancy resolution<I class='fa fa-list-ul'></i>",
   "stock_supply.discrepancy.quantity_issued": "Quantity issued: {{qty}}",
   "stock_supply.discrepancy.quantity_confirmed": "Quantity confirmed: {{qty}}",
-  "stock_supply.discrepancy.quantity_final": "What is the final quantity ?"
+  "stock_supply.discrepancy.quantity_final": "What is the final quantity ?",
+  "stock_out.tasks.stock_out": "Stock out",
+  "stock_out.message.stock_at_hand": "Stock at hand: {{qty}}",
+  "stock_out.message.stock_required": "Stock required: {{qty}}",
+  "stock_out.message.summary_header": "Summary",
+  "stock_out.message.submit_note": "{{name}} has low stock  of the following items",
+  "stock_out.message.summary_note": "Stock out"
 }

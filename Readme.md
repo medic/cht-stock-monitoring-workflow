@@ -25,7 +25,6 @@ cht-workflow-stock-monitoring init
 | ----------------- | --------- | ----------- | -------- |
 | monitoring_type              | 2_levels  | Stock monitoring type. 2 levels means monitoring between a supervisor (level 2) and a chw (level 1). 3 levels add a Health center levels feature like `Stock order` | true   |
 | levels[x]contact_type | -       | Contact type of each level (c52_supervisor or c52_supervisor) | true   |
-| levels[x]role | -       | Role of each level (supervisor or chw) | true   |
 | useItemCategory | false       | Whether to categorize items or not | true   |
 | stock_count.form_name | stock_count       | ID of the stock count form name (will be the form and properties file name alse) | true   |
 | stock_count.contact_types | []       | For which contacts types to display the stock account | true   |

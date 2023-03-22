@@ -1,82 +1,8 @@
-/* eslint-disable prefer-const */
-/* eslint-disable no-unused-vars */
 const { DateTime } = require('luxon');
-const { TRANSLATION_PREFIX, DESCREPANCY_ADD_DOC, SUPPLY_ADDITIONAL_DOC, RETURNED_ADD_DOC, FORM_ADDITIONAL_DOC_NAME } = require('../constants');
+const { TRANSLATION_PREFIX, DESCREPANCY_ADD_DOC, SUPPLY_ADDITIONAL_DOC, RETURNED_ADD_DOC } = require('../constants');
+const { getDynamicReportedDate, getItemCountFromLastStockCount, getLastThreeWeeksItemsConsumption } = require('./utils');
 
-const getDynamicReportedDate = report => {
-  const specifiedDate = Utils.getField(report, 's_reported.s_reported_date') || Utils.getField(report, 'supervision_date');
-  return (specifiedDate && DateTime.fromISO(specifiedDate)) ||
-    DateTime.fromMillis(parseInt((report && report.reported_date) || 0));
-};
-
-// eslint-disable-next-line no-unused-vars
-function getItemsConsumption(configs, reports) {
-  // let STOCK_SUPPLY = '';
-  // let SUPPLY_CORRECTION = '';
-  // let STOCK_RETURNED = '';
-  // if (configs.features && configs.features.stock_supply) {
-  //   STOCK_SUPPLY = configs.features.stock_supply.form_name;
-  //   if (configs.features.stock_supply.confirm_supply.active) {
-  //     SUPPLY_CORRECTION = configs.features.stock_supply.discrepancy.form_name;
-  //   }
-  // }
-  // if (configs.features && configs.features.stock_return) {
-  //   STOCK_RETURNED = configs.features.stock_return.confirmation.form_name;
-  // }
-  // const items = Object.values(configs.items);
-  // const today = DateTime.now();
-  // const lastWeek = today.startOf('week').minus({
-  //   hour: 1
-  // }).endOf('day');
-  // const threeWeeksBefore = lastWeek.minus({
-  //   weeks: 3
-  // }).startOf('day');
-  //Latest reports
-  // const latestReports = reports.filter((report) => {
-  //   const reportDate = getDynamicReportedDate(report);
-  //   return threeWeeksBefore <= reportDate && reportDate <= lastWeek;
-  // });
-
-  // const itemQuantities = items.reduce((prev, next) => {
-  //   return { ...prev, [next.name]: 0 };
-  // }, {});
-  // console.log('latestReports', latestReports.length);
-  // const itemNames = Object.keys(itemQuantities);
-
-  // for (const report of latestReports) {
-  //   for (const itemName of itemNames) {
-  //     switch (report.form) {
-  //       case FORM_ADDITIONAL_DOC_NAME:
-  //         {
-  //           const form = Utils.getField(report, 'form');
-  //           itemQuantities[itemName] += Number(Utils.getField(report, `${itemName}_used_in_${form}`) || 0);
-  //         }
-  //         break;
-  //       case STOCK_SUPPLY:
-  //         {
-  //           itemQuantities[itemName] += Number(Utils.getField(report, `out.${itemName}_supply`) || 0);
-  //         }
-  //         break;
-  //       case SUPPLY_CORRECTION:
-  //         {
-  //           itemQuantities[itemName] -= (Number(Utils.getField(report, `out.${itemName}_in`)) || 0);
-  //         }
-  //         break;
-  //       case STOCK_RETURNED:
-  //         {
-  //           itemQuantities[itemName] -= Number(Utils.getField(report, `out.${itemName}_in`) || 0);
-  //         }
-  //         break;
-  //       default:
-  //         break;
-  //     }
-  //   }
-  // }
-
-  return [];
-}
-
-function getStockTask(configs) {
+function getTasks(configs) {
   const tasks = [];
   const items = Object.values(configs.items);
   //Stock count task
@@ -94,7 +20,7 @@ function getStockTask(configs) {
         appliesIf: (contact) => {
           const level = levels
             // eslint-disable-next-line no-undef
-            .find(level => level.role === user.role);
+            .find(level => user.parent.contact_type === level.place_type);
           if (!level || level.place_type !== contact.contact.contact_type) {
             return false;
           }
@@ -186,7 +112,7 @@ function getStockTask(configs) {
             .find((rp) => rp.form === configs.features.stock_supply.confirm_supply.form_name &&
               Utils.getField(rp, 'inputs.supply_doc_id') === report._id);
           // eslint-disable-next-line no-undef
-          return !confirmationReport && user.role === configs.levels['1'].role;
+          return !confirmationReport && user.parent.contact_type === configs.levels['1'].place_type;
         },
         events: [
           {
@@ -231,7 +157,7 @@ function getStockTask(configs) {
             rp.form === DESCREPANCY_ADD_DOC &&
             Utils.getField(rp, 'confirmation_id') === report._id);
           // eslint-disable-next-line no-undef
-          return !discrepancyConfirm && user.role === configs.levels['2'].role;
+          return !discrepancyConfirm && user.parent.contact_type === configs.levels['2'].place_type;
         },
         events: [
           {
@@ -289,7 +215,7 @@ function getStockTask(configs) {
             .reports
             .find((rp) => rp.form === RETURNED_ADD_DOC && Utils.getField(rp, 'return_id') === report._id);
           // eslint-disable-next-line no-undef
-          return !confirmationReport && user.role === configs.levels['2'].role;
+          return !confirmationReport && user.parent.contact_type === configs.levels['2'].place_type;
         },
         events: [
           {
@@ -325,18 +251,26 @@ function getStockTask(configs) {
         icon: 'icon-healthcare-medicine',
         appliesTo: 'contacts',
         appliesToType: [configs.levels['1'].place_type],
-        appliesIf: (contact) => {
-          console.log('contact', contact.contact._id, configs.features.stock_out.formular);
-          // if (configs.features.stock_out.formular === 'weekly_qty') {
-          //   console.log('contact', contact.contact._id);
-          // }
+        appliesIf: function (contact) {
+          const itemsInLowStock = [];
           // eslint-disable-next-line no-undef
-          return true;
+          if (user.parent.contact_type !== configs.levels['2'].place_type) {
+            return false;
+          }
+          if (configs.features.stock_out.formular === 'weekly_qty') {
+            this.stockMonitoring_itemCounts = getItemCountFromLastStockCount(configs, contact.reports);
+            this.stockMonitoring_itemConsumption = getLastThreeWeeksItemsConsumption(configs, contact.reports);
+            const itemKeys = Object.keys(this.stockMonitoring_itemCounts);
+            itemsInLowStock.push(
+              ...itemKeys.filter((itemKey) => this.stockMonitoring_itemCounts[itemKey] < (this.stockMonitoring_itemConsumption[itemKey] / 3 * 2))
+            );
+          }
+          return itemsInLowStock.length > 0;
         },
         events: [
           {
             start: 0,
-            end: 3,
+            end: 30,
             dueDate: function () {
               return DateTime.now().toJSDate();
             },
@@ -345,6 +279,12 @@ function getStockTask(configs) {
         actions: [
           {
             form: configs.features.stock_out.form_name,
+            modifyContent: function (content) {
+              for (const item of items) {
+                content[`${item.name}_required`] = Math.round(this.stockMonitoring_itemConsumption[item.name] / 3 * 2);
+                content[`${item.name}_at_hand`] = Math.round(this.stockMonitoring_itemCounts[item.name]);
+              }
+            }
           }
         ]
       }
@@ -353,4 +293,4 @@ function getStockTask(configs) {
   return tasks;
 }
 
-module.exports = getStockTask;
+module.exports = getTasks;

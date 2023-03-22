@@ -1,8 +1,0 @@
-{
-    "icon": "icon-healthcare-medicine",
-    "context": {
-        "person": false,
-        "place": true,
-        "expression": "contact.contact_type === 'c40_health_area'"
-    }
-}

@@ -184,10 +184,10 @@ async function updateStockCount(configs) {
   const levels = Object.values(configs.levels);
   const appSettings = getAppSettings();
   const expression = stockCountConfigs.contact_types.map((contact_type) => {
-    const role = levels.find((level) => level.contact_type === contact_type).role;
+    const placeType = levels.find((level) => level.contact_type === contact_type).place_type;
     const contactTypeDetails = appSettings.contact_types.find((ct) => ct.id === contact_type);
     const contactParent = contactTypeDetails.parents[0];
-    return `(contact.contact_type === '${contactParent}' && user.role === '${role}')`;
+    return `(contact.contact_type === '${contactParent}' && user.parent.contact_type === '${placeType}')`;
   }).join(' || ');
 
   // Add stock count form properties

@@ -44,6 +44,29 @@ async function getItemConfig(configs) {
     items: {}
   };
   formConfig.name = form;
+  if (!formConfig.reportedDate || formConfig.reportedDate.length === 0) {
+    const reportedDateSameAsCurrent = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'isAlwaysCurrent',
+        message: `Is ${form} report reported date always the current date?`,
+        default: true
+      }
+    ]);
+    if (!reportedDateSameAsCurrent.isAlwaysCurrent) {
+      const reportDateFormular = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'reportedDate',
+          message: 'Enter a xlsform calculation formular to calculate the reported date',
+          default: 'now()'
+        }
+      ]);
+      formConfig.reportedDate = `${reportDateFormular.reportedDate}`;
+    } else {
+      formConfig.reportedDate = 'now()';
+    }
+  }
   const referenceToLevel = `${configs.levels['1'].place_type}_id`;
   const formPath = path.join(processDir, 'forms', 'app', `${form}.xlsx`);
   const workSheet = await utils.getWorkSheet(formPath);

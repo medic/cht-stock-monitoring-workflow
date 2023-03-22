@@ -328,7 +328,7 @@ async function updateStockReturn(configs) {
   await workbook.xlsx.writeFile(returnFormPath);
 
   // Add stock count form properties
-  const expression = `user.role === '${configs.levels[1].role}' && contact.contact_type === '${configs.levels[1].place_type}'`;
+  const expression = `user.parent.contact_type === '${configs.levels[1].place_type}' && contact.contact_type === '${configs.levels[1].place_type}'`;
   const formProperties = {
     'icon': 'icon-healthcare-medicine',
     'context': {

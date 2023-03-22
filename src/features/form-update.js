@@ -66,6 +66,11 @@ async function updateForm(configs) {
       }),
       buildRowValues(header, {
         type: 'calculate',
+        name: 'stock_monitoring_reported_date',
+        calculation: formConfig.reportedDate,
+      }),
+      buildRowValues(header, {
+        type: 'calculate',
         name: 'place_id',
         calculation: '${' + `${referenceToLevel}` + '}'
       }),
@@ -79,6 +84,11 @@ async function updateForm(configs) {
         name: 'created_from',
         calculation: '.',
         'instance::db-doc-ref': `/${formName}`
+      }),
+      buildRowValues(header, {
+        type: 'calculate',
+        name: 'created_from_name',
+        calculation: `"${formConfig.name}"`,
       }),
       buildRowValues(header, {
         type: 'calculate',

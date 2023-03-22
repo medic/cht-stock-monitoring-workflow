@@ -21,11 +21,11 @@
     "exceljs": "^4.3.0",
     "fs-extra": "^11.1.0",
     "inquirer": "^8.2.5",
+    "luxon": "^3.3.0",
     "mocha": "^10.2.0",
-    "rewire": "^6.0.0",
-    "luxon": "^3.3.0"
+    "rewire": "^6.0.0"
   },
   "dependencies": {
-    "fractional": "^1.0.0"
+    "fraction.js": "^4.2.0"
   }
 }

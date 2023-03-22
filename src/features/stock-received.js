@@ -259,7 +259,7 @@ async function updateStockConfirmation(configs, messages) {
     'context': {
       'person': false,
       'place': false,
-      'expression': `user.role === '${configs.levels[1].role}'`,
+      'expression': `user.parent.contact_type === '${configs.levels[1].place_type}'`,
     },
     title: languages.map((lang) => {
       return {
