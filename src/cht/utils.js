@@ -3,6 +3,11 @@ const { FORM_ADDITIONAL_DOC_NAME, RETURNED_ADD_DOC, DESCREPANCY_ADD_DOC, SUPPLY_
 const Utils = require('cht-nootils')();
 
 
+/**
+ * Get dynamic reported date
+ * @param {Object} report
+ * @returns {DateTime}
+ **/
 const getDynamicReportedDate = report => {
   const specifiedDate =
     Utils.getField(report, 's_reported.s_reported_date') ||
@@ -11,7 +16,14 @@ const getDynamicReportedDate = report => {
     DateTime.fromMillis(parseInt((report && report.reported_date) || 0));
 };
 
-function getLastThreeWeeksItemsConsumption(configs, reports) {
+/**
+ * Get items consumption
+ * @param {Object} configs stock monitoring configs
+ * @param {Array} reports list of contact reports
+ * @param {week|month} period item consumption period
+ * @returns {item: quantity}
+ */
+function getItemsConsumption(configs, reports, period = 'week') {
   let STOCK_SUPPLY = '';
   let SUPPLY_CORRECTION = '';
   let STOCK_RETURNED = '';
@@ -26,11 +38,11 @@ function getLastThreeWeeksItemsConsumption(configs, reports) {
   }
   const items = Object.values(configs.items);
   const today = DateTime.now();
-  const lastWeek = today.startOf('week').minus({
+  const lastWeek = today.startOf(period).minus({
     hour: 1
   }).endOf('day');
   const threeWeeksBefore = lastWeek.minus({
-    weeks: 3
+    [period]: 3
   }).startOf('day');
   // Latest reports
   const latestReports = reports.filter((report) => {
@@ -215,6 +227,6 @@ function getItemCountFromLastStockCount(configs, reports) {
 
 module.exports = {
   getDynamicReportedDate,
-  getLastThreeWeeksItemsConsumption,
+  getItemsConsumption,
   getItemCountFromLastStockCount
 };

@@ -3,42 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const { Workbook } = require('exceljs');
-const { getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd } = require('../utils');
-
-function getLabelColumns(languages, messages) {
-  // Add language column
-  const labelColumns = [];
-  const hintColumns = [];
-  for (const language of languages) {
-    labelColumns.push(
-      [
-        `label::${language}`,
-        'Patient',
-        'Source',
-        'Source ID',
-        'NO_LABEL',
-        'NO_LABEL',
-        '',
-        'NO_LABEL',
-        'NO_LABEL',
-        'NO_LABEL',
-        ...Array(6).fill(''),
-        messages[language]['stock_supply.summary_header'],
-        messages[language]['stock_supply.submit_note'],
-        messages[language]['stock_return.summary_note'],
-        ...Array(2).fill(''),
-        'NO_LABEL',
-      ]
-    );
-    hintColumns.push(
-      [
-        `hint:${language}`,
-      ]
-    );
-  }
-
-  return [labelColumns, hintColumns];
-}
+const { getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd, getDefaultSurveyLabels } = require('../utils');
 
 function getChoicesFromMessage(messages, languages, choiceName, key = 'stock_return.forms.select_items.reason') {
   const choices = Object.keys(messages[languages[0]])
@@ -54,6 +19,12 @@ function getChoicesFromMessage(messages, languages, choiceName, key = 'stock_ret
   });
 }
 
+// @param {Array} header - The header array
+// @param {Array} languages - The languages array
+// @param {Object} messages - The messages object
+// @param {string} selectionFieldName - The selection field name
+// @param {Array} items - The items array
+// @returns {Array} - The item rows to add to worksheet
 function getItemRows(header, languages, messages, selectionFieldName, items) {
   return items.map((item) => {
     return [
@@ -135,7 +106,7 @@ function addReturnedSummaries(workSheet, languages, items, categories = []) {
       type: 'note',
       name: `${item.name}_summary`,
       appearance: 'li',
-      relevant: 'selected(${items_selected}, ' + `'${item.name}')`,
+      relevant: 'selected(${list_items_selected}, ' + `'${item.name}')`,
       ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.name[language]}: ` + '${' + `${item.name}_returned_qty}` }), {})
     }));
   }
@@ -184,7 +155,11 @@ async function updateStockReturn(configs) {
   const settingWorkSheet = workbook.getWorksheet('settings');
 
   //SURVEY
-  const [labelColumns, hintColumns] = getLabelColumns(configs.languages, messages);
+  const [labelColumns, hintColumns] = getDefaultSurveyLabels(
+    'stock_return',
+    messages,
+    configs.languages,
+  );
   // Add languages and hints columns
   const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
   let lastColumnIndex = Object.keys(firstRowData).length;
@@ -198,7 +173,7 @@ async function updateStockReturn(configs) {
   }
   // Add choice filter column
   surveyWorkSheet.getColumn(lastColumnIndex + 1).values = ['choice_filter'];
-  lastColumnIndex++;
+  
   const header = surveyWorkSheet.getRow(1).values;
   header.shift();
   const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
@@ -258,15 +233,28 @@ async function updateStockReturn(configs) {
       }).reduce((prev, categoryRows) => ([...prev, ...categoryRows]), []),
     );
   } else {
-    //TODO: Add begin and end
     rows.push(
+      buildRowValues(header, {
+        type: 'begin group',
+        name: 'items_selection',
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.items_selection'] }), {})
+      }),
+      buildRowValues(header, {
+        type: 'select_multiple items',
+        required: 'yes',
+        name: 'list_items_selected',
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.select_items'] }), {})
+      }),
       ...getItemRows(
         header,
         languages,
         messages,
-        '---',
+        'list_items_selected',
         items
       ),
+      buildRowValues(header, {
+        type: 'end group',
+      }),
     );
   }
   surveyWorkSheet.insertRows(

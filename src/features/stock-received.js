@@ -59,31 +59,80 @@ function addStockConfirmCalculation(workSheet, items) {
   );
 }
 
-function addStockConfirmSummaries(workSheet, items, languages) {
+function addStockConfirmSummaries(workSheet, items, languages, categories = []) {
   const [, end] = getSheetGroupBeginEnd(workSheet, 'summary');
   const header = workSheet.getRow(1).values;
   header.shift();
-  const itemRows = [];
-  for (const item of items) {
-    const itemRow = {
+  let rows = [];
+  if (categories.length > 0) {
+    for (const category of categories) {
+      const categoryItems = items.filter(it => it.category === category.name);
+      rows.push(
+        buildRowValues(header, {
+          type: 'note',
+          name: `${category.name}_summary`,
+          appearance: 'h1 blue',
+          relevant: categoryItems.map((item) => '${' + item.name + '_received} > 0').join(' or '),
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
+        }),
+        ...categoryItems.map((item) => (buildRowValues(header, {
+          type: 'note',
+          name: `${item.name}_summary`,
+          appearance: 'li',
+          relevant: '${' + item.name + '_received} > 0',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `<h5> ${item.label[language]}: **` + '${' + `${item.name}_confirmed` + '} ' + `${item.unit}** </h5>` }), {})
+        }))),
+      );
+    }
+  } else {
+    rows = items.map((item) => ({
       type: 'note', // Row type
       name: `s_${item.name}`, // Row name
-      required: '',
       relevant: '${' + item.name + '_received} > 0',
-      appearance: '',
-    };
-    for (const language of languages) {
-      itemRow[`label::${language}`] = `<h5 style="text-align:center;"> ${item.label[language]}: **` + '${' + `${item.name}_confirmed` + '} ' + `${item.unit}** </h5>`; // Row label
-    }
-    itemRows.push(buildRowValues(header, itemRow));
+      ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `<h5> ${item.label[language]}: **` + '${' + `${item.name}_confirmed` + '} ' + `${item.unit}** </h5>` }), {})
+    }));
   }
 
   //Insert item
   workSheet.insertRows(
     end,
-    itemRows,
+    rows,
     'i+'
   );
+}
+
+function getItemRows(header, languages, messages, items) {
+  return items.map((item) => {
+    return [
+      buildRowValues(header, {
+        type: 'begin group',
+        name: `___${item.name}`,
+        relevant: '${' + item.name + '_received} > 0',
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
+      }),
+      buildRowValues(header, {
+        type: 'select_one yes_no',
+        name: `have_receive_${item.name}_qty`,
+        required: 'yes',
+        ...languages.reduce((prev, language) => ({
+          ...prev, [`label::${language}`]: messages[language]['stock_supply.confirmation.item_received_question']
+            .replace('{{qty}}', '${' + item.name + '_received}')
+            .replace('{{unit}}', item.unit)
+            .replace('{{item}}', item.label[language]) }), {})
+      }),
+      buildRowValues(header, {
+        type: 'decimal',
+        name: `${item.name}_real_qty`,
+        required: 'yes',
+        constraint: '. != ${' + item.name + '_received}',
+        relevant: '${have_receive_' + item.name + "_qty} = 'no'",
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_supply.confirmation.qty_received_question'] }), {})
+      }),
+      buildRowValues(header, {
+        type: 'end group',
+      }),
+    ];
+  });
 }
 
 async function updateStockConfirmation(configs, messages) {
@@ -91,6 +140,7 @@ async function updateStockConfirmation(configs, messages) {
   const supplyConfigs = configs.features.stock_supply;
   const confirmConfigs = supplyConfigs.confirm_supply;
   const items = Object.values(configs.items);
+  const categories = Object.values(configs.categories);
   const { languages } = configs;
 
   const stockConfirmPath = path.join(processDir, 'forms', 'app', `${confirmConfigs.form_name}.xlsx`);
@@ -143,12 +193,18 @@ async function updateStockConfirmation(configs, messages) {
   // Add calculation
   const header = surveyWorkSheet.getRow(1).values;
   header.shift();
+  // inputs
   const inputs = [
     ...items.map((item) => buildRowValues(header, {
       type: 'hidden',
       name: `${item.name}_received`,
       ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
     })),
+    buildRowValues(header, {
+      type: 'hidden',
+      name: 'supplier_id',
+      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+    }),
     buildRowValues(header, {
       type: 'hidden',
       name: 'supply_doc_id',
@@ -164,80 +220,47 @@ async function updateStockConfirmation(configs, messages) {
 
   const rows = [];
   if (configs.useItemCategory) {
-    const categories = Object.values(configs.categories);
-    for (const category of categories) {
-      const categoryItems = items.filter((it) => it.category === category.name);
-      const catHeader = {
-        type: 'begin group',
-        name: `category_${category.name}`,
-        relevant: categoryItems.map((item) => '${' + item.name + '_received} > 0').join(' or '),
-        appearance: 'field-list',
-      };
-      for (const language of configs.languages) {
-        catHeader[`label::${language}`] = category.label[language]; // Row label
-      }
-      rows.push(buildRowValues(header, catHeader));
-      for (const categoryItem of categoryItems) {
-        const confirmationRow = {
-          type: 'select_one yes_no',
-          name: `have_receive_${categoryItem.name}_qty`,
-          required: 'yes',
-          relevant: '${' + categoryItem.name + '_received} > 0'
-        };
-        for (const language of configs.languages) {
-          let msg = messages[language]['stock_supply.confirmation.item_received_question'];
-          msg = msg.replace('{{qty}}', '${' + categoryItem.name + '_received}');
-          msg = msg.replace('{{unit}}', categoryItem.unit);
-          msg = msg.replace('{{item}}', categoryItem.label[language]);
-          confirmationRow[`label::${language}`] = msg;
-        }
-        rows.push(buildRowValues(header, confirmationRow));
-
-        const qtyRow = {
-          type: 'decimal',
-          name: `${categoryItem.name}_real_qty`,
-          required: 'yes',
-          constraint: '. != ${' + categoryItem.name + '_received}',
-          relevant: '${have_receive_' + categoryItem.name + "_qty} = 'no'"
-        };
-        for (const language of configs.languages) {
-          qtyRow[`label::${language}`] = messages[language]['stock_supply.confirmation.qty_received_question'];
-        }
-        rows.push(buildRowValues(header, qtyRow));
-      }
-      rows.push(buildRowValues(header, {
-        type: 'end group'
-      }));
-    }
+    rows.push(
+      ...categories.map((category) => {
+        const categoryItems = items.filter((item) => item.category === category.name);
+        return [
+          buildRowValues(header, {
+            type: 'begin group',
+            name: category.name,
+            appearance: 'field-list',
+            relevant: categoryItems.map((item) => '${' + item.name + '_received} > 0').join(' or '),
+            ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
+          }),
+          ...getItemRows(
+            header,
+            languages,
+            messages,
+            categoryItems,
+          ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
+          buildRowValues(header, {
+            type: 'end group',
+          }),
+        ];
+      }).reduce((prev, categoryRows) => ([...prev, ...categoryRows]), []),
+    );
   } else {
-    for (const item of items) {
-      const confirmationRow = {
-        type: 'select_one yes_no',
-        name: `have_receive_${item.name}_qty`,
-        required: 'yes',
-        relevant: '${' + item.name + '_received} > 0',
-        ...languages.reduce((prev, language) => ({
-          ...prev,
-          [`label::${language}`]: messages[language]['stock_supply.confirmation.item_received_question'].replace('{{qty}}', '${' + item.name + '_received}').replace('{{unit}}', item.unit).replace('{{item}}', item.label[language]),
-        }), {})
-      };
-      rows.push(buildRowValues(header, confirmationRow));
-
-      const qtyRow = {
-        type: 'decimal',
-        name: `${item.name}_real_qty`,
-        required: 'yes',
-        constraint: '. != ${' + item.name + '_received}',
-        relevant: '${have_receive_' + item.name + "_qty} = 'no'"
-      };
-      for (const language of configs.languages) {
-        qtyRow[`label::${language}`] = messages[language]['stock_supply.confirmation.qty_received_question'];
-      }
-      rows.push(buildRowValues(header, qtyRow));
-    }
-    rows.push(buildRowValues(header, {
-      type: 'end group'
-    }));
+    rows.push(
+      buildRowValues(header, {
+        type: 'begin group',
+        name: 'confirm_received',
+        appearance: 'field-list',
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_supply.label.confirm_qty'] }), {})
+      }),
+      ...getItemRows(
+        header,
+        languages,
+        messages,
+        items,
+      ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
+      buildRowValues(header, {
+        type: 'end group',
+      }),
+    );
   }
   const [placePosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
   surveyWorkSheet.insertRows(
@@ -246,7 +269,7 @@ async function updateStockConfirmation(configs, messages) {
     'i+'
   );
   addStockConfirmCalculation(surveyWorkSheet, items);
-  addStockConfirmSummaries(surveyWorkSheet, items, languages);
+  addStockConfirmSummaries(surveyWorkSheet, items, languages, categories);
 
   settingWorkSheet.getRow(2).getCell(1).value = confirmConfigs.title[configs.defaultLanguage];
   settingWorkSheet.getRow(2).getCell(2).value = confirmConfigs.form_name;

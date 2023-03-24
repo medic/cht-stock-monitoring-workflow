@@ -3,7 +3,7 @@ const path = require('path');
 const inquirer = require('inquirer');
 const fs = require('fs-extra');
 const ExcelJS = require('exceljs');
-const { getAppSettings, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations } = require('../utils');
+const { getAppSettings, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getDefaultSurveyLabels } = require('../utils');
 
 function addStockCountSummaries(workSheet, items, languages) {
   const [, end] = getSheetGroupBeginEnd(workSheet, 'summary');
@@ -83,34 +83,11 @@ async function updateStockCount(configs) {
   const settingWorkSheet = workbook.getWorksheet('settings');
 
   // Add language column
-  const labelColumns = [];
-  const hintColumns = [];
-  for (const language of languages) {
-    labelColumns.push(
-      [
-        `label::${language}`,
-        'Patient',
-        'Source',
-        'Source ID',
-        '',
-        'NO_LABEL',
-        '',
-        'NO_LABEL',
-        'NO_LABEL',
-        ...Array(7).fill(''),
-        messages[language]['stock_count.summary_header'],
-        messages[language]['stock_count.submit_note'],
-        messages[language]['stock_count.summary_note'],
-        ...Array(2).fill(''),
-        'NO_LABEL',
-      ]
-    );
-    hintColumns.push(
-      [
-        `hint:${language}`,
-      ]
-    );
-  }
+  const [labelColumns, hintColumns] = getDefaultSurveyLabels(
+    'stock_count',
+    messages,
+    languages,
+  );
 
   // Add languages and hints columns
   const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);

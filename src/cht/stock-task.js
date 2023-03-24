@@ -1,6 +1,6 @@
 const { DateTime } = require('luxon');
 const { TRANSLATION_PREFIX, DESCREPANCY_ADD_DOC, SUPPLY_ADDITIONAL_DOC, RETURNED_ADD_DOC } = require('../constants');
-const { getDynamicReportedDate, getItemCountFromLastStockCount, getLastThreeWeeksItemsConsumption } = require('./utils');
+const { getDynamicReportedDate, getItemCountFromLastStockCount, getItemsConsumption } = require('./utils');
 
 function getTasks(configs) {
   const tasks = [];
@@ -112,7 +112,7 @@ function getTasks(configs) {
             .find((rp) => rp.form === configs.features.stock_supply.confirm_supply.form_name &&
               Utils.getField(rp, 'inputs.supply_doc_id') === report._id);
           // eslint-disable-next-line no-undef
-          return !confirmationReport && user.parent.contact_type === configs.levels['1'].place_type;
+          return !confirmationReport && user.parent._id === report.place_id;
         },
         events: [
           {
@@ -131,6 +131,8 @@ function getTasks(configs) {
                 content[`${item.name}_received`] = Utils.getField(report, `${item.name}_in`);
               }
               content['supply_doc_id'] = report._id;
+              // eslint-disable-next-line no-undef
+              content['supplier_id'] = report.supplier_id;
             }
           }
         ]
@@ -156,8 +158,9 @@ function getTasks(configs) {
           const discrepancyConfirm = contact.reports.find((rp) =>
             rp.form === DESCREPANCY_ADD_DOC &&
             Utils.getField(rp, 'confirmation_id') === report._id);
+          const supplierId = Utils.getField(report, 'inputs.supplier_id');
           // eslint-disable-next-line no-undef
-          return !discrepancyConfirm && user.parent.contact_type === configs.levels['2'].place_type;
+          return !discrepancyConfirm && user._id === supplierId;
         },
         events: [
           {
@@ -259,7 +262,7 @@ function getTasks(configs) {
           }
           if (configs.features.stock_out.formular === 'weekly_qty') {
             this.stockMonitoring_itemCounts = getItemCountFromLastStockCount(configs, contact.reports);
-            this.stockMonitoring_itemConsumption = getLastThreeWeeksItemsConsumption(configs, contact.reports);
+            this.stockMonitoring_itemConsumption = getItemsConsumption(configs, contact.reports);
             const itemKeys = Object.keys(this.stockMonitoring_itemCounts);
             itemsInLowStock.push(
               ...itemKeys.filter((itemKey) => this.stockMonitoring_itemCounts[itemKey] < (this.stockMonitoring_itemConsumption[itemKey] / 3 * 2))
@@ -283,6 +286,48 @@ function getTasks(configs) {
               for (const item of items) {
                 content[`${item.name}_required`] = Math.round(this.stockMonitoring_itemConsumption[item.name] / 3 * 2);
                 content[`${item.name}_at_hand`] = Math.round(this.stockMonitoring_itemCounts[item.name]);
+              }
+            }
+          }
+        ]
+      }
+    );
+  }
+
+  if (configs.features.stock_order) {
+    tasks.push(
+      {
+        name: 'task.stock-monitoring.stock_supply',
+        title: `${TRANSLATION_PREFIX}stock_order.tasks.stock_supply`,
+        icon: 'icon-healthcare-medicine',
+        appliesTo: 'reports',
+        appliesToType: [configs.features.stock_order.form_name],
+        appliesIf: function (contact, report) {
+          // eslint-disable-next-line no-undef
+          if (user.parent.contact_type !== configs.levels['3'].place_type) {
+            return false;
+          }
+          // Get a supply additional doc with supply id = report._id
+          const orderId = report._id;
+          const supplyAdditionalReport = contact.reports.find((rp) => rp.form === SUPPLY_ADDITIONAL_DOC && rp['s_order_id'] === orderId);
+          return !supplyAdditionalReport;
+        },
+        events: [
+          {
+            start: 0,
+            end: 30,
+            dueDate: function (event, contact, report) {
+              return getDynamicReportedDate(report).toJSDate();
+            },
+          },
+        ],
+        actions: [
+          {
+            form: configs.features.stock_order.stock_supply.form_name,
+            modifyContent: function (content, contact, report) {
+              content['order_id'] = report._id;
+              for (const item of items) {
+                content[`${item.name}_ordered`] = Utils.getField(report, `out.${item.name}_ordered`);
               }
             }
           }

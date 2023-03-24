@@ -9,6 +9,8 @@ const { updateStockConfirmation } = require('./features/stock-received');
 const { updateStockDiscrepancy } = require('./features/stock-discrepancy');
 const { updateStockOut } = require('./features/stock-out');
 const { updateStockLogs } = require('./features/stock-logs');
+const { updateStockOrder } = require('./features/stock-order');
+const { updateOrderStockSupply } = require('./features/stock-order-supply');
 
 module.exports = async function (configs) {
 
@@ -41,6 +43,10 @@ module.exports = async function (configs) {
         break;
       case 'stock_logs':
         await updateStockLogs(configs);
+        break;
+      case 'stock_order':
+        await updateStockOrder(configs);
+        await updateOrderStockSupply(configs);
         break;
       default:
         break;

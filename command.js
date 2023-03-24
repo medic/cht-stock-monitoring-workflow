@@ -5,7 +5,7 @@ const utils = require('./src/utils');
 const build = require('./src/build');
 const { getInitConfigs, createConfigFile } = require('./src/init');
 const { getItemConfig, addConfigItem } = require('./src/add-item');
-const { getFeatureConfigs, addFeatureConfigs } = require('./src/add-feature');
+const { getFeatureConfigs, addFeatureConfigs, selectFeature } = require('./src/add-feature');
 
 //Stock monitoring module initialization
 async function init() {
@@ -33,6 +33,18 @@ function getConfig() {
   return config;
 }
 
+async function verifyConfigs(configs) {
+  if (configs.features.stock_order && !configs.features.stock_supply) {
+    console.log(chalk.red('Please enable stock supply first'));
+    const supplyConfigs = await getFeatureConfigs(configs, {
+      name: 'stock_supply',
+    });
+    const updatedConfig = await addFeatureConfigs(configs, supplyConfigs);
+    return updatedConfig;
+  }
+  return configs;
+}
+
 module.exports = {
   init,
   addItem: async () => {
@@ -41,7 +53,8 @@ module.exports = {
       return;
     }
     const itemConfig = await getItemConfig(config);
-    const updatedConfig = await addConfigItem(config, itemConfig);
+    let updatedConfig = await addConfigItem(config, itemConfig);
+    updatedConfig = await verifyConfigs(updatedConfig);
     await build(updatedConfig);
   },
   addFeature: async () => {
@@ -49,8 +62,10 @@ module.exports = {
     if (!config) {
       return;
     }
-    const featureConfigs = await getFeatureConfigs(config);
-    const updatedConfig = await addFeatureConfigs(config, featureConfigs);
+    const feature = await selectFeature(config);
+    const featureConfigs = await getFeatureConfigs(config, feature);
+    let updatedConfig = await addFeatureConfigs(config, featureConfigs);
+    updatedConfig = await verifyConfigs(updatedConfig);
     await build(updatedConfig);
   },
   build: async () => {
@@ -58,7 +73,8 @@ module.exports = {
     if (!config) {
       return;
     }
-    await build(config);
+    const updatedConfigs = await verifyConfigs(config);
+    await build(updatedConfigs);
   },
   info: function (message) {
     console.log(chalk.blue.italic(message));

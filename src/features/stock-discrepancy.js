@@ -55,7 +55,7 @@ function getExportCalculations(header, items) {
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_in`, // Row name
-      calculation: 'if(${' + `${item.name}_qty} != '' and` + '${' + `${item.name}_qty} > 0,` + '${' + `${item.name}_received}-` + '${' + `${item.name}_qty},0`
+      calculation: 'if(${' + `${item.name}_qty} != '' and ` + '${' + `${item.name}_qty} > 0,` + '${' + `${item.name}_received}-` + '${' + `${item.name}_qty},0)`
     }))
   ];
 }
@@ -117,7 +117,7 @@ function getAdditionalDoc(formName, docFormName, languages, header, items) {
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_out`, // Row name
-      calculation: 'if(${' + `${item.name}_qty} != '' and` + '${' + `${item.name}_qty} > 0,` + '${' + `${item.name}_qty}-`+'${' + `${item.name}_confirmed},0)`
+      calculation: 'if(${' + `${item.name}_qty} != '' and ` + '${' + `${item.name}_qty} > 0,` + '${' + `${item.name}_qty}-`+'${' + `${item.name}_confirmed},0)`
     })),
     buildRowValues(header, {
       type: 'calculate',

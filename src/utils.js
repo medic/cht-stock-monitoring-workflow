@@ -273,6 +273,41 @@ function addCategoryItemsToChoice(categories, items, choiceWorkSheet, languages)
   );
 }
 
+function getDefaultSurveyLabels(feature, messages, languages) {
+  // Add language column
+  const labelColumns = [];
+  const hintColumns = [];
+  for (const language of languages) {
+    labelColumns.push(
+      [
+        `label::${language}`,
+        'Patient',
+        'Source',
+        'Source ID',
+        'NO_LABEL',
+        'NO_LABEL',
+        '',
+        'NO_LABEL',
+        'NO_LABEL',
+        'NO_LABEL',
+        ...Array(6).fill(''),
+        messages[language][`${feature}.message.summary_header`],
+        messages[language][`${feature}.message.submit_note`],
+        messages[language][`${feature}.message.summary_note`],
+        ...Array(2).fill(''),
+        'NO_LABEL',
+      ]
+    );
+    hintColumns.push(
+      [
+        `hint:${language}`,
+      ]
+    );
+  }
+
+  return [labelColumns, hintColumns];
+}
+
 module.exports = {
   isChtApp,
   getAppSettings,
@@ -287,5 +322,6 @@ module.exports = {
   getTranslations,
   getNumberOfParent,
   addCategoryItemsToChoice,
+  getDefaultSurveyLabels,
 };
 

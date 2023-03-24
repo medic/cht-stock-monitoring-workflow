@@ -7,9 +7,34 @@ const { getStockReturnConfigs } = require('./features/stock-return');
 const { FEATURES } = require('./constants');
 const { getStockOutConfigs } = require('./features/stock-out');
 const { getStockLogsConfigs } = require('./features/stock-logs');
+const { getStockOrderConfigs } = require('./features/stock-order');
 
-async function getFeatureConfigs(configs) {
-  const remainingFeatures = Object.keys(FEATURES).filter((feature) => !configs.features[feature]);
+/**
+ * Select feature to add
+ * @param {Object} configs - app configs
+ * @returns {Promise<Object>} feature object
+ * @returns {string} feature.name - feature name
+ **/
+async function selectFeature(configs) {
+  const features = [];
+  if (configs.levels['1'] && !configs.levels['2']) {
+    features.push(
+      'stock_logs',
+    );
+  }
+  if (configs.levels['2']) {
+    features.push(
+      'stock_supply',
+      'stock_return',
+      'stock_out',
+    );
+  }
+  if (configs.levels['3']) {
+    features.push(
+      'stock_order',
+    );
+  }
+  const remainingFeatures = features.filter((feature) => !configs.features[feature]);
   if (remainingFeatures.length === 0) {
     console.log(chalk.green('INFO The are no more feature to add'));
     return;
@@ -27,6 +52,17 @@ async function getFeatureConfigs(configs) {
     }
   ]);
 
+  return feature;
+}
+
+/**
+ * Get feature configs
+ * @param {Object} configs - app configs
+ * @param {Object} feature - feature object
+ * @param {string} feature.name - feature name
+ * @returns {Promise<Object>} feature configs
+ **/
+async function getFeatureConfigs(configs, feature) {
   let featureConfigs = null;
 
   switch (feature.name) {
@@ -41,6 +77,9 @@ async function getFeatureConfigs(configs) {
       break;
     case 'stock_logs':
       featureConfigs = await getStockLogsConfigs(configs);
+      break;
+    case 'stock_order':
+      featureConfigs = await getStockOrderConfigs(configs);
       break;
     default:
       break;
@@ -63,6 +102,7 @@ function addFeatureConfigs(appConfig, featureConfigs) {
 }
 
 module.exports = {
+  selectFeature,
   getFeatureConfigs,
   addFeatureConfigs,
 };
