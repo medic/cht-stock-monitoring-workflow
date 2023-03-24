@@ -137,9 +137,10 @@ function getConfigs() {
  * Get xform group begin and end index. If not found begin and end = -1
  * @param {WorkSheet} workSheet Xform worksheet
  * @param {string} name Group name
+ * @param {number} namePosition Column position of question name
  * @returns [groupBeginIndex, groupEndIndex]
  */
-function getSheetGroupBeginEnd(workSheet, name) {
+function getSheetGroupBeginEnd(workSheet, name, namePosition = 2) {
   let foundItemBeginGroup = false;
   let beginGroupRowNumber = -1;
   let endGroupRowNumber = -1;
@@ -148,7 +149,7 @@ function getSheetGroupBeginEnd(workSheet, name) {
     if (row.values.includes('begin group')) {
       if (foundItemBeginGroup) {
         interneGroupBegin ++;
-      } else if (row.values[2].trim() === name) {
+      } else if (row.values[namePosition].trim() === name) {
         foundItemBeginGroup = true;
         beginGroupRowNumber = rowNumber;
       }
@@ -164,7 +165,7 @@ function getSheetGroupBeginEnd(workSheet, name) {
   return [beginGroupRowNumber, endGroupRowNumber];
 }
 
-function getRowWithValueAtPosition(workSheet, value, position = 2) {
+function getRowWithValueAtPosition(workSheet, value, namePosition = 2) {
   let columns = [];
   let rowData = null;
   let index = -1;
@@ -175,7 +176,7 @@ function getRowWithValueAtPosition(workSheet, value, position = 2) {
       columns.shift();
     }
 
-    if (row.values[position] && row.values[position].trim() === value) {
+    if (row.values[namePosition] && row.values[namePosition].trim() === value) {
       if (!rowData) {
         rowData = {};
       }
@@ -186,6 +187,30 @@ function getRowWithValueAtPosition(workSheet, value, position = 2) {
     }
   });
   return [index, rowData];
+}
+
+/**
+ * Get row with name in interval
+ * @param {WorkSheet} workSheet Xform worksheet
+ * @param {string} name Row name
+ * @param {number} begin Begin row number
+ * @param {number} end End row number
+ * @param {number} startPosition Start position of the value to search
+ * @returns [rowNumber, rowData]
+ * @example
+ * const [rowNumber, rowData] = getRowWithNameInInterval(workSheet, 'question_1', 1, 10);
+ * console.log(rowNumber, rowData);
+ * { type: 'integer', name: 'question_1', label: 'Question 1', hint: 'Question 1 hint', required: 'true()' }
+ **/
+function getRowWithNameInInterval(workSheet, name, begin, end) {
+  if (begin+1 === end) {
+    return [-1, null];
+  }
+  const [rowNumber, rowData] = getRowWithValueAtPosition(workSheet, name, begin+1);
+  if (rowNumber === -1 && rowNumber < end) {
+    return getRowWithNameInInterval(workSheet, name, begin+1, end);
+  }
+  return [rowNumber, rowData];
 }
 
 async function getWorkSheet(excelFilePath, workSheetNumber = 1) {
@@ -323,5 +348,6 @@ module.exports = {
   getNumberOfParent,
   addCategoryItemsToChoice,
   getDefaultSurveyLabels,
+  getRowWithNameInInterval,
 };
 

@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const ExcelJS = require('exceljs');
-const { getRowWithValueAtPosition, getSheetGroupBeginEnd, buildRowValues, getTranslations } = require('../utils');
+const { getRowWithValueAtPosition, getSheetGroupBeginEnd, buildRowValues, getTranslations, getRowWithNameInInterval } = require('../utils');
 const chalk = require('chalk');
 const { FORM_ADDITIONAL_DOC_NAME } = require('../constants');
 
@@ -45,6 +45,62 @@ async function updateForm(configs) {
       }
     });
 
+    // Find user defined row
+    const namePosition = header.indexOf('name') + 1;
+    const [userBegin, userEnd] = getSheetGroupBeginEnd(surveyWorkSheet, 'user', namePosition);
+    const userAppend = [];
+    const parentRows = [
+      buildRowValues(header, {
+        type: 'begin group',
+        name: 'parent',
+        ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      }),
+      buildRowValues(header, {
+        type: 'hidden',
+        name: '_id',
+        ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      }),
+      buildRowValues(header, {
+        type: 'end group',
+        name: 'parent',
+      }),
+    ];
+    const [inputBegin,] = getSheetGroupBeginEnd(surveyWorkSheet, 'inputs', namePosition);
+    let insertionPosition = inputBegin+1;
+    if (userBegin === -1) {
+      userAppend.push(
+        buildRowValues(header, {
+          type: 'begin group',
+          name: 'user',
+          ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+        }),
+        buildRowValues(header, {
+          name: 'contact_id',
+          type: 'db:person',
+          appearance: 'db-object',
+          ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+        }),
+        ...parentRows,
+        buildRowValues(header, {
+          type: 'end group',
+          name: 'user',
+        }),
+      );
+    } else {
+      const [userParentBegin,] = getRowWithNameInInterval(surveyWorkSheet, 'parent', userBegin, userEnd, namePosition);
+      if (userParentBegin === -1) {
+        insertionPosition = userBegin + 1;
+        userAppend.push(
+          ...parentRows,
+        );
+      }
+    }
+    if (userAppend.length > 0) {
+      surveyWorkSheet.insertRows(insertionPosition, userAppend, '+i');
+    }
+
+    const referenceToLevel = `${configs.levels['1'].place_type}_id`;
+
     // Remove additional doc group if already exist
     const [begin, end] = getSheetGroupBeginEnd(surveyWorkSheet, FORM_ADDITIONAL_DOC_NAME);
     if (begin !== -1) {
@@ -54,9 +110,13 @@ async function updateForm(configs) {
       }
     }
 
-    const referenceToLevel = `${configs.levels['1'].place_type}_id`;
     const noLabelValues = languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {});
     const additionalDocRows = [
+      buildRowValues(header, {
+        type: 'calculate',
+        name: referenceToLevel,
+        calculation: '../inputs/user/parent/_id',
+      }),
       buildRowValues(header, {
         type: 'begin group',
         name: FORM_ADDITIONAL_DOC_NAME,

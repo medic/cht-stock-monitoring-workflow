@@ -67,13 +67,6 @@ async function getItemConfig(configs) {
       formConfig.reportedDate = 'now()';
     }
   }
-  const referenceToLevel = `${configs.levels['1'].place_type}_id`;
-  const formPath = path.join(processDir, 'forms', 'app', `${form}.xlsx`);
-  const workSheet = await utils.getWorkSheet(formPath);
-  const [, stockMonitoringAreaIdRow] = utils.getRowWithValueAtPosition(workSheet, referenceToLevel);
-  if (!stockMonitoringAreaIdRow) {
-    console.log(chalk.green(`WARN Please add ${referenceToLevel} calculation in your form.`));
-  }
 
   // Find existing items not in form to propose them
   const configItems = Object.keys(configs.items);
