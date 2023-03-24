@@ -260,12 +260,31 @@ function getTasks(configs) {
           if (user.parent.contact_type !== configs.levels['2'].place_type) {
             return false;
           }
+          this.stockMonitoring_itemCounts = getItemCountFromLastStockCount(configs, contact.reports);
+          this.stockMonitoring_itemRequiredQty = {};
           if (configs.features.stock_out.formular === 'weekly_qty') {
-            this.stockMonitoring_itemCounts = getItemCountFromLastStockCount(configs, contact.reports);
-            this.stockMonitoring_itemConsumption = getItemsConsumption(configs, contact.reports);
+            const consumption = getItemsConsumption(configs, contact.reports);
+            this.stockMonitoring_itemRequiredQty = consumption;
+            Object.keys(this.stockMonitoring_itemRequiredQty).forEach((item) => {
+              if (typeof this.stockMonitoring_itemRequiredQty[item] === 'number') {
+                this.stockMonitoring_itemRequiredQty[item] = this.stockMonitoring_itemRequiredQty[item] / 3 * 2 - this.stockMonitoring_itemCounts[item];
+              }
+            });
             const itemKeys = Object.keys(this.stockMonitoring_itemCounts);
             itemsInLowStock.push(
-              ...itemKeys.filter((itemKey) => this.stockMonitoring_itemCounts[itemKey] < (this.stockMonitoring_itemConsumption[itemKey] / 3 * 2))
+              ...itemKeys.filter((itemKey) => this.stockMonitoring_itemCounts[itemKey] < this.stockMonitoring_itemRequiredQty[itemKey])
+            );
+          } else {
+            itemsInLowStock.push(
+              ...items.filter((item) => {
+                const itemCount = this.stockMonitoring_itemCounts[item.name];
+                const itemThreshold = item.warning_total;
+                this.stockMonitoring_itemRequiredQty[item.name] = item.warning_total * 2 - itemCount;
+                if (itemCount < itemThreshold) {
+                  return true;
+                }
+                return false;
+              }).map((item) => item.name)
             );
           }
           return itemsInLowStock.length > 0;
@@ -284,7 +303,7 @@ function getTasks(configs) {
             form: configs.features.stock_out.form_name,
             modifyContent: function (content) {
               for (const item of items) {
-                content[`${item.name}_required`] = Math.round(this.stockMonitoring_itemConsumption[item.name] / 3 * 2);
+                content[`${item.name}_required`] = Math.round(this.stockMonitoring_itemRequiredQty[item.name]);
                 content[`${item.name}_at_hand`] = Math.round(this.stockMonitoring_itemCounts[item.name]);
               }
             }

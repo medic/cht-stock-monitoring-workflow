@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const ExcelJS = require('exceljs');
-const { getRowWithValueAtPosition, getSheetGroupBeginEnd, buildRowValues, getTranslations, getRowWithNameInInterval } = require('../utils');
+const { getRowWithValueAtPosition, getSheetGroupBeginEnd, buildRowValues, getTranslations, getRowNumberWithNameInInterval } = require('../utils');
 const chalk = require('chalk');
 const { FORM_ADDITIONAL_DOC_NAME } = require('../constants');
 
@@ -87,7 +87,7 @@ async function updateForm(configs) {
         }),
       );
     } else {
-      const [userParentBegin,] = getRowWithNameInInterval(surveyWorkSheet, 'parent', userBegin, userEnd, namePosition);
+      const userParentBegin = getRowNumberWithNameInInterval(surveyWorkSheet, 'parent', userBegin, userEnd, namePosition);
       if (userParentBegin === -1) {
         insertionPosition = userBegin + 1;
         userAppend.push(

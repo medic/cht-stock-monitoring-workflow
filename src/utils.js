@@ -196,21 +196,20 @@ function getRowWithValueAtPosition(workSheet, value, namePosition = 2) {
  * @param {number} begin Begin row number
  * @param {number} end End row number
  * @param {number} startPosition Start position of the value to search
- * @returns [rowNumber, rowData]
- * @example
- * const [rowNumber, rowData] = getRowWithNameInInterval(workSheet, 'question_1', 1, 10);
- * console.log(rowNumber, rowData);
- * { type: 'integer', name: 'question_1', label: 'Question 1', hint: 'Question 1 hint', required: 'true()' }
+ * @returns Row number
  **/
-function getRowWithNameInInterval(workSheet, name, begin, end) {
+function getRowNumberWithNameInInterval(workSheet, name, begin, end, namePosition = 2) {
   if (begin+1 === end) {
-    return [-1, null];
+    return -1;
   }
-  const [rowNumber, rowData] = getRowWithValueAtPosition(workSheet, name, begin+1);
-  if (rowNumber === -1 && rowNumber < end) {
-    return getRowWithNameInInterval(workSheet, name, begin+1, end);
+  const row = workSheet.getRow(begin + 1);
+  if (row && row.values[namePosition] && row.values[namePosition].trim() === name) {
+    return begin + 1;
   }
-  return [rowNumber, rowData];
+  if (begin+1 < end) {
+    console.log('-->', begin + 1, end);
+    return getRowNumberWithNameInInterval(workSheet, name, begin+1, end);
+  }
 }
 
 async function getWorkSheet(excelFilePath, workSheetNumber = 1) {
@@ -348,6 +347,6 @@ module.exports = {
   getNumberOfParent,
   addCategoryItemsToChoice,
   getDefaultSurveyLabels,
-  getRowWithNameInInterval,
+  getRowNumberWithNameInInterval,
 };
 
