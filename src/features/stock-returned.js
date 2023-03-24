@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const ExcelJS = require('exceljs');
-const { getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd, getNumberOfParent } = require('../utils');
+const { getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd, getNumberOfSteps } = require('../utils');
 const { RETURNED_ADD_DOC } = require('../constants');
 
 function getLabelColumns(languages, messages) {
@@ -257,7 +257,7 @@ async function updateStockReturned(configs) {
   header.shift();
 
   // Add parents
-  const nbParents = getNumberOfParent(configs.levels[1].place_type, configs.levels[2].place_type);
+  const nbParents = getNumberOfSteps(configs.levels[1].place_type, configs.levels[2].place_type);
   const contactParentRows = [];
   for (let i = 0; i < nbParents; i++) {
     contactParentRows.push(

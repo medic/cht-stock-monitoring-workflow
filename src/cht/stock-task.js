@@ -267,18 +267,18 @@ function getTasks(configs) {
             this.stockMonitoring_itemRequiredQty = consumption;
             Object.keys(this.stockMonitoring_itemRequiredQty).forEach((item) => {
               if (typeof this.stockMonitoring_itemRequiredQty[item] === 'number') {
-                this.stockMonitoring_itemRequiredQty[item] = this.stockMonitoring_itemRequiredQty[item] / 3 * 2 - this.stockMonitoring_itemCounts[item];
+                this.stockMonitoring_itemRequiredQty[item] = consumption[item] / 3 * 2 - this.stockMonitoring_itemCounts[item];
               }
             });
             const itemKeys = Object.keys(this.stockMonitoring_itemCounts);
             itemsInLowStock.push(
-              ...itemKeys.filter((itemKey) => this.stockMonitoring_itemCounts[itemKey] < this.stockMonitoring_itemRequiredQty[itemKey])
+              ...itemKeys.filter((itemKey) => this.stockMonitoring_itemCounts[itemKey] < consumption[itemKey] / 3 * 2)
             );
           } else {
             itemsInLowStock.push(
               ...items.filter((item) => {
                 const itemCount = this.stockMonitoring_itemCounts[item.name];
-                const itemThreshold = item.warning_total;
+                const itemThreshold = item.danger_total;
                 this.stockMonitoring_itemRequiredQty[item.name] = item.warning_total * 2 - itemCount;
                 if (itemCount < itemThreshold) {
                   return true;

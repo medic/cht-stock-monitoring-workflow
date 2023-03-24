@@ -1,4 +1,4 @@
-const { getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getNumberOfParent, addCategoryItemsToChoice, getDefaultSurveyLabels } = require('../utils');
+const { getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getNumberOfSteps, getDefaultSurveyLabels } = require('../utils');
 const chalk = require('chalk');
 const path = require('path');
 const fs = require('fs-extra');
@@ -224,7 +224,7 @@ async function updateOrderStockSupply(configs) {
   const header = surveyWorkSheet.getRow(1).values;
   header.shift();
   // Get level 2
-  const nbParents = getNumberOfParent(configs.levels[1].place_type, configs.levels[2].place_type);
+  const nbParents = getNumberOfSteps(configs.levels[1].place_type, configs.levels[2].place_type);
   const contactParentRows = [];
   for (let i = 0; i < nbParents; i++) {
     contactParentRows.push(

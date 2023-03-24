@@ -5,6 +5,36 @@ const chalk = require('chalk');
 const { Workbook } = require('exceljs');
 const { getTranslations, getRowWithValueAtPosition, getDefaultSurveyLabels, buildRowValues, addCategoryItemsToChoice, getSheetGroupBeginEnd } = require('../utils');
 
+/**
+ * This function takes a header, a list of languages, a list of messages, a selection field name, and a list of items, and
+ * returns a list of item rows, which can be used to construct a stock order form.
+ * @param {string[]} header
+ * @param {string[]} languages
+ * @param {object} messages
+ * @param {string} selectionFieldName
+ * @param {object[]} items
+ * @returns {object[]} itemRows
+ * @example
+ * getItemRows(header, languages, messages, 'list_items_selected', items)
+ * returns [
+ *   [
+ *     { type: 'begin group', name: '___item1', relevant: 'selected(${list_items_selected}, 'item1')', label::en: 'Item 1', label::sw: 'Bidhaa 1' },
+ *     { type: 'note', name: 'item1_before', label::en: 'Quantity before: ${item1_current}', label::sw: 'Idadi kabla: ${item1_current}' },
+ *     { type: 'decimal', name: 'item1_order_qty', required: 'yes', constraint: '. > 0', default: 0, label::en: 'Quantity ordered', label::sw: 'Idadi iliyotolewa' },
+ *     { type: 'calculate', name: 'item1_after', calculation: '${item1_current} + if(${item1_order_qty} != '',${item1_order_qty},0)' },
+ *     { type: 'note', name: 'item1_after_note', label::en: 'Quantity after: ${item1_after}', label::sw: 'Idadi baada: ${item1_after}' },
+ *     { type: 'end group' },
+ *   ],
+ *   [
+ *     { type: 'begin group', name: '___item2', relevant: 'selected(${list_items_selected}, 'item2')', label::en: 'Item 2', label::sw: 'Bidhaa 2' },
+ *     { type: 'note', name: 'item2_before', label::en: 'Quantity before: ${item2_current}', label::sw: 'Idadi kabla: ${item2_current}' },
+ *     { type: 'decimal', name: 'item2_order_qty', required: 'yes', constraint: '. > 0', default: 0, label::en: 'Quantity ordered', label::sw: 'Idadi iliyotolewa' },
+ *     { type: 'calculate', name: 'item2_after', calculation: '${item2_current} + if(${item2_order_qty} != '',${item2_order_qty},0)' },
+ *     { type: 'note', name: 'item2_after_note', label::en: 'Quantity after: ${item2_after}', label::sw: 'Idadi baada: ${item2_after}' },
+ *     { type: 'end group' },
+ *   ],
+ * ]
+ **/
 function getItemRows(header, languages, messages, selectionFieldName, items) {
   return items.map((item) => {
     return [
@@ -263,41 +293,71 @@ async function updateStockOrder(configs) {
   console.log(chalk.green(`INFO ${orderConfigs.form_name} updated successfully`));
 }
 
-// @param {Object} configs - The configs object
-// @param {Object} configs.languages - The languages object
-// @returns {Object} - The stock order configs
-async function getStockOrderConfigs({
+/**
+ * Get stock order configs
+ * @param {Object} languages
+ * @returns {Object} configs
+ * @returns {String} configs.form_name
+ * @returns {Object} configs.title
+ * @returns {String} configs.title.en
+ * @returns {String} configs.title.fr
+ **/
+const getStockOrderConfigs = async ({
   languages,
-}) {
+}) => {
   const configs = await inquirer.prompt([
     {
       type: 'input',
       name: 'form_name',
       message: 'Enter stock order form ID',
-      default: 'stock_order'
+      default: 'stock_order',
+      validate: (input) => {
+        if (!input) {
+          return 'Please enter a valid form ID';
+        }
+        return true;
+      }
     },
     ...languages.map((language) => ({
       type: 'input',
       name: `title.${language}`,
       message: `Enter stock order form title in ${language}`,
-      default: 'Stock Order'
+      default: 'Stock Order',
+      validate: (input) => {
+        if (!input) {
+          return `Please enter a valid form title in ${language}`;
+        }
+        return true;
+      }
     })),
     {
       type: 'input',
       name: 'stock_supply.form_name',
       message: 'Enter stock order supply form ID',
-      default: 'stock_order_supply'
+      default: 'stock_order_supply',
+      validate: (input) => {
+        if (!input) {
+          return 'Please enter a valid form ID';
+        }
+        return true;
+      }
     },
     ...languages.map((language) => ({
       type: 'input',
       name: `stock_supply.title.${language}`,
       message: `Enter stock order supply form title in ${language}`,
-      default: 'Stock Order Supply'
+      default: 'Stock Order Supply',
+      validate: (input) => {
+        if (!input) {
+          return `Please enter a valid form title in ${language}`;
+        }
+        return true;
+      }
     }))
   ]);
 
   return configs;
-}
+};
 
 module.exports = {
   getStockOrderConfigs,

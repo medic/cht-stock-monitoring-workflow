@@ -5,6 +5,10 @@ const chalk = require('chalk');
 
 const TRANSLATION_PREFIX = 'cht-workflow-stock-monitoring.';
 
+/**
+ * Check if the current working directory is a CHT application directory
+ * @return {boolean} true if the current working directory is a CHT application directory
+ */
 function isChtApp() {
   const processDir = process.cwd();
   const formDir = path.join(processDir, 'forms');
@@ -15,22 +19,42 @@ function isChtApp() {
   return false;
 }
 
+/**
+ * Get CHT app settings
+ * @returns {object} CHT app settings
+ * @returns {string} return null if error
+ **/
 function getAppSettings() {
-  const processDir = process.cwd();
-  const baseSettingFile = path.join(processDir, 'app_settings', 'base_settings.json');
-  const rawSettings = fs.readFileSync(baseSettingFile, {
-    encoding: 'utf-8'
-  });
-  const settings = JSON.parse(rawSettings);
-  return settings;
+  try {
+    const processDir = process.cwd();
+    const baseSettingFile = path.join(processDir, 'app_settings', 'base_settings.json');
+    const rawSettings = fs.readFileSync(baseSettingFile, {
+      encoding: 'utf-8'
+    });
+    const settings = JSON.parse(rawSettings);
+    return settings;
+  } catch (err) {
+    console.log('Error reading app settings', err);
+    return null;
+  }
 }
 
-function alreadyInit(directory) {
-  const configFilePath = path.join(directory, 'stock-monitoring.config.json');
-  if (fs.existsSync(configFilePath)) {
-    return true;
+/**
+ * Check if stock-monitoring.config.json exists in the directory
+ * @param {string} directory - The directory to check
+ * @return {boolean} - True if the file exists, false otherwise
+ */
+function isAlreadyInit(directory) {
+  try {
+    const configFilePath = path.join(directory, 'stock-monitoring.config.json');
+    if (fs.existsSync(configFilePath)) {
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.error(err);
+    return false;
   }
-  return false;
 }
 
 function getTranslations(removePrefix = true) {
@@ -119,6 +143,11 @@ function updateTranslations(configs) {
   }
 }
 
+/**
+ * Write config to stock-monitoring.config.json
+ * @param {object} config - The config to write
+ * @return {void}
+ **/
 function writeConfig(config) {
   const processDir = process.cwd();
   const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
@@ -126,6 +155,11 @@ function writeConfig(config) {
   updateTranslations(config);
 }
 
+/**
+ * Get config from stock-monitoring.config.json
+ * @return {object} - The config
+ * @throws {Error} - If the config file does not exist
+ * */
 function getConfigs() {
   const processDir = process.cwd();
   const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
@@ -190,26 +224,23 @@ function getRowWithValueAtPosition(workSheet, value, namePosition = 2) {
 }
 
 /**
- * Get row with name in interval
- * @param {WorkSheet} workSheet Xform worksheet
- * @param {string} name Row name
- * @param {number} begin Begin row number
- * @param {number} end End row number
- * @param {number} startPosition Start position of the value to search
- * @returns Row number
- **/
+ * Returns the row number of the first row with the given name in the given interval
+ * @param workSheet the worksheet to search in
+ * @param name the name to search for
+ * @param begin the beginning of the interval
+ * @param end the end of the interval
+ * @param namePosition the position of the name in the row
+ * @returns {number} the row number of the first row with the given name in the given interval
+ */
 function getRowNumberWithNameInInterval(workSheet, name, begin, end, namePosition = 2) {
-  if (begin+1 === end) {
-    return -1;
-  }
   const row = workSheet.getRow(begin + 1);
   if (row && row.values[namePosition] && row.values[namePosition].trim() === name) {
     return begin + 1;
   }
   if (begin+1 < end) {
-    console.log('-->', begin + 1, end);
     return getRowNumberWithNameInInterval(workSheet, name, begin+1, end);
   }
+  return -1;
 }
 
 async function getWorkSheet(excelFilePath, workSheetNumber = 1) {
@@ -241,16 +272,35 @@ function buildRowValues(header, values) {
   return rowValues;
 }
 
-function getNumberOfParent(fromLevel, toLevel, initialNbParent = 0) {
+/**
+ * Get number of steps between two levels
+ * @param {string} fromLevel The level from which we start
+ * @param {string} toLevel The level to which we want to go
+ * @param {number} initialNbParent The number of parents already found
+ * @returns {number|null} The number of steps between the two levels or null if no path was found
+ * @example
+ * getNumberOfSteps('district_hospital', 'health_center') // 1
+ * getNumberOfSteps('district_hospital', 'clinic') // 2
+ * getNumberOfSteps('district_hospital', 'person') // 3
+ * getNumberOfSteps('district_hospital', 'district_hospital') // 0
+ * getNumberOfSteps('district_hospital', 'unknown') // null
+ **/
+function getNumberOfSteps(fromLevel, toLevel, initialNbParent = 0) {
   const appSettings = getAppSettings();
   const fromLevelDetail = appSettings.contact_types.find((settings) => settings.id === fromLevel);
   if (fromLevelDetail && fromLevelDetail.parents) {
     if (fromLevelDetail.parents.includes(toLevel)) {
+      // If the current level has the toLevel as a parent, we stop and return the number of parents
       return initialNbParent + 1;
+    } else if (fromLevelDetail.parents[0] === fromLevel) {
+      // If the current level is the top level, we stop and return null
+      return null;
     } else {
-      return getNumberOfParent(toLevel, fromLevelDetail.parents[0], initialNbParent + 1);
+      // If the current level is not the top level nor the toLevel, we continue with the first parent
+      return getNumberOfSteps(fromLevelDetail.parents[0], toLevel, initialNbParent + 1);
     }
   }
+  // If no parents were found, we stop and return null
   return null;
 }
 
@@ -335,7 +385,7 @@ function getDefaultSurveyLabels(feature, messages, languages) {
 module.exports = {
   isChtApp,
   getAppSettings,
-  alreadyInit,
+  isAlreadyInit,
   writeConfig,
   getSheetGroupBeginEnd,
   getRowWithValueAtPosition,
@@ -344,7 +394,7 @@ module.exports = {
   getConfigs,
   updateTranslations,
   getTranslations,
-  getNumberOfParent,
+  getNumberOfSteps,
   addCategoryItemsToChoice,
   getDefaultSurveyLabels,
   getRowNumberWithNameInInterval,

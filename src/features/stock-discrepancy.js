@@ -1,4 +1,4 @@
-const { getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getNumberOfParent } = require('../utils');
+const { getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getNumberOfSteps } = require('../utils');
 const chalk = require('chalk');
 const path = require('path');
 const fs = require('fs-extra');
@@ -238,7 +238,7 @@ async function updateStockDiscrepancy(configs) {
   const header = surveyWorkSheet.getRow(1).values;
   header.shift();
   // Add parents
-  const nbParents = getNumberOfParent(configs.levels[1].place_type, configs.levels[2].place_type);
+  const nbParents = getNumberOfSteps(configs.levels[1].place_type, configs.levels[2].place_type);
   const contactParentRows = [
     ...Array(nbParents).fill(
       [

@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const ExcelJS = require('exceljs');
 const inquirer = require('inquirer');
-const { getTranslations, getRowWithValueAtPosition, getNumberOfParent, buildRowValues, getSheetGroupBeginEnd } = require('../utils');
+const { getTranslations, getRowWithValueAtPosition, getNumberOfSteps, buildRowValues, getSheetGroupBeginEnd } = require('../utils');
 
 function getItemRows(header, languages, messages, items) {
   return items.map((item) => {
@@ -100,7 +100,7 @@ async function updateStockOut(configs) {
   const header = surveyWorkSheet.getRow(1).values;
   header.shift();
   // Add parents
-  const nbParents = getNumberOfParent(configs.levels[1].place_type, configs.levels[2].place_type);
+  const nbParents = getNumberOfSteps(configs.levels[1].place_type, configs.levels[2].place_type);
   const contactParentRows = [
     ...Array(nbParents).fill(
       [

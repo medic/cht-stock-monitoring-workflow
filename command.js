@@ -11,7 +11,7 @@ const { getFeatureConfigs, addFeatureConfigs, selectFeature } = require('./src/a
 async function init() {
   const processDir = process.cwd();
 
-  if (utils.alreadyInit(processDir)) {
+  if (utils.isAlreadyInit(processDir)) {
     console.log(chalk.red.bold('Stock monitoring module already init'));
     return;
   }
@@ -23,7 +23,7 @@ async function init() {
 
 function getConfig() {
   const processDir = process.cwd();
-  if (!utils.alreadyInit(processDir)) {
+  if (!utils.isAlreadyInit(processDir)) {
     console.log(chalk.red.bold('Stock monitoring module not found'));
     return;
   }
