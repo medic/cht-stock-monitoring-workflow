@@ -19,38 +19,28 @@ module.exports = async function (configs) {
   const messages = getTranslations();
 
   for (const feature of Object.keys(configs.features)) {
-    switch (feature) {
-      case 'stock_count':
-      // Create stock count form xlsx
-        await updateStockCount(configs);
-        break;
-      case 'stock_supply':
-        // Create stock supply form xlsx
+    const featureToFunctionMap = {
+      stock_count: updateStockCount,
+      stock_supply: async (configs) => {
         await updateStockSupply(configs);
         if (configs.features.stock_supply && configs.features.stock_supply.confirm_supply && configs.features.stock_supply.confirm_supply.active) {
           await updateStockConfirmation(configs, messages);
           await updateStockDiscrepancy(configs);
         }
-        break;
-      case 'stock_return':
-        // Create stock return form
+      },
+      stock_return: async (configs) => {
         await updateStockReturn(configs);
-        // Create stock returned form
         await updateStockReturned(configs);
-        break;
-      case 'stock_out':
-        await updateStockOut(configs);
-        break;
-      case 'stock_logs':
-        await updateStockLogs(configs);
-        break;
-      case 'stock_order':
+      },
+      stock_out: updateStockOut,
+      stock_logs: updateStockLogs,
+      stock_order: async (configs) => {
         await updateStockOrder(configs);
         await updateOrderStockSupply(configs);
-        break;
-      default:
-        break;
-    }
+      }
+    };
+
+    await featureToFunctionMap[feature](configs);
   }
 
   await updateForm(configs);

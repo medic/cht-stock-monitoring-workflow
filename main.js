@@ -43,9 +43,6 @@ const utils = require('./src/utils');
       console.log(chalk.green('INFO Building stock monitoring configs'));
       return command.build();
     }
-    // if (actions.includes('test')) {
-    //   return command.test();
-    // }
   } catch (e) {
     console.error(e);
     process.exitCode = 1; // emit a non-zero exit code for scripting

@@ -31,7 +31,7 @@
       {
         "SwitchCase": 1
       }
-    ],
+    ]
   },
   "globals": {
     "Utils": true,
