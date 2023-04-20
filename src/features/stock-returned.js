@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const ExcelJS = require('exceljs');
-const { getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd, getNumberOfSteps } = require('../utils');
+const { getNoLabelsColums, getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd, getNumberOfSteps } = require('../common');
 const { RETURNED_ADD_DOC } = require('../constants');
 
 function getLabelColumns(languages, messages) {
@@ -151,7 +151,7 @@ function getAdditionalDoc(formName, languages, header, items) {
       name: RETURNED_ADD_DOC,
       appearance: 'field-list',
       'instance::db-doc': 'true',
-      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      ...getNoLabelsColums(languages)
     }),
     buildRowValues(header, {
       type: 'calculate',
@@ -182,7 +182,7 @@ function getAdditionalDoc(formName, languages, header, items) {
     buildRowValues(header, {
       type: 'begin group',
       name: 'contact',
-      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      ...getNoLabelsColums(languages)
     }),
     buildRowValues(header, {
       type: 'calculate',
@@ -196,7 +196,7 @@ function getAdditionalDoc(formName, languages, header, items) {
     buildRowValues(header, {
       type: 'begin group',
       name: 'fields',
-      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      ...getNoLabelsColums(languages)
     }),
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
@@ -265,12 +265,12 @@ async function updateStockReturned(configs) {
         type: 'begin group',
         name: `parent`,
         appearance: `hidden`,
-        ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+        ...getNoLabelsColums(languages)
       }),
       buildRowValues(header, {
         type: 'string',
         name: '_id',
-        ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+        ...getNoLabelsColums(languages)
       })
     );
   }
@@ -301,12 +301,12 @@ async function updateStockReturned(configs) {
     buildRowValues(header, {
       type: 'hidden',
       name: 'level_1_place_id',
-      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      ...getNoLabelsColums(languages)
     }),
     buildRowValues(header, {
       type: 'hidden',
       name: 'stock_return_id',
-      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      ...getNoLabelsColums(languages)
     })
   ];
   const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);

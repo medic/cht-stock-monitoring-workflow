@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const { Workbook } = require('exceljs');
-const { getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd, getDefaultSurveyLabels } = require('../utils');
+const { getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd, getDefaultSurveyLabels } = require('../common');
 
 function getChoicesFromMessage(messages, languages, choiceName, key = 'stock_return.forms.select_items.reason') {
   const choices = Object.keys(messages[languages[0]])

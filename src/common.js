@@ -5,19 +5,7 @@ const chalk = require('chalk');
 
 const TRANSLATION_PREFIX = 'cht-workflow-stock-monitoring.';
 
-/**
- * Check if the current working directory is a CHT application directory
- * @return {boolean} true if the current working directory is a CHT application directory
- */
-function isChtApp() {
-  const processDir = process.cwd();
-  const formDir = path.join(processDir, 'forms');
-  const baseSettingDir = path.join(processDir, 'app_settings');
-  if (fs.existsSync(formDir) && fs.existsSync(baseSettingDir)) {
-    return true;
-  }
-  return false;
-}
+
 
 /**
  * Get CHT app settings
@@ -382,8 +370,9 @@ function getDefaultSurveyLabels(feature, messages, languages) {
   return [labelColumns, hintColumns];
 }
 
+const getNoLabelsColums = languages => languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {});
+
 module.exports = {
-  isChtApp,
   getAppSettings,
   isAlreadyInit,
   writeConfig,
@@ -397,6 +386,7 @@ module.exports = {
   getNumberOfSteps,
   addCategoryItemsToChoice,
   getDefaultSurveyLabels,
+  getNoLabelsColums,
   getRowNumberWithNameInInterval,
 };
 

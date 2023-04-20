@@ -4,7 +4,7 @@ const fs = require('fs-extra');
 const ExcelJS = require('exceljs');
 const chalk = require('chalk');
 
-const { getTranslations, buildRowValues, getRowWithValueAtPosition, addCategoryItemsToChoice, getSheetGroupBeginEnd } = require('../utils');
+const { getTranslations, buildRowValues, getRowWithValueAtPosition, addCategoryItemsToChoice, getSheetGroupBeginEnd } = require('../common');
 
 function addStockLogCalculation(workSheet, items) {
   const [, end] = getSheetGroupBeginEnd(workSheet, 'out');

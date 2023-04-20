@@ -32,11 +32,5 @@
         "SwitchCase": 1
       }
     ]
-  },
-  "globals": {
-    "Utils": true,
-    "reports": true,
-    "lineage": true,
-    "contact": true
   }
 }

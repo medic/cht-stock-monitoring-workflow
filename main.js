@@ -1,16 +1,31 @@
 #! /usr/bin/env node
 const parseArgs = require('minimist');
 const chalk = require('chalk');
+const path = require('path');
+const fs = require('fs-extra');
 
 const command = require('./command');
-const utils = require('./src/utils');
+
+/**
+ * Check if the current working directory is a CHT application directory
+ * @return {boolean} true if the current working directory is a CHT application directory
+ */
+function isChtApp() {
+  const processDir = process.cwd();
+  const formDir = path.join(processDir, 'forms');
+  const baseSettingDir = path.join(processDir, 'app_settings');
+  if (fs.existsSync(formDir) && fs.existsSync(baseSettingDir)) {
+    return true;
+  }
+  return false;
+}
 
 (async () => {
   try {
     const argv = process.argv;
     const cmdArgs = parseArgs(argv.slice(2));
 
-    if (!utils.isChtApp()) {
+    if (!isChtApp()) {
       console.log(chalk.red.bold('Not a CHT app'));
       return;
     }

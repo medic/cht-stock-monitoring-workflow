@@ -1,6 +1,6 @@
-const { DateTime } = require('luxon');
-const { FORM_ADDITIONAL_DOC_NAME, RETURNED_ADD_DOC, DESCREPANCY_ADD_DOC, SUPPLY_ADDITIONAL_DOC } = require('../constants');
-const Utils = require('cht-nootils')();
+var luxon = require('luxon');
+var constants = require('../constants');
+var Utils = require('cht-nootils')();
 
 
 /**
@@ -8,13 +8,13 @@ const Utils = require('cht-nootils')();
  * @param {Object} report
  * @returns {DateTime}
  **/
-const getDynamicReportedDate = report => {
-  const specifiedDate =
+function getDynamicReportedDate(report) {
+  var specifiedDate =
     Utils.getField(report, 's_reported.s_reported_date') ||
     Utils.getField(report, 'supervision_date');
-  return (specifiedDate && DateTime.fromISO(specifiedDate)) ||
-    DateTime.fromMillis(parseInt((report && report.reported_date) || 0));
-};
+  return (specifiedDate && luxon.DateTime.fromISO(specifiedDate)) ||
+    luxon.DateTime.fromMillis(parseInt((report && report.reported_date) || 0));
+}
 
 /**
  * Get items consumption
@@ -23,10 +23,13 @@ const getDynamicReportedDate = report => {
  * @param {week|month} period item consumption period
  * @returns {item: quantity}
  */
-function getItemsConsumption(configs, reports, period = 'week') {
-  let STOCK_SUPPLY = '';
-  let SUPPLY_CORRECTION = '';
-  let STOCK_RETURNED = '';
+function getItemsConsumption(configs, reports, period) {
+  if (!period) {
+    period = 'week';
+  }
+  var STOCK_SUPPLY = '';
+  var SUPPLY_CORRECTION = '';
+  var STOCK_RETURNED = '';
   if (configs.features && configs.features.stock_supply) {
     STOCK_SUPPLY = configs.features.stock_supply.form_name;
     if (configs.features.stock_supply.confirm_supply.active) {
@@ -36,53 +39,57 @@ function getItemsConsumption(configs, reports, period = 'week') {
   if (configs.features && configs.features.stock_return) {
     STOCK_RETURNED = configs.features.stock_return.confirmation.form_name;
   }
-  const items = Object.values(configs.items);
-  const today = DateTime.now();
-  const lastWeek = today.startOf(period).minus({
+  var items = Object.values(configs.items);
+  var today = luxon.DateTime.now();
+  var lastWeek = today.startOf(period).minus({
     hour: 1
   }).endOf('day');
-  const threeWeeksBefore = lastWeek.minus({
-    [period]: 3
-  }).startOf('day');
+  var params = {};
+  params[period] = 3;
+  var threeWeeksBefore = lastWeek.minus(params).startOf('day');
   // Latest reports
-  const latestReports = reports.filter((report) => {
-    let reportedDate = getDynamicReportedDate(report);
-    if (report.form === FORM_ADDITIONAL_DOC_NAME) {
-      const stmReportedDate = report['stock_monitoring_reported_date'];
+  var latestReports = reports.filter(function (report) {
+    var reportedDate = getDynamicReportedDate(report);
+    if (report.form === constants.FORM_ADDITIONAL_DOC_NAME) {
+      var stmReportedDate = report['stock_monitoring_reported_date'];
       if (stmReportedDate) {
-        reportedDate = DateTime.fromISO(stmReportedDate);
+        reportedDate = luxon.DateTime.fromISO(stmReportedDate);
       }
     }
     return threeWeeksBefore <= reportedDate && reportedDate <= lastWeek;
   });
 
-  const itemQuantities = items.reduce((prev, next) => {
-    return { ...prev, [next.name]: 0 };
+  var itemQuantities = items.reduce(function (prev, next) {
+    var prevCopy = Object.assign({}, prev);
+    prevCopy[next.name] = 0;
+    return prevCopy;
   }, {});
-  const itemNames = Object.keys(itemQuantities);
+  var itemNames = Object.keys(itemQuantities);
 
-  for (const report of latestReports) {
-    for (const itemName of itemNames) {
+  for (var i = 0; i < latestReports.length; i++) {
+    var report = latestReports[i];
+    for (var j = 0; j < itemNames.length; j++) {
+      var itemName = itemNames[j];
       switch (report.form) {
-        case FORM_ADDITIONAL_DOC_NAME:
+        case constants.FORM_ADDITIONAL_DOC_NAME:
           {
-            const qtyUsed = Number(Utils.getField(report, `${itemName}_used_in_${report.created_from_name}`) || 0);
+            var qtyUsed = Number(Utils.getField(report, itemName + '_used_in_' + report.created_from_name) || 0);
             itemQuantities[itemName] += qtyUsed;
           }
           break;
         case STOCK_SUPPLY:
           {
-            itemQuantities[itemName] += Number(Utils.getField(report, `out.${itemName}_supply`) || 0);
+            itemQuantities[itemName] += Number(Utils.getField(report, 'out.' + itemName + '_supply') || 0);
           }
           break;
         case SUPPLY_CORRECTION:
           {
-            itemQuantities[itemName] -= (Number(Utils.getField(report, `out.${itemName}_in`)) || 0);
+            itemQuantities[itemName] -= (Number(Utils.getField(report, 'out.' + itemName + '_in')) || 0);
           }
           break;
         case STOCK_RETURNED:
           {
-            itemQuantities[itemName] -= Number(Utils.getField(report, `out.${itemName}_in`) || 0);
+            itemQuantities[itemName] -= Number(Utils.getField(report, 'out.' + itemName + '_in') || 0);
           }
           break;
         default:
@@ -95,21 +102,22 @@ function getItemsConsumption(configs, reports, period = 'week') {
 }
 
 function getItemCountInReports(itemName, reports, forms) {
-  const lastStockCount = Utils.getMostRecentReport(reports, forms.stockCount);
-  let total = Number(Utils.getField(lastStockCount, `out.${itemName}_availables`)) || 0;
+  var lastStockCount = Utils.getMostRecentReport(reports, forms.stockCount);
+  var total = Number(Utils.getField(lastStockCount, 'out.' + itemName + '_availables')) || 0;
 
-  for (const report of reports) {
+  for (var index = 0; index < reports.length; index++) {
+    var report = reports[index];
     switch (report.form) {
       /**
        * *chw - in*
        * Additional doc created from supervisor stock supply form.
        * Add item quantity from chw stock
        */
-      case SUPPLY_ADDITIONAL_DOC:
+      case constants.SUPPLY_ADDITIONAL_DOC:
         {
-          const needConfirmation = Utils.getField(report, 'need_confirmation');
+          var needConfirmation = Utils.getField(report, 'need_confirmation');
           if (needConfirmation === 'no') {
-            total += Number(Utils.getField(report, `${itemName}_in`) || 0);
+            total += Number(Utils.getField(report, itemName + '_in') || 0);
           }
         }
         break;
@@ -120,8 +128,8 @@ function getItemCountInReports(itemName, reports, forms) {
        */
       case forms.stockLogs:
         {
-          const received = Utils.getField(report, `out.${itemName}_received`);
-          const returned = Utils.getField(report, `out.${itemName}_returned`);
+          var received = Utils.getField(report, 'out.' + itemName + '_received');
+          var returned = Utils.getField(report, 'out.' + itemName + '_returned');
           total += (received - returned);
         }
         break;
@@ -131,24 +139,24 @@ function getItemCountInReports(itemName, reports, forms) {
        * Remove item quantity from supervisor stock
        */
       case forms.supplyForm:
-        total -= Number(Utils.getField(report, `out.${itemName}_supply`) || 0);
+        total -= Number(Utils.getField(report, 'out.' + itemName + '_supply') || 0);
         break;
       /**
        * *chw - out*
        * Additional doc created from cht app when chw use items
        * Remove item quantity from chw stock
        */
-      case FORM_ADDITIONAL_DOC_NAME:
+      case constants.FORM_ADDITIONAL_DOC_NAME:
         {
-          total -= Number(Utils.getField(report, `${itemName}_used_in_${report.created_from_name}`) || 0);
+          total -= Number(Utils.getField(report, itemName + '_used_in_' + report.created_from_name) || 0);
         }
         break;
       /**
        * *chw - in/out*
        * Chw form ajusted by supervisor discrepency
        */
-      case DESCREPANCY_ADD_DOC:
-        total += Number(Utils.getField(report, `${itemName}_out`)) || 0;
+      case constants.DESCREPANCY_ADD_DOC:
+        total += Number(Utils.getField(report, itemName + '_out')) || 0;
         break;
       /**
        * *supervisor - in/out*
@@ -156,7 +164,7 @@ function getItemCountInReports(itemName, reports, forms) {
        */
       case forms.supplyDiscrepancy:
         {
-          const qtyDiff = (Number(Utils.getField(report, `out.${itemName}_in`)) || 0);
+          var qtyDiff = (Number(Utils.getField(report, 'out.' + itemName + '_in')) || 0);
           total += qtyDiff;
         }
         break;
@@ -164,29 +172,29 @@ function getItemCountInReports(itemName, reports, forms) {
        * *chw - in/out*
        * Chw form ajusted by supervisor return connfirmation
        */
-      case RETURNED_ADD_DOC:
-        total += Number(Utils.getField(report, `${itemName}_return_difference`)) || 0;
+      case constants.RETURNED_ADD_DOC:
+        total += Number(Utils.getField(report, itemName + '_return_difference')) || 0;
         break;
       /**
        * *chw - in*
        * Item supply confirmed by chw
        */
       case forms.supplyConfirm:
-        total += Number(Utils.getField(report, `out.${itemName}_confirmed`) || 0);
+        total += Number(Utils.getField(report, 'out.' + itemName + '_confirmed') || 0);
         break;
       /**
        * *chw - out*
        * Chw return items to supervisor
        */
       case forms.stockReturn:
-        total -= Number(Utils.getField(report, `out.${itemName}_out`) || 0);
+        total -= Number(Utils.getField(report, 'out.' + itemName + '_out') || 0);
         break;
       /**
        * *supervisor - out*
        * Supervisor received item returned by chw
        */
       case forms.stockReturned:
-        total += Number(Utils.getField(report, `out.${itemName}_in`) || 0);
+        total += Number(Utils.getField(report, 'out.' + itemName + '_in') || 0);
         break;
       default:
         break;
@@ -197,36 +205,39 @@ function getItemCountInReports(itemName, reports, forms) {
 }
 
 function getItemCountFromLastStockCount(configs, reports) {
-  const reportForms = {
-    SUPPLY_ADDITIONAL_DOC,
-    FORM_ADDITIONAL_DOC_NAME,
+  var reportForms = {
+    SUPPLY_ADDITIONAL_DOC: constants.SUPPLY_ADDITIONAL_DOC,
+    FORM_ADDITIONAL_DOC_NAME: constants.FORM_ADDITIONAL_DOC_NAME,
     stockCount: configs.features.stock_count ? configs.features.stock_count.form_name : '',
     supplyForm: configs.features.stock_supply ? configs.features.stock_supply.form_name : '',
     supplyConfirm: (configs.features.stock_supply && configs.features.stock_supply.confirm_supply && configs.features.stock_supply.confirm_supply.active) ? configs.features.stock_supply.confirm_supply.form_name : '',
     supplyDiscrepancy: (configs.features.stock_supply && configs.features.stock_supply.discrepancy) ? configs.features.stock_supply.discrepancy.form_name : '',
-    DESCREPANCY_ADD_DOC,
+    DESCREPANCY_ADD_DOC: constants.DESCREPANCY_ADD_DOC,
     stockReturn: configs.features.stock_return ? configs.features.stock_return.form_name : '',
     stockReturned: configs.features.stock_return ? configs.features.stock_return.confirmation.form_name : '',
     stockLogs: configs.features.stock_logs ? configs.features.stock_logs.form_name : '',
   };
-  const lastStockCount = Utils.getMostRecentReport(reports, reportForms.stockCount);
-  const reportsFomLastStockCount = reports.filter((report) => {
-    const forms = Object.values(reportForms);
+  var lastStockCount = Utils.getMostRecentReport(reports, reportForms.stockCount);
+  var reportsFomLastStockCount = reports.filter(function (report) {
+    var forms = Object.values(reportForms);
     return report._id === lastStockCount._id || (forms.includes(report.form) && getDynamicReportedDate(report) > getDynamicReportedDate(lastStockCount));
   });
-  const items = Object.values(configs.items);
+  var items = Object.values(configs.items);
   
-  return items.map((item) => {
-    const value = getItemCountInReports(item.name, reportsFomLastStockCount, reportForms);
+  return items.map(function(item) {
+    var value = getItemCountInReports(item.name, reportsFomLastStockCount, reportForms);
     return {
       name: item.name,
       count: value,
     };
-  }).reduce((prev, next) => ({...prev, [next.name]: next.count }), {});
+  }).reduce(function (prev, next) {
+    prev[next.name] = next.count;
+    return prev;
+  }, {});
 }
 
 module.exports = {
-  getDynamicReportedDate,
-  getItemsConsumption,
-  getItemCountFromLastStockCount
+  getDynamicReportedDate: getDynamicReportedDate,
+  getItemsConsumption: getItemsConsumption,
+  getItemCountFromLastStockCount: getItemCountFromLastStockCount
 };

@@ -1,7 +1,7 @@
 const chalk = require('chalk');
 const inquirer = require('inquirer');
 
-const utils = require('./utils');
+const utils = require('./common');
 const { getStockSupplyConfigs } = require('./features/stock-supply');
 const { getStockReturnConfigs } = require('./features/stock-return');
 const { FEATURES } = require('./constants');

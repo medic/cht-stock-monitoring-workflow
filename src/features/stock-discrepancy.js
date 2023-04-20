@@ -1,4 +1,4 @@
-const { getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getNumberOfSteps } = require('../utils');
+const { getNoLabelsColums, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getNumberOfSteps } = require('../common');
 const chalk = require('chalk');
 const path = require('path');
 const fs = require('fs-extra');
@@ -67,7 +67,7 @@ function getAdditionalDoc(formName, docFormName, languages, header, items) {
       name: docFormName,
       appearance: 'field-list',
       'instance::db-doc': 'true',
-      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      ...getNoLabelsColums(languages)
     }),
     buildRowValues(header, {
       type: 'calculate',
@@ -98,7 +98,7 @@ function getAdditionalDoc(formName, docFormName, languages, header, items) {
     buildRowValues(header, {
       type: 'begin group',
       name: 'contact',
-      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      ...getNoLabelsColums(languages)
     }),
     buildRowValues(header, {
       type: 'calculate',
@@ -112,7 +112,7 @@ function getAdditionalDoc(formName, docFormName, languages, header, items) {
     buildRowValues(header, {
       type: 'begin group',
       name: 'fields',
-      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      ...getNoLabelsColums(languages)
     }),
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
@@ -246,12 +246,12 @@ async function updateStockDiscrepancy(configs) {
           type: 'begin group',
           name: `parent`,
           appearance: `hidden`,
-          ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+          ...getNoLabelsColums(languages)
         }),
         buildRowValues(header, {
           type: 'string',
           name: '_id',
-          ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+          ...getNoLabelsColums(languages)
         })
       ]
     ).reduce((prev, next) => [...prev, ...next], []),
@@ -286,12 +286,12 @@ async function updateStockDiscrepancy(configs) {
     buildRowValues(header, {
       type: 'hidden',
       name: 'level_1_place_id',
-      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      ...getNoLabelsColums(languages)
     }),
     buildRowValues(header, {
       type: 'hidden',
       name: 'supply_confirm_id',
-      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      ...getNoLabelsColums(languages)
     })
   ];
   const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);

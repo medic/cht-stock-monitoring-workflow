@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const { Workbook } = require('exceljs');
-const { getTranslations, getRowWithValueAtPosition, getDefaultSurveyLabels, buildRowValues, addCategoryItemsToChoice, getSheetGroupBeginEnd } = require('../utils');
+const { getTranslations, getRowWithValueAtPosition, getDefaultSurveyLabels, buildRowValues, addCategoryItemsToChoice, getSheetGroupBeginEnd } = require('../common');
 
 /**
  * This function takes a header, a list of languages, a list of messages, a selection field name, and a list of items, and

@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const ExcelJS = require('exceljs');
 const inquirer = require('inquirer');
-const { getTranslations, getRowWithValueAtPosition, getNumberOfSteps, buildRowValues, getSheetGroupBeginEnd } = require('../utils');
+const { getNoLabelsColums, getTranslations, getRowWithValueAtPosition, getNumberOfSteps, buildRowValues, getSheetGroupBeginEnd } = require('../common');
 
 function getItemRows(header, languages, messages, items) {
   return items.map((item) => {
@@ -108,12 +108,12 @@ async function updateStockOut(configs) {
           type: 'begin group',
           name: `parent`,
           appearance: `hidden`,
-          ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+          ...getNoLabelsColums(languages)
         }),
         buildRowValues(header, {
           type: 'string',
           name: '_id',
-          ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+          ...getNoLabelsColums(languages)
         })
       ]
     ).reduce((prev, next) => [...prev, ...next], []),

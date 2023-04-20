@@ -1,4 +1,4 @@
-const { getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getNumberOfSteps, addCategoryItemsToChoice } = require('../utils');
+const { getNoLabelsColums, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getNumberOfSteps, addCategoryItemsToChoice } = require('../common');
 const chalk = require('chalk');
 const path = require('path');
 const fs = require('fs-extra');
@@ -60,7 +60,7 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
       name: SUPPLY_ADDITIONAL_DOC,
       appearance: 'field-list',
       'instance::db-doc': 'true',
-      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      ...getNoLabelsColums(languages)
     }),
     buildRowValues(header, {
       type: 'calculate',
@@ -96,7 +96,7 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
     buildRowValues(header, {
       type: 'begin group',
       name: 'contact',
-      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      ...getNoLabelsColums(languages)
     }),
     buildRowValues(header, {
       type: 'calculate',
@@ -110,7 +110,7 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
     buildRowValues(header, {
       type: 'begin group',
       name: 'fields',
-      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      ...getNoLabelsColums(languages)
     }),
     buildRowValues(header, {
       type: 'calculate',
@@ -235,12 +235,12 @@ async function updateStockSupply(configs) {
         type: 'begin group',
         name: `parent`,
         appearance: `hidden`,
-        ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+        ...getNoLabelsColums(languages)
       }),
       buildRowValues(header, {
         type: 'string',
         name: `_id`,
-        ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+        ...getNoLabelsColums(languages)
       })
     );
   }
