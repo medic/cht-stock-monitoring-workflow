@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const ExcelJS = require('exceljs');
-const { getRowWithValueAtPosition, getSheetGroupBeginEnd, buildRowValues, getTranslations, getRowNumberWithNameInInterval, getNoLabelsColums } = require('../common');
+const { getRowWithValueAtPosition, getSheetGroupBeginEnd, buildRowValues, getTranslations, getRowNumberWithNameInInterval } = require('../common');
 const chalk = require('chalk');
 const { FORM_ADDITIONAL_DOC_NAME } = require('../constants');
 
@@ -13,6 +13,7 @@ async function updateForm(configs) {
 
   for (const formConfig of formConfigs) {
     const formName = formConfig.name;
+    const formItemConfigs = formConfig.items;
     const formItemIds = Object.keys(formConfig.items);
     const items = Object.values(configs.items);
     const formItems = items.filter(item => formItemIds.includes(item.name));
@@ -52,12 +53,12 @@ async function updateForm(configs) {
       buildRowValues(header, {
         type: 'begin group',
         name: 'parent',
-        ...getNoLabelsColums(languages)
+        ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
       }),
       buildRowValues(header, {
         type: 'hidden',
         name: '_id',
-        ...getNoLabelsColums(languages)
+        ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
       }),
       buildRowValues(header, {
         type: 'end group',
@@ -71,13 +72,13 @@ async function updateForm(configs) {
         buildRowValues(header, {
           type: 'begin group',
           name: 'user',
-          ...getNoLabelsColums(languages)
+          ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
         }),
         buildRowValues(header, {
           name: 'contact_id',
           type: 'db:person',
           appearance: 'db-object',
-          ...getNoLabelsColums(languages)
+          ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
         }),
         ...parentRows,
         buildRowValues(header, {
@@ -109,13 +110,17 @@ async function updateForm(configs) {
       }
     }
 
-    const noLabelValues = getNoLabelsColums(languages);
+    const noLabelValues = languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {});
+    const [survIndex,] = getRowWithValueAtPosition(surveyWorkSheet, referenceToLevel);
+
     const additionalDocRows = [
-      buildRowValues(header, {
-        type: 'calculate',
-        name: referenceToLevel,
-        calculation: '../inputs/user/parent/_id',
-      }),
+      ...(survIndex === -1 ? [
+        buildRowValues(header, {
+          type: 'calculate',
+          name: referenceToLevel,
+          calculation: '../inputs/user/parent/_id',
+        })
+      ] : []),
       buildRowValues(header, {
         type: 'begin group',
         name: FORM_ADDITIONAL_DOC_NAME,
@@ -181,7 +186,7 @@ async function updateForm(configs) {
       ...formCategoryIds.map((categoryId) => {
         const category = categories.find((category) => category.name === categoryId);
         const byUserItems = formItems.filter((item) => {
-          const itemConfig = formConfig.items[item.name];
+          const itemConfig = formItemConfigs[item.name];
           return item.category === category.name && itemConfig['deduction_type'] === 'by_user';
         });
         return [
@@ -192,7 +197,7 @@ async function updateForm(configs) {
             ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] + ' <i class="fa fa-cubes"></i>' }), {})
           }),
           ...formItems.filter(item => item.category === category.name).map((item) => {
-            const itemConfig = formConfig.items[item.name];
+            const itemConfig = formItemConfigs[item.name];
             return buildRowValues(header, {
               type: itemConfig['deduction_type'] === 'formula' ? 'calculate' : 'decimal',
               name: `${item.name}_used_in_${formConfig.name}`,
@@ -204,7 +209,7 @@ async function updateForm(configs) {
         ];
       }).reduce((prev, next) => [...prev, ...next], []),
       ...(formCategoryIds.length === 0 ? formItems.map((item) => {
-        const itemConfig = formConfig.items[item.name];
+        const itemConfig = formItemConfigs[item.name];
         return buildRowValues(header, {
           type: itemConfig['deduction_type'] === 'formula' ? 'calculate' : 'decimal',
           name: `${item.name}_used_in_${formConfig.name}`,
