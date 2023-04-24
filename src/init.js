@@ -14,6 +14,10 @@ async function getInitConfigs() {
       message: 'Type',
       choices: [
         {
+          name: '1 level (CHW only)',
+          value: '1_level'
+        },
+        {
           name: '2 levels (supervisor + chw)',
           value: '2_levels'
         },
@@ -25,9 +29,17 @@ async function getInitConfigs() {
     }
   ]);
 
-  let nbLevels = 2;
-  if (monitoringType.monitoring_type === '3_levels') {
-    nbLevels = 3;
+  let nbLevels;
+  switch (monitoringType.monitoring_type) {
+    case '2_levels':
+      nbLevels = 2;
+      break;
+    case '3_levels':
+      nbLevels = 3;
+      break;
+    default:
+      nbLevels = 1;
+      break;
   }
 
   let levels = {};
@@ -50,8 +62,7 @@ async function getInitConfigs() {
     const level = levels[levelNumber];
     // Get parents
     const contactTypeDetails = appSettings.contact_types.find((ct) => ct.id === level.contact_type);
-    const contactPlace = contactTypeDetails.parents[0];
-    levels[levelNumber]['place_type'] = contactPlace;
+    levels[levelNumber]['place_type'] = contactTypeDetails.parents[0];
   }
 
   const answers = await getStockCountConfigs(levels, appSettings.locales);

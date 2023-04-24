@@ -40,8 +40,7 @@ function getConfig() {
   }
   const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
   const configStr = fs.readFileSync(configFilePath);
-  const config = JSON.parse(configStr);
-  return config;
+  return JSON.parse(configStr);
 }
 
 async function verifyConfigs(configs) {
@@ -50,13 +49,20 @@ async function verifyConfigs(configs) {
     const supplyConfigs = await getFeatureConfigs(configs, {
       name: 'stock_supply',
     });
-    const updatedConfig = await addFeatureConfigs(configs, supplyConfigs);
-    return updatedConfig;
+    return await addFeatureConfigs(configs, supplyConfigs);
   }
   return configs;
 }
 
 async function proccessFeatureForm(configs) {
+  const items = Object.keys(configs.items);
+  if (items.length === 0) {
+    console.log(chalk.red('Please add items first'));
+    const itemConfig = await getItemConfig(configs);
+    const updatedConfig = await addConfigItem(configs, itemConfig);
+    await proccessFeatureForm(updatedConfig);
+    return;
+  }
 
   // Update app translations
   updateTranslations(configs);

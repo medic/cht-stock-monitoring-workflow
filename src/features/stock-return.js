@@ -1,9 +1,11 @@
 const inquirer = require('inquirer');
-const fs = require('fs');
+const { copyFileSync, writeFileSync } = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const { Workbook } = require('exceljs');
-const { getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd, getDefaultSurveyLabels } = require('../common');
+const { getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd, getDefaultSurveyLabels,
+  addCategoryItemsToChoice
+} = require('../common');
 
 function getChoicesFromMessage(messages, languages, choiceName, key = 'stock_return.forms.select_items.reason') {
   const choices = Object.keys(messages[languages[0]])
@@ -147,7 +149,7 @@ async function updateStockReturn(configs) {
   const messages = getTranslations();
 
   const returnFormPath = path.join(processDir, 'forms', 'app', `${returnConfigs.form_name}.xlsx`);
-  fs.copyFileSync(path.join(__dirname, '../../templates/stock_supply.xlsx'), returnFormPath);
+  copyFileSync(path.join(__dirname, '../../templates/stock_supply.xlsx'), returnFormPath);
   const workbook = new Workbook();
   await workbook.xlsx.readFile(returnFormPath);
   const surveyWorkSheet = workbook.getWorksheet('survey');
@@ -173,7 +175,7 @@ async function updateStockReturn(configs) {
   }
   // Add choice filter column
   surveyWorkSheet.getColumn(lastColumnIndex + 1).values = ['choice_filter'];
-  
+
   const header = surveyWorkSheet.getRow(1).values;
   header.shift();
   const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
@@ -266,48 +268,11 @@ async function updateStockReturn(configs) {
   addExportCalculation(surveyWorkSheet, items);
 
   //CHOICES
-  const choiceLabelColumns = languages.map((l) => [
-    `label::${l}`
-  ]);
-  let choiceLastColumn = 2;
-  for (const choiceLabelColumn of choiceLabelColumns) {
-    choiceWorkSheet.getColumn(choiceLastColumn + 1).values = choiceLabelColumn;
-    choiceLastColumn++;
-  }
-  choiceWorkSheet.getColumn(choiceLastColumn + 1).values = ['category_filter'];
+  addCategoryItemsToChoice(categories, items, choiceWorkSheet, languages);
   const choiceHeader = choiceWorkSheet.getRow(1).values;
   choiceHeader.shift();
-  const categoryChoiceRows = categories.map((category) => {
-    return buildRowValues(
-      choiceHeader,
-      {
-        list_name: 'categories',
-        name: category.name,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
-      }
-    );
-  });
-  const itemsChoiceRows = items.map((item) => {
-    return buildRowValues(
-      choiceHeader,
-      {
-        list_name: 'items',
-        name: item.name,
-        category_filter: item.category,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
-      }
-    );
-  });
   const returnReasonChoiceRows = getChoicesFromMessage(messages, languages, 'return_reason').map((choice) => buildRowValues(choiceHeader, choice));
-  choiceWorkSheet.insertRows(
-    2,
-    [
-      ...categoryChoiceRows,
-      ...itemsChoiceRows,
-      ...returnReasonChoiceRows
-    ],
-    'i+'
-  );
+  choiceWorkSheet.addRows(returnReasonChoiceRows, 'i+');
 
   // SETTINGS
   settingWorkSheet.getRow(2).getCell(1).value = returnConfigs.title[configs.defaultLanguage];
@@ -332,14 +297,14 @@ async function updateStockReturn(configs) {
     }),
   };
   const propertyPath = path.join(processDir, 'forms', 'app', `${returnConfigs.form_name}.properties.json`);
-  fs.writeFileSync(propertyPath, JSON.stringify(formProperties, null, 4));
+  writeFileSync(propertyPath, JSON.stringify(formProperties, null, 4));
   console.log(chalk.green(`INFO ${returnConfigs.form_name} updated successfully`));
 }
 
 async function getStockReturnConfigs({
   languages,
 }) {
-  const configs = await inquirer.prompt([
+  return await inquirer.prompt([
     {
       type: 'input',
       name: 'form_name',
@@ -365,8 +330,6 @@ async function getStockReturnConfigs({
       default: 'Stock Returned'
     })),
   ]);
-
-  return configs;
 }
 
 module.exports = {

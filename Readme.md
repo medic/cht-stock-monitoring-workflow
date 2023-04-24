@@ -20,6 +20,7 @@ npm install @medic/stock-monitoring
   <li>Stock Order Supply</li>
   <li>Stock Out Task</li>
   <li>Stock count contact summary</li>
+    <li>Stock logs</li>
 </ul>
 
 # Initialization
@@ -75,6 +76,15 @@ Add item in an existing form
 ```shell
 cht-workflow-stock-monitoring add feature
 ```
+
+## Stock Logs
+Create a stock form for level 3
+
+### Questions parameters
+| Name                     | Type   | Description                 | Required |
+|--------------------------| --------- |-----------------------------| -------- |
+| `form_name`              | `string`  | The stock logs form name/ID | true   |
+| `title[lang]`            | `string`  | The stock logs form title   | true   |
 
 ## Stock Supply
 

@@ -21,7 +21,6 @@ function getDynamicReportedDate(report) {
  * @param {Object} configs stock monitoring configs
  * @param {Array} reports list of contact reports
  * @param {week|month} period item consumption period
- * @returns {item: quantity}
  */
 function getItemsConsumption(configs, reports, period) {
   if (!period) {
@@ -208,14 +207,14 @@ function getItemCountFromLastStockCount(configs, reports) {
   var reportForms = {
     SUPPLY_ADDITIONAL_DOC: constants.SUPPLY_ADDITIONAL_DOC,
     FORM_ADDITIONAL_DOC_NAME: constants.FORM_ADDITIONAL_DOC_NAME,
-    stockCount: configs.features.stock_count ? configs.features.stock_count.form_name : '',
-    supplyForm: configs.features.stock_supply ? configs.features.stock_supply.form_name : '',
+    stockCount: configs.features.stock_count && configs.features.stock_count.form_name,
+    supplyForm: configs.features.stock_supply && configs.features.stock_supply.form_name,
     supplyConfirm: (configs.features.stock_supply && configs.features.stock_supply.confirm_supply && configs.features.stock_supply.confirm_supply.active) ? configs.features.stock_supply.confirm_supply.form_name : '',
     supplyDiscrepancy: (configs.features.stock_supply && configs.features.stock_supply.discrepancy) ? configs.features.stock_supply.discrepancy.form_name : '',
     DESCREPANCY_ADD_DOC: constants.DESCREPANCY_ADD_DOC,
-    stockReturn: configs.features.stock_return ? configs.features.stock_return.form_name : '',
-    stockReturned: configs.features.stock_return ? configs.features.stock_return.confirmation.form_name : '',
-    stockLogs: configs.features.stock_logs ? configs.features.stock_logs.form_name : '',
+    stockReturn: configs.features.stock_return && configs.features.stock_return.form_name,
+    stockReturned: configs.features.stock_return && configs.features.stock_return.confirmation.form_name,
+    stockLogs: configs.features.stock_logs && configs.features.stock_logs.form_name,
   };
   var lastStockCount = Utils.getMostRecentReport(reports, reportForms.stockCount);
   var reportsFomLastStockCount = reports.filter(function (report) {
@@ -223,7 +222,7 @@ function getItemCountFromLastStockCount(configs, reports) {
     return report._id === lastStockCount._id || (forms.includes(report.form) && getDynamicReportedDate(report) > getDynamicReportedDate(lastStockCount));
   });
   var items = Object.values(configs.items);
-  
+
   return items.map(function(item) {
     var value = getItemCountInReports(item.name, reportsFomLastStockCount, reportForms);
     return {

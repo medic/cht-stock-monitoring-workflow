@@ -1,4 +1,3 @@
-// var messages = require('/stock-monitoring.messages.json');
 var Fraction = require('fraction.js');
 var constants = require('../constants');
 var common = require('./common');
@@ -8,7 +7,7 @@ var NEGATIVE_STOCK_MSG = '(Ensure that you have entered all stock received)';
 
 function stockItemToSafeHtml (value, item) {
   var html = '';
-  var innerHtml = (new Fraction(value.toFixed(1))).toString() + item.unit;
+  var innerHtml = (new Fraction(value.toFixed(1))).toString() + ' ' + item.unit;
   if (value < 0) {
     innerHtml += ' '+NEGATIVE_STOCK_MSG;
   }
@@ -43,14 +42,14 @@ function getSummary(configs, reports) {
     return [];
   }
 
-  var cards = stockCountFeature.contact_types.map(function (contact_type) {
+  return stockCountFeature.contact_types.map(function (contactType) {
     var levels = Object.values(configs.levels);
     var contactLevel = levels.find(function (l) {
-      l.contact_type === contact_type;
+      return l.contact_type === contactType;
     });
     var placeType = contactLevel.place_type;
     var itemQuantities = common.getItemCountFromLastStockCount(configs, reports);
-    var itemsFields = items.map(function(item) {
+    var itemsFields = items.map(function (item) {
       var value = itemQuantities[item.name];
       return {
         name: item.name,
@@ -68,13 +67,12 @@ function getSummary(configs, reports) {
       modifyContext: function (context) {
         for (var index = 0; index < itemsFields.length; index++) {
           var itemField = itemsFields[index];
-          context['stock_monitoring_'+itemField.name+'_qty'] = itemField.count || 0;
+          context['stock_monitoring_' + itemField.name + '_qty'] = itemField.count || 0;
         }
       },
       fields: itemsFields
     };
   });
-  return cards;
 }
 
 module.exports = getSummary;
