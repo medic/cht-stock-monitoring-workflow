@@ -1,8 +1,19 @@
 const chalk = require('chalk');
 const fs = require('fs-extra');
 const path = require('path');
-const utils = require('./src/utils');
-const build = require('./src/build');
+const utils = require('./src/common');
+const { updateForm } = require('./src/features/form-update');
+const { updateStockCount } = require('./src/features/stock-count');
+const { updateStockReturn } = require('./src/features/stock-return');
+const { updateStockSupply } = require('./src/features/stock-supply');
+const { updateTranslations, getTranslations } = require('./src/common');
+const { updateStockReturned } = require('./src/features/stock-returned');
+const { updateStockConfirmation } = require('./src/features/stock-received');
+const { updateStockDiscrepancy } = require('./src/features/stock-discrepancy');
+const { updateStockOut } = require('./src/features/stock-out');
+const { updateStockLogs } = require('./src/features/stock-logs');
+const { updateStockOrder } = require('./src/features/stock-order');
+const { updateOrderStockSupply } = require('./src/features/stock-order-supply');
 const { getInitConfigs, createConfigFile } = require('./src/init');
 const { getItemConfig, addConfigItem } = require('./src/add-item');
 const { getFeatureConfigs, addFeatureConfigs, selectFeature } = require('./src/add-feature');
@@ -18,7 +29,7 @@ async function init() {
 
   const answers = await getInitConfigs();
   const config = createConfigFile(answers);
-  await build(config);
+  await proccessFeatureForm(config);
 }
 
 function getConfig() {
@@ -45,6 +56,41 @@ async function verifyConfigs(configs) {
   return configs;
 }
 
+async function proccessFeatureForm(configs) {
+
+  // Update app translations
+  updateTranslations(configs);
+  const messages = getTranslations();
+
+  for (const feature of Object.keys(configs.features)) {
+    const featureToFunctionMap = {
+      stock_count: updateStockCount,
+      stock_supply: async (configs) => {
+        await updateStockSupply(configs);
+        if (configs.features.stock_supply && configs.features.stock_supply.confirm_supply && configs.features.stock_supply.confirm_supply.active) {
+          await updateStockConfirmation(configs, messages);
+          await updateStockDiscrepancy(configs);
+        }
+      },
+      stock_return: async (configs) => {
+        await updateStockReturn(configs);
+        await updateStockReturned(configs);
+      },
+      stock_out: updateStockOut,
+      stock_logs: updateStockLogs,
+      stock_order: async (configs) => {
+        await updateStockOrder(configs);
+        await updateOrderStockSupply(configs);
+      }
+    };
+
+    await featureToFunctionMap[feature](configs);
+  }
+
+  await updateForm(configs);
+  console.log(chalk.green(`INFO All actions completed`));
+}
+
 module.exports = {
   init,
   addItem: async () => {
@@ -55,7 +101,7 @@ module.exports = {
     const itemConfig = await getItemConfig(config);
     let updatedConfig = await addConfigItem(config, itemConfig);
     updatedConfig = await verifyConfigs(updatedConfig);
-    await build(updatedConfig);
+    await proccessFeatureForm(updatedConfig);
   },
   addFeature: async () => {
     const config = getConfig();
@@ -66,7 +112,7 @@ module.exports = {
     const featureConfigs = await getFeatureConfigs(config, feature);
     let updatedConfig = await addFeatureConfigs(config, featureConfigs);
     updatedConfig = await verifyConfigs(updatedConfig);
-    await build(updatedConfig);
+    await proccessFeatureForm(updatedConfig);
   },
   build: async () => {
     const config = getConfig();
@@ -74,7 +120,7 @@ module.exports = {
       return;
     }
     const updatedConfigs = await verifyConfigs(config);
-    await build(updatedConfigs);
+    await proccessFeatureForm(updatedConfigs);
   },
   info: function (message) {
     console.log(chalk.blue.italic(message));

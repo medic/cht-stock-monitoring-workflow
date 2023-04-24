@@ -3,7 +3,7 @@ const path = require('path');
 const inquirer = require('inquirer');
 const fs = require('fs-extra');
 const ExcelJS = require('exceljs');
-const { getAppSettings, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getDefaultSurveyLabels } = require('../utils');
+const { getNoLabelsColums, getAppSettings, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getDefaultSurveyLabels } = require('../common');
 
 function addStockCountSummaries(workSheet, items, languages) {
   const [, end] = getSheetGroupBeginEnd(workSheet, 'summary');
@@ -135,7 +135,7 @@ async function updateStockCount(configs) {
     buildRowValues(header, {
       type: 'hidden',
       name: 'date_id',
-      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      ...getNoLabelsColums(languages)
     }),
   ];
   const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);

@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const ExcelJS = require('exceljs');
-const { getRowWithValueAtPosition, getSheetGroupBeginEnd, buildRowValues, getTranslations, getRowNumberWithNameInInterval } = require('../utils');
+const { getRowWithValueAtPosition, getSheetGroupBeginEnd, buildRowValues, getTranslations, getRowNumberWithNameInInterval } = require('../common');
 const chalk = require('chalk');
 const { FORM_ADDITIONAL_DOC_NAME } = require('../constants');
 
@@ -111,12 +111,16 @@ async function updateForm(configs) {
     }
 
     const noLabelValues = languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {});
+    const [survIndex,] = getRowWithValueAtPosition(surveyWorkSheet, referenceToLevel);
+
     const additionalDocRows = [
-      buildRowValues(header, {
-        type: 'calculate',
-        name: referenceToLevel,
-        calculation: '../inputs/user/parent/_id',
-      }),
+      ...(survIndex === -1 ? [
+        buildRowValues(header, {
+          type: 'calculate',
+          name: referenceToLevel,
+          calculation: '../inputs/user/parent/_id',
+        })
+      ] : []),
       buildRowValues(header, {
         type: 'begin group',
         name: FORM_ADDITIONAL_DOC_NAME,

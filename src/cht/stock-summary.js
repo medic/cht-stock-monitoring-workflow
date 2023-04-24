@@ -1,18 +1,18 @@
-// const messages = require('/stock-monitoring.messages.json');
-const Fraction = require('fraction.js');
-const { TRANSLATION_PREFIX } = require('../constants');
-const { getItemCountFromLastStockCount } = require('./utils');
-const Utils = require('cht-nootils')();
+// var messages = require('/stock-monitoring.messages.json');
+var Fraction = require('fraction.js');
+var constants = require('../constants');
+var common = require('./common');
+var Utils = require('cht-nootils')();
 
-const NEGATIVE_STOCK_MSG = '(Ensure that you have entered all stock received)';
+var NEGATIVE_STOCK_MSG = '(Ensure that you have entered all stock received)';
 
-const htmlGenerator = (value, item) => {
-  let html = '';
-  let innerHtml = `${(new Fraction(value.toFixed(1))).toString()} ${item.unit}`;
+function stockItemToSafeHtml (value, item) {
+  var html = '';
+  var innerHtml = (new Fraction(value.toFixed(1))).toString() + item.unit;
   if (value < 0) {
-    innerHtml += ` ${NEGATIVE_STOCK_MSG}`;
+    innerHtml += ' '+NEGATIVE_STOCK_MSG;
   }
-  let color = 'green';
+  var color = 'green';
   if (value <= item.danger_total) {
     color = 'red';
   } else if (value <= item.warning_total) {
@@ -21,49 +21,54 @@ const htmlGenerator = (value, item) => {
 
   html += '<strong style="color: ' + color + '">' + innerHtml + '<strong>';
   return html;
-};
+}
 
 function getSummary(configs, reports) {
-  const stockCountFeature = configs.features.stock_count;
-  const dynamicFormNames = {
+  var stockCountFeature = configs.features.stock_count;
+  var dynamicFormNames = {
     stockCount: stockCountFeature.form_name,
-    supplyForm: configs.features.stock_supply ? configs.features.stock_supply.form_name : '',
+    supplyForm: configs.features.stock_supply && configs.features.stock_supply.form_name,
     supplyConfirm: '',
-    supplyDiscrepancy: (configs.features.stock_supply && configs.features.stock_supply.discrepancy) ? configs.features.stock_supply.discrepancy.form_name : '',
-    stockReturn: configs.features.stock_return ? configs.features.stock_return.form_name : '',
-    stockReturned: configs.features.stock_return ? configs.features.stock_return.confirmation.form_name : '',
+    supplyDiscrepancy: configs.features.stock_supply && configs.features.stock_supply.discrepancy && configs.features.stock_supply.discrepancy.form_name,
+    stockReturn: configs.features.stock_return && configs.features.stock_return.form_name,
+    stockReturned: configs.features.stock_return && configs.features.stock_return.confirmation.form_name,
   };
 
   // Get last stock count
-  const lastStockCount = Utils.getMostRecentReport(reports, dynamicFormNames.stockCount);
-  const items = Object.values(configs.items);
+  var lastStockCount = Utils.getMostRecentReport(reports, dynamicFormNames.stockCount);
+  var items = Object.keys(configs.items).map(function (key) {
+    return configs.items[key];
+  });
   if (!lastStockCount) {
     return [];
   }
 
-  const cards = stockCountFeature.contact_types.map((contact_type) => {
-    const levels = Object.values(configs.levels);
-    const contactLevel = levels.find((l) => l.contact_type === contact_type);
-    const placeType = contactLevel.place_type;
-    const itemQuantities = getItemCountFromLastStockCount(configs, reports);
-    const itemsFields = items.map((item) => {
-      const value = itemQuantities[item.name];
+  var cards = stockCountFeature.contact_types.map(function (contact_type) {
+    var levels = Object.values(configs.levels);
+    var contactLevel = levels.find(function (l) {
+      l.contact_type === contact_type;
+    });
+    var placeType = contactLevel.place_type;
+    var itemQuantities = common.getItemCountFromLastStockCount(configs, reports);
+    var itemsFields = items.map(function(item) {
+      var value = itemQuantities[item.name];
       return {
         name: item.name,
-        label: `${TRANSLATION_PREFIX}items.${item.name}.label`,
+        label: constants.TRANSLATION_PREFIX + 'items.' + item.name + '.label',
         count: value,
-        value: htmlGenerator(value, item),
+        value: stockItemToSafeHtml(value, item),
         filter: 'safeHtml',
         width: 3,
       };
     });
     return {
-      label: `${TRANSLATION_PREFIX}stock_count.contact_summary.title`,
+      label: constants.TRANSLATION_PREFIX + 'stock_count.contact_summary.title',
       appliesToType: placeType,
       appliesIf: lastStockCount,
-      modifyContext: (context) => {
-        for (const itemField of itemsFields) {
-          context[`stock_monitoring_${itemField.name}_qty`] = itemField.count || 0;
+      modifyContext: function (context) {
+        for (var index = 0; index < itemsFields.length; index++) {
+          var itemField = itemsFields[index];
+          context['stock_monitoring_'+itemField.name+'_qty'] = itemField.count || 0;
         }
       },
       fields: itemsFields

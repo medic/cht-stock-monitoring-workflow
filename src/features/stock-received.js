@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { Workbook } = require('exceljs');
-const { buildRowValues, getSheetGroupBeginEnd, getRowWithValueAtPosition } = require('../utils');
+const { getNoLabelsColums, buildRowValues, getSheetGroupBeginEnd, getRowWithValueAtPosition } = require('../common');
 const chalk = require('chalk');
 
 function getLabelColumns(languages, messages) {
@@ -198,17 +198,17 @@ async function updateStockConfirmation(configs, messages) {
     ...items.map((item) => buildRowValues(header, {
       type: 'hidden',
       name: `${item.name}_received`,
-      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      ...getNoLabelsColums(languages)
     })),
     buildRowValues(header, {
       type: 'hidden',
       name: 'supplier_id',
-      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      ...getNoLabelsColums(languages)
     }),
     buildRowValues(header, {
       type: 'hidden',
       name: 'supply_doc_id',
-      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+      ...getNoLabelsColums(languages)
     })
   ];
   const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);
