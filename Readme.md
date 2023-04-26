@@ -1,6 +1,6 @@
 # `@medic/cht-stock-monitoring-workflow`
 
-Tool to add stock monitoring workflows to an existing CHT application.
+Tool to add stock monitoring workflows to an existing [CHT](https://github.com/medic/cht-core) application.
 
 # Installation
 ```shell
