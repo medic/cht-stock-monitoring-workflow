@@ -1,10 +1,10 @@
-# `@medic/stock-monitoring`
+# `@medic/cht-stock-monitoring-workflow`
 
 Tool to add stock monitoring workflows to an existing CHT application.
 
 # Installation
 ```shell
-npm install @medic/stock-monitoring
+npm install @medic/cht-stock-monitoring-workflow
 ```
 
 # Features
@@ -23,10 +23,15 @@ npm install @medic/stock-monitoring
     <li>Stock logs</li>
 </ul>
 
+
+# Known issues
+
+After adding an item, or any other action that update the existing forms, this form may be broken. To fix it, you need to try to repair manually by opening it with excel.
+
 # Initialization
 
 ```shell
-cht-workflow-stock-monitoring init
+cht-stock-monitoring-workflow init
 ```
   Initialize the project and create a file with name `stock-monitoring.config.json`. This add by default the stock count form empty and update the cht app messages.
 ## Question parameters
@@ -52,7 +57,7 @@ cht-workflow-stock-monitoring init
 # Add item
 
 ```shell
-cht-workflow-stock-monitoring add item
+cht-stock-monitoring-workflow add item
 ```
 
 Add item in an existing form
@@ -74,7 +79,7 @@ Add item in an existing form
 
 # Add features
 ```shell
-cht-workflow-stock-monitoring add feature
+cht-stock-monitoring-workflow add feature
 ```
 
 ## Stock Logs
