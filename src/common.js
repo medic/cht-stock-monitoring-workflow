@@ -19,8 +19,7 @@ function getAppSettings() {
     const rawSettings = fs.readFileSync(baseSettingFile, {
       encoding: 'utf-8'
     });
-    const settings = JSON.parse(rawSettings);
-    return settings;
+    return JSON.parse(rawSettings);
   } catch (err) {
     console.log('Error reading app settings', err);
     return null;
@@ -35,10 +34,7 @@ function getAppSettings() {
 function isAlreadyInit(directory) {
   try {
     const configFilePath = path.join(directory, 'stock-monitoring.config.json');
-    if (fs.existsSync(configFilePath)) {
-      return true;
-    }
-    return false;
+    return !!fs.existsSync(configFilePath);
   } catch (err) {
     console.error(err);
     return false;
