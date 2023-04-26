@@ -3,7 +3,7 @@ const fs = require('fs-extra');
 const ExcelJS = require('exceljs');
 const chalk = require('chalk');
 
-const TRANSLATION_PREFIX = 'cht-workflow-stock-monitoring.';
+const TRANSLATION_PREFIX = 'cht-stock-monitoring-workflow.';
 
 
 
@@ -93,13 +93,13 @@ function updateTranslations(configs) {
       return [].concat(
         ...featureKeys.map((featureKey) => {
           const featureKeys = compMsgKeys.filter(k => k.startsWith(featureKey));
-          return featureKeys.filter((fKey) => !chtAppMsgKeys.includes(`cht-workflow-stock-monitoring.${fKey}`));
+          return featureKeys.filter((fKey) => !chtAppMsgKeys.includes(`cht-stock-monitoring-workflow.${fKey}`));
         })
       );
     })
   );
   const missingFeatureMsgs = missingFeaturesKeys.reduce((prev, next) =>
-    ({ ...prev, [`cht-workflow-stock-monitoring.${next}`]: compMsgs[next] }), {});
+    ({ ...prev, [`cht-stock-monitoring-workflow.${next}`]: compMsgs[next] }), {});
   const missingMsgs = {};
   for (const lang of locales) {
     missingMsgs[lang] = { ...missingFeatureMsgs };
@@ -107,7 +107,7 @@ function updateTranslations(configs) {
 
   for (const item of items) {
     for (const lang of locales) {
-      const key = `cht-workflow-stock-monitoring.items.${item.name}.label`;
+      const key = `cht-stock-monitoring-workflow.items.${item.name}.label`;
       if (!chtAppMsgKeys.includes(key)) {
         missingMsgs[lang][key] = item.label[lang];
       }

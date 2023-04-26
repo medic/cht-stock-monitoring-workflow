@@ -1,5 +1,5 @@
 module.exports = {
-  TRANSLATION_PREFIX: 'cht-workflow-stock-monitoring.',
+  TRANSLATION_PREFIX: 'cht-stock-monitoring-workflow.',
   SUPPLY_ADDITIONAL_DOC: 'stock_supply_doc',
   DESCREPANCY_ADD_DOC: 'descrepancy_doc',
   RETURNED_ADD_DOC: 'stock_returned',

@@ -8,7 +8,7 @@
     "monitoring"
   ],
   "bin": {
-    "cht-workflow-stock-monitoring": "./main.js"
+    "cht-stock-monitoring-workflow": "./main.js"
   },
   "license": "ISC",
   "devDependencies": {
