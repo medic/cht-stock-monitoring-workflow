@@ -1,7 +1,7 @@
 {
-  "name": "@medic/stock-monitoring",
+  "name": "@medic/cht-stock-monitoring-workflow",
   "version": "0.0.1",
-  "description": "Stock monitoring module",
+  "description": "Stock monitoring workflow for CHT applications",
   "main": "index.js",
   "keywords": [
     "stock",
