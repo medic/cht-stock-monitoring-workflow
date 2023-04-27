@@ -10,7 +10,7 @@
   "bin": {
     "cht-stock-monitoring-workflow": "./main.js"
   },
-  "license": "ISC",
+  "license": "AGPL-3.0-only",
   "devDependencies": {
     "@medic/eslint-config": "^1.1.0",
     "cht-nootils": "^4.2.0",
