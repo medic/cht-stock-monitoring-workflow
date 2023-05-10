@@ -105,7 +105,7 @@ function updateTranslations(configs) {
     for (const lang of locales) {
       const key = `cht-stock-monitoring-workflow.items.${item.name}.label`;
       if (!chtAppMsgKeys.includes(key)) {
-        missingMsgs[lang][key] = item.label[lang];
+        missingMsgs[lang][key] = item.label[lang] || '';
       }
     }
   }
@@ -113,7 +113,7 @@ function updateTranslations(configs) {
   // Append missing locales
   for (const lang of locales) {
     const localFilePath = path.join(processDir, 'translations', `messages-${lang}.properties`);
-    const langMsg = Object.keys(missingMsgs[lang]).map(k => `${k} = ${missingMsgs[lang][k].replaceAll("'", '"')}`).join('\n');
+    const langMsg = Object.keys(missingMsgs[lang]).map(k => `${k} = ${(missingMsgs[lang][k] || '').replaceAll("'", '"')}`).join('\n');
     if (fs.existsSync(localFilePath)) {
       fs.appendFileSync(localFilePath, `\n${langMsg}`);
     }
@@ -331,6 +331,34 @@ function addCategoryItemsToChoice(categories, items, choiceWorkSheet, languages)
   );
 }
 
+// Get contact parent hierarchy
+function getContactParentHierarchy(nbParents, formHeader, languages) {
+  const contactParentRows = [];
+  for (let i = 0; i < nbParents; i++) {
+    contactParentRows.push(
+      buildRowValues(formHeader, {
+        type: 'begin group',
+        name: `parent`,
+        appearance: `hidden`,
+        ...getNoLabelsColums(languages)
+      }),
+      buildRowValues(formHeader, {
+        type: 'string',
+        name: '_id',
+        ...getNoLabelsColums(languages)
+      }),
+    );
+  }
+  for (let i = 0; i < nbParents; i++) {
+    contactParentRows.push(
+      buildRowValues(formHeader, {
+        type: 'end group',
+      })
+    );
+  }
+  return contactParentRows;
+}
+
 function getDefaultSurveyLabels(feature, messages, languages) {
   // Add language column
   const labelColumns = [];
@@ -384,5 +412,6 @@ module.exports = {
   getDefaultSurveyLabels,
   getNoLabelsColums,
   getRowNumberWithNameInInterval,
+  getContactParentHierarchy,
 };
 

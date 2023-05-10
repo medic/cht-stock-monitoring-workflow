@@ -2,7 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const ExcelJS = require('exceljs');
-const { getNoLabelsColums, getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd, getNumberOfSteps } = require('../common');
+const { getNoLabelsColums, getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd, getNumberOfSteps,
+  getContactParentHierarchy
+} = require('../common');
 const { RETURNED_ADD_DOC } = require('../constants');
 
 function getLabelColumns(languages, messages) {
@@ -258,29 +260,7 @@ async function updateStockReturned(configs) {
 
   // Add parents
   const nbParents = getNumberOfSteps(configs.levels[1].place_type, configs.levels[2].place_type);
-  const contactParentRows = [];
-  for (let i = 0; i < nbParents; i++) {
-    contactParentRows.push(
-      buildRowValues(header, {
-        type: 'begin group',
-        name: `parent`,
-        appearance: `hidden`,
-        ...getNoLabelsColums(languages)
-      }),
-      buildRowValues(header, {
-        type: 'string',
-        name: '_id',
-        ...getNoLabelsColums(languages)
-      })
-    );
-  }
-  for (let i = 0; i < nbParents; i++) {
-    contactParentRows.push(
-      buildRowValues(header, {
-        type: 'end group',
-      })
-    );
-  }
+  const contactParentRows = getContactParentHierarchy(nbParents, header, languages);
   const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 2);
   surveyWorkSheet.insertRows(
     contactPosition + 3,
