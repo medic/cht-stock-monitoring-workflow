@@ -1,4 +1,6 @@
-const { getNoLabelsColums, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getNumberOfSteps, getDefaultSurveyLabels } = require('../common');
+const { getNoLabelsColums, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getNumberOfSteps, getDefaultSurveyLabels,
+  getContactParentHierarchy
+} = require('../common');
 const chalk = require('chalk');
 const path = require('path');
 const fs = require('fs-extra');
@@ -225,29 +227,7 @@ async function updateOrderStockSupply(configs) {
   header.shift();
   // Get level 2
   const nbParents = getNumberOfSteps(configs.levels[1].place_type, configs.levels[2].place_type);
-  const contactParentRows = [];
-  for (let i = 0; i < nbParents; i++) {
-    contactParentRows.push(
-      buildRowValues(header, {
-        type: 'begin group',
-        name: `parent`,
-        appearance: `hidden`,
-        ...getNoLabelsColums(languages)
-      }),
-      buildRowValues(header, {
-        type: 'string',
-        name: `_id`,
-        ...getNoLabelsColums(languages)
-      })
-    );
-  }
-  for (let i = 0; i < nbParents; i++) {
-    contactParentRows.push(
-      buildRowValues(header, {
-        type: 'end group',
-      })
-    );
-  }
+  const contactParentRows = getContactParentHierarchy(nbParents, header, languages);
   const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 2);
   surveyWorkSheet.insertRows(
     contactPosition + 3,

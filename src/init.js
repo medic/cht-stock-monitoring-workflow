@@ -45,11 +45,18 @@ async function getInitConfigs() {
   let levels = {};
   for (let index = 1; index <= nbLevels; index++) {
     const levelNumber = nbLevels + 1 - index;
+    let messagePrecision = '';
+    if (levelNumber === 1) {
+      messagePrecision = ' (Lowest level) ';
+    }
+    if (levelNumber === nbLevels) {
+      messagePrecision = ' (Highest level) ';
+    }
     const level = await inquirer.prompt([
       {
         type: 'list',
         name: `${levelNumber}.contact_type`,
-        message: `Select level ${levelNumber} contact type`,
+        message: `Select level ${levelNumber}${messagePrecision} contact type`,
         choices: appPersonTypes.map((p) => p.id),
       }
     ]);
