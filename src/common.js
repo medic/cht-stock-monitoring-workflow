@@ -183,6 +183,26 @@ function getSheetGroupBeginEnd(workSheet, name, namePosition = 2) {
   return [beginGroupRowNumber, endGroupRowNumber];
 }
 
+function isRichValue(value) {
+  return Boolean(value && Array.isArray(value.richText));
+}
+
+function richToString(rich) {
+  return rich.richText.map(({ text }) => text).join('');
+}
+
+function getRowValue(row, position) {
+  const value = row.values[position];
+  if (value && typeof value === 'string') {
+    return value.trim();
+  }
+  // If it's object (rich text) return the first value
+  if (value && isRichValue(value)) {
+    return richToString(value);
+  }
+  return null;
+}
+
 function getRowWithValueAtPosition(workSheet, value, namePosition = 2) {
   let columns = [];
   let rowData = null;
@@ -193,8 +213,8 @@ function getRowWithValueAtPosition(workSheet, value, namePosition = 2) {
       //The row.values first element is undefined
       columns.shift();
     }
-
-    if (row.values[namePosition] && row.values[namePosition].trim() === value) {
+    const rowValue = getRowValue(row, namePosition);
+    if (rowValue === value) {
       if (!rowData) {
         rowData = {};
       }
@@ -402,9 +422,7 @@ module.exports = {
   writeConfig,
   getSheetGroupBeginEnd,
   getRowWithValueAtPosition,
-  getWorkSheet,
   buildRowValues,
-  getConfigs,
   updateTranslations,
   getTranslations,
   getNumberOfSteps,

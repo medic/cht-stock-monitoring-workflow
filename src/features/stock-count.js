@@ -16,10 +16,10 @@ function addStockCountSummaries(workSheet, items, languages) {
       name: `s_${item.name}`, // Row name
       required: '',
       relevant: '${' + `${item.name}` + '} > 0',
-      appearance: '',
+      appearance: 'li',
     };
     for (const language of languages) {
-      itemRow[`label::${language}`] = `<h5 style="text-align:center;"> ${item.label[language]}: **` + '${' + item.name + '} ' + `${item.unit}** </h5>`; // Row label
+      itemRow[`label::${language}`] = `${item.label[language]}: **` + '${' + item.name + '} ' + `${item.unit}**`; // Row label
     }
     itemRows.push(buildRowValues(header, itemRow));
   }
@@ -172,7 +172,7 @@ async function updateStockCount(configs) {
     'icon': 'icon-healthcare-medicine',
     'context': {
       'person': false,
-      'place': stockCountConfigs.type === 'task' ? false : true,
+      'place': stockCountConfigs.type !== 'task',
       expression
     },
     title: languages.map((lang) => {
