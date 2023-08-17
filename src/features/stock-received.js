@@ -179,7 +179,7 @@ async function updateStockConfirmation(configs, messages) {
 
   const [labelColumns, hintColumns] = getLabelColumns(configs.languages, messages);
   // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
@@ -211,7 +211,7 @@ async function updateStockConfirmation(configs, messages) {
       ...getNoLabelsColums(languages)
     })
   ];
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);
+  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
   surveyWorkSheet.insertRows(
     position + 1,
     inputs,
@@ -262,7 +262,7 @@ async function updateStockConfirmation(configs, messages) {
       }),
     );
   }
-  const [placePosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [placePosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
   surveyWorkSheet.insertRows(
     placePosition + 1,
     rows,

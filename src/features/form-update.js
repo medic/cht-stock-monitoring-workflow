@@ -1,7 +1,9 @@
 const path = require('path');
 const fs = require('fs');
 const ExcelJS = require('exceljs');
-const { getRowWithValueAtPosition, getSheetGroupBeginEnd, buildRowValues, getTranslations, getRowNumberWithNameInInterval } = require('../common');
+const { getRowWithValueAtPosition, getSheetGroupBeginEnd, buildRowValues, getTranslations, getRowNumberWithNameInInterval,
+  getLastGroupIndex
+} = require('../common');
 const chalk = require('chalk');
 const { FORM_ADDITIONAL_DOC_NAME } = require('../constants');
 
@@ -34,7 +36,7 @@ async function updateForm(configs) {
     // Add additional doc header if needed
     const header = surveyWorkSheet.getRow(1).values;
     header.shift();
-    const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+    const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
     const lastColumnIndex = Object.keys(firstRowData).length;
     ['instance::db-doc', 'instance::db-doc-ref'].forEach((column, index) => {
       if (!header.includes(column)) {
@@ -46,7 +48,7 @@ async function updateForm(configs) {
     });
 
     // Find user defined row
-    const namePosition = header.indexOf('name') + 1;
+    const namePosition = header.indexOf('name');
     const [userBegin, userEnd] = getSheetGroupBeginEnd(surveyWorkSheet, 'user', namePosition);
     const userAppend = [];
     const parentRows = [
@@ -111,7 +113,7 @@ async function updateForm(configs) {
     }
 
     const noLabelValues = languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {});
-    const [survIndex,] = getRowWithValueAtPosition(surveyWorkSheet, referenceToLevel);
+    const [survIndex,] = getRowWithValueAtPosition(surveyWorkSheet, referenceToLevel, 1);
 
     const additionalDocRows = [
       ...(survIndex === -1 ? [
@@ -234,9 +236,12 @@ async function updateForm(configs) {
         ...additionalDocRows
       );
     } else {
-      surveyWorkSheet.addRows(
-        additionalDocRows,
-        '+i',
+      const typeColumnIndex = header.indexOf('type');
+      const lastGroupIndex = getLastGroupIndex(surveyWorkSheet, typeColumnIndex);
+      surveyWorkSheet.spliceRows(
+        lastGroupIndex+1,
+        0,
+        ...additionalDocRows
       );
     }
     await formWorkbook.xlsx.writeFile(formPath);

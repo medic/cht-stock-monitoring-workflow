@@ -158,7 +158,7 @@ async function updateStockOrder(configs) {
     configs.languages,
   );
   // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
@@ -183,7 +183,7 @@ async function updateStockOrder(configs) {
       calculation: `instance('contact-summary')/context/stock_monitoring_${item.name}_qty`
     });
   });
-  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
 
   if (configs.useItemCategory) {
     rows.push(

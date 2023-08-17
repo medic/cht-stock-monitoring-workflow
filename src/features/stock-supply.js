@@ -202,8 +202,11 @@ async function updateStockSupply(configs) {
       ]
     );
   }
+  const header = surveyWorkSheet.getRow(1).values;
+  header.shift();
   // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  const typeColumnIndex = header.indexOf('type');
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', typeColumnIndex);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
@@ -226,12 +229,11 @@ async function updateStockSupply(configs) {
   //Add choices
   addCategoryItemsToChoice(categories, items, choiceWorkSheet, languages);
 
-  const header = surveyWorkSheet.getRow(1).values;
-  header.shift();
   // Get level 2
   const nbParents = getNumberOfSteps(configs.levels[1].place_type, configs.levels[2].place_type);
   const contactParentRows = getContactParentHierarchy(nbParents, header, languages);
-  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 2);
+  const nameColumnIndex = header.indexOf('name');
+  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', nameColumnIndex);
   surveyWorkSheet.insertRows(
     contactPosition + 3,
     contactParentRows,
@@ -256,7 +258,7 @@ async function updateStockSupply(configs) {
       calculation: `../inputs/user/contact_id`
     })
   ];
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', nameColumnIndex);
   surveyWorkSheet.getRow(position).getCell(8).value = `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`;
   if (configs.useItemCategory) {
     rows.push(
@@ -355,7 +357,7 @@ async function updateStockSupply(configs) {
     'i+'
   );
   addStockSupplySummaries(surveyWorkSheet, Object.values(configs.items), languages);
-  addStockSupplyCalculation(surveyWorkSheet, Object.values(configs.items), languages);
+  addStockSupplyCalculation(surveyWorkSheet, Object.values(configs.items));
   const [, end] = getSheetGroupBeginEnd(surveyWorkSheet, 'out');
   const additionalDocRows = getAdditionalDoc(featureConfigs.form_name, languages, header, items, featureConfigs.confirm_supply.active);
   surveyWorkSheet.insertRows(

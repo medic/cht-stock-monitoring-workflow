@@ -90,7 +90,8 @@ async function updateStockCount(configs) {
   );
 
   // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
+  console.log('firstRowData', firstRowData);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
@@ -103,7 +104,7 @@ async function updateStockCount(configs) {
 
   // Add items
   // Find items group last row number
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
   const itemRows = [];
   const header = surveyWorkSheet.getRow(1).values;
   header.shift();
@@ -138,7 +139,7 @@ async function updateStockCount(configs) {
       ...getNoLabelsColums(languages)
     }),
   ];
-  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);
+  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
   surveyWorkSheet.insertRows(
     inputPosition + 1,
     inputs,
@@ -153,7 +154,7 @@ async function updateStockCount(configs) {
     'i+'
   );
   addStockCountSummaries(surveyWorkSheet, Object.values(configs.items), languages);
-  addStockCountCalculation(surveyWorkSheet, Object.values(configs.items), languages);
+  addStockCountCalculation(surveyWorkSheet, Object.values(configs.items));
   settingWorkSheet.getRow(2).getCell(1).value = stockCountConfigs.title[configs.defaultLanguage];
   settingWorkSheet.getRow(2).getCell(2).value = stockCountConfigs.form_name;
 

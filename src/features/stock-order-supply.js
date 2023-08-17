@@ -203,7 +203,7 @@ async function updateOrderStockSupply(configs) {
   const [labelColumns, hintColumns ] = getDefaultSurveyLabels('stock_order.supply', messages, languages);
 
   // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
@@ -228,7 +228,7 @@ async function updateOrderStockSupply(configs) {
   // Get level 2
   const nbParents = getNumberOfSteps(configs.levels[1].place_type, configs.levels[2].place_type);
   const contactParentRows = getContactParentHierarchy(nbParents, header, languages);
-  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 2);
+  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 1);
   surveyWorkSheet.insertRows(
     contactPosition + 3,
     contactParentRows,
@@ -248,7 +248,7 @@ async function updateOrderStockSupply(configs) {
       ...getNoLabelsColums(languages)
     })
   ];
-  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);
+  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
   surveyWorkSheet.insertRows(
     inputPosition + 1,
     inputs,
@@ -267,7 +267,7 @@ async function updateOrderStockSupply(configs) {
       calculation: `../inputs/user/contact_id`
     })
   ];
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
   surveyWorkSheet.getRow(position).getCell(8).value = `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`;
   if (configs.useItemCategory) {
     rows.push(
@@ -318,7 +318,7 @@ async function updateOrderStockSupply(configs) {
     'i+'
   );
   addOrderSupplySummaries(surveyWorkSheet, Object.values(configs.items), languages, categories);
-  addOrderSupplyCalculation(surveyWorkSheet, Object.values(configs.items), languages);
+  addOrderSupplyCalculation(surveyWorkSheet, Object.values(configs.items));
   const [, end] = getSheetGroupBeginEnd(surveyWorkSheet, 'out');
   const additionalDocRows = getAdditionalDoc(featureConfigs.form_name, languages, header, items, supplyConfigs.confirm_supply.active);
   surveyWorkSheet.insertRows(
