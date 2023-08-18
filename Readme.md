@@ -3,24 +3,28 @@
 Tool to add stock monitoring workflows to an existing [CHT](https://github.com/medic/cht-core) application.
 
 # Installation
+Clone the project in your directory, then install the package using npm:
+
 ```shell
 npm install @medic/cht-stock-monitoring-workflow
 ```
 
 # Features
 
+This tool enables you to add comprehensive stock monitoring workflows to your existing CHT (Community Health Toolkit) application. The following features are included:
+
 <ul>
-  <li>Stock count</li>
-  <li>Stock Supply</li>
-  <li>Stock Supply Confirmation</li>
-  <li>Stock Discrepancy Resolution</li>
-  <li>Stock Return</li>
-  <li>Stock Return Confirmation</li>
-  <li>Stock Order</li>
-  <li>Stock Order Supply</li>
-  <li>Stock Out Task</li>
-  <li>Stock count contact summary</li>
-    <li>Stock logs</li>
+  <li>Stock Count: Monitor stock quantities</li>
+  <li>Stock Supply: Manage the supply of stock items</li>
+  <li>Stock Supply Confirmation: Confirm stock supplies</li>
+  <li>Stock Discrepancy Resolution: Resolve discrepancies in stock counts</li>
+  <li>Stock Return: Handle stock returns</li>
+  <li>Stock Return Confirmation: Confirm stock returns</li>
+  <li>Stock Order: Place stock orders</li>
+  <li>Stock Order Supply: Fulfill stock orders</li>
+  <li>Stock Out Task: Triggered for low stock situations</li>
+  <li>Stock count contact summary: Display stock count summaries for contacts</li>
+  <li>Stock logs: Create stock-related logs</li>
 </ul>
 
 
@@ -30,10 +34,12 @@ After adding an item, or any other action that update the existing forms, this f
 
 # Initialization
 
+To initialize the project in your cht project, run:
 ```shell
-cht-stock-monitoring-workflow init
+npx cht-stock-monitoring-workflow init
 ```
-  Initialize the project and create a file with name `stock-monitoring.config.json`. This add by default the stock count form empty and update the cht app messages.
+This creates a file with name `stock-monitoring.config.json`, generate a default configurations for the stock count form and updates CHT app messages.
+
 ## Question parameters
 
 | Name              | Type   | Description | Required |
@@ -56,11 +62,10 @@ cht-stock-monitoring-workflow init
 **Note:** Stock monitoring starts with a stock count. It means that without stock count report stock status won't be display on contact summary
 # Add item
 
+To add an item to an existing form, use:
 ```shell
-cht-stock-monitoring-workflow add item
+npx cht-stock-monitoring-workflow add item
 ```
-
-Add item in an existing form
 
 ## Questions parameters
 
@@ -78,8 +83,10 @@ Add item in an existing form
 | `item[form].formular`              | `string`  | If `deduced_type = by_user`, it's the field `relevant` and field `calculation` if `deduced_type = custom_formular` | true   |
 
 # Add features
+
+To add features, use:
 ```shell
-cht-stock-monitoring-workflow add feature
+npx cht-stock-monitoring-workflow add feature
 ```
 
 ## Stock Logs
@@ -147,3 +154,63 @@ Create a stock Out task for level 2 if level 1 has low stock
 | `form_name`              | `string`  | The stock out form name/ID | true   |
 | `title[lang]`              | `string`  | The stock order form title | true   |
 | `formular` | `item_danger_qty` or `weekly_qty`  | if weekly_qty, there is low stock if stock count < 2 * estimated weekly consumption. Else, there is low stock if stock count < item.danger_total | true   |
+
+# Task configuration
+
+To incorporate stock monitoring configurations into the `task.js` file, follow these steps:
+
+1. Import the necessary configurations from the `stock-monitoring.config.json` file:
+
+    ```javascript
+    const configs = require('./stock-monitoring.config.json');
+    ```
+
+2. Import the `getStockMonitoringTasks` function from the `@medic/cht-stock-monitoring-workflow` package:
+
+    ```javascript
+    const { getStockMonitoringTasks } = require('@medic/cht-stock-monitoring-workflow');
+    ```
+
+3. Export the `getStockMonitoringTasks` function with the provided configurations:
+
+    ```javascript
+    module.exports = [
+      ...getStockMonitoringTasks(configs)
+    ];
+    ```
+
+
+# Summary contact configuration
+
+To include stock monitoring configurations in the `contact-summary.template.js` file, proceed as follows:
+
+1. Import the required configurations from the `stock-monitoring.config.json` file:
+
+    ```javascript
+    const configs = require('./stock-monitoring.config.json');
+    ```
+
+2. Import the `getStockMonitoringSummaryCards` function from the `@medic/cht-stock-monitoring-workflow` package:
+
+    ```javascript
+    const { getStockMonitoringSummaryCards } = require('@medic/cht-stock-monitoring-workflow');
+    ```
+
+3. Export the `getStockMonitoringSummaryCards` function and generate the cards using the configurations and reports:
+
+    ```javascript
+    const cards = [
+      ...getStockMonitoringSummaryCards(configs, reports)
+    ];
+    ```
+
+
+**Note:** 
+
+1. Make sure to upload settings after updating configuration files.
+2. Perform an upload and conversion of forms after making changes to the forms.
+3. To regenerate forms, use the following command:
+
+    ```shell
+    npx cht-stock-monitoring-workflow build
+    ```
