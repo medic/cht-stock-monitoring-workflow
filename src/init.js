@@ -60,16 +60,26 @@ async function getInitConfigs() {
         choices: appPersonTypes.map((p) => p.id),
       }
     ]);
+    const contactType = level[`${levelNumber}`].contact_type;
+    // Get parent
+    const contactTypeDetails = appSettings.contact_types.find((ct) => ct.id === contactType);
+    if (contactTypeDetails.parents.length > 1) {
+      const parent = await inquirer.prompt([
+        {
+          type: 'list',
+          name: `${levelNumber}.parent`,
+          message: `Select level ${levelNumber}${messagePrecision} parent`,
+          choices: contactTypeDetails.parents,
+        }
+      ]);
+      level.parent = parent.parent;
+    } else {
+      level.parent = contactTypeDetails.parents[0];
+    }
     levels = {
       ...levels,
       ...level,
     };
-  }
-  for (const levelNumber of Object.keys(levels)) {
-    const level = levels[levelNumber];
-    // Get parents
-    const contactTypeDetails = appSettings.contact_types.find((ct) => ct.id === level.contact_type);
-    levels[levelNumber]['place_type'] = contactTypeDetails.parents[0];
   }
 
   const answers = await getStockCountConfigs(levels, appSettings.locales);
