@@ -91,7 +91,6 @@ async function updateStockCount(configs) {
 
   // Add languages and hints columns
   const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
-  console.log('firstRowData', firstRowData);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
@@ -159,13 +158,8 @@ async function updateStockCount(configs) {
   settingWorkSheet.getRow(2).getCell(2).value = stockCountConfigs.form_name;
 
   await workbook.xlsx.writeFile(stockCountPath);
-  const levels = Object.values(configs.levels);
-  const appSettings = getAppSettings();
-  const expression = stockCountConfigs.contact_types.map((contact_type) => {
-    const placeType = levels.find((level) => level.contact_type === contact_type).place_type;
-    const contactTypeDetails = appSettings.contact_types.find((ct) => ct.id === contact_type);
-    const contactParent = contactTypeDetails.parents[0];
-    return `(contact.contact_type === '${contactParent}' && user.parent.contact_type === '${placeType}')`;
+  const expression = stockCountConfigs.contact_types.map((contact) => {
+    return `(contact.contact_type === '${contact.contact_type}' && user.parent.contact_type === '${contact.place_type}')`;
   }).join(' || ');
 
   // Add stock count form properties
@@ -206,7 +200,12 @@ async function getStockCountConfigs(levels, locales) {
       type: 'checkbox',
       name: 'features.stock_count.contact_types',
       message: 'Select stock count form levels',
-      choices: Object.values(levels).map(l => l.contact_type),
+      choices: Object.values(levels).map(l => {
+        return {
+          name: `${l.place_type} << ${l.contact_type}`,
+          value: l,
+        };
+      }),
     },
     {
       type: 'list',

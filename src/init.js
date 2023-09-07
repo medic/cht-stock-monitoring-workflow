@@ -67,14 +67,14 @@ async function getInitConfigs() {
       const parent = await inquirer.prompt([
         {
           type: 'list',
-          name: `${levelNumber}.parent`,
+          name: 'parent',
           message: `Select level ${levelNumber}${messagePrecision} parent`,
           choices: contactTypeDetails.parents,
         }
       ]);
-      level.parent = parent.parent;
+      level[`${levelNumber}`].place_type = parent.parent;
     } else {
-      level.parent = contactTypeDetails.parents[0];
+      level[`${levelNumber}`].place_type = contactTypeDetails.parents[0];
     }
     levels = {
       ...levels,

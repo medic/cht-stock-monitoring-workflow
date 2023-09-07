@@ -1,6 +1,5 @@
 const path = require('path');
 const fs = require('fs-extra');
-const ExcelJS = require('exceljs');
 const chalk = require('chalk');
 
 const TRANSLATION_PREFIX = 'cht-stock-monitoring-workflow.';
@@ -19,7 +18,9 @@ function getAppSettings() {
     const rawSettings = fs.readFileSync(baseSettingFile, {
       encoding: 'utf-8'
     });
-    return JSON.parse(rawSettings);
+    const settings = JSON.parse(rawSettings);
+    settings.locales = settings.locales.filter((locale) => locale.disabled !== true);
+    return settings;
   } catch (err) {
     console.log('Error reading app settings', err);
     return null;

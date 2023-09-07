@@ -142,11 +142,6 @@ async function updateForm(configs) {
       }),
       buildRowValues(header, {
         type: 'calculate',
-        name: 'type',
-        calculation: '"data_record"'
-      }),
-      buildRowValues(header, {
-        type: 'calculate',
         name: 'created_from',
         calculation: '.',
         'instance::db-doc-ref': `/${formName}`
