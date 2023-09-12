@@ -211,10 +211,12 @@ async function updateStockSupply(configs) {
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
     lastColumnIndex++;
+    header.push(labelColumn[0]);
   }
   for (const hintColumn of hintColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
     lastColumnIndex++;
+    header.push(hintColumn[0]);
   }
   surveyWorkSheet.getColumn(lastColumnIndex + 1).values = [
     `instance::db-doc`,
@@ -223,6 +225,7 @@ async function updateStockSupply(configs) {
     `instance::db-doc-ref`,
   ];
   surveyWorkSheet.getColumn(lastColumnIndex + 3).values = ['choice_filter'];
+  header.push(...['instance::db-doc', 'instance::db-doc-ref', 'choice_filter']);
   settingWorkSheet.getRow(2).getCell(1).value = featureConfigs.title[configs.defaultLanguage];
   settingWorkSheet.getRow(2).getCell(2).value = featureConfigs.form_name;
 
@@ -250,7 +253,7 @@ async function updateStockSupply(configs) {
     buildRowValues(header, {
       type: 'calculate',
       name: `supply_place_id`,
-      calculation: `../inputs/contact/_id`
+      calculation: `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`
     }),
     buildRowValues(header, {
       type: 'calculate',
@@ -259,7 +262,7 @@ async function updateStockSupply(configs) {
     })
   ];
   const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', nameColumnIndex);
-  surveyWorkSheet.getRow(position).getCell(8).value = `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`;
+  surveyWorkSheet.getRow(position).getCell(8).value = `../inputs/contact/_id`;
   if (configs.useItemCategory) {
     rows.push(
       buildRowValues(header, {
@@ -373,7 +376,7 @@ async function updateStockSupply(configs) {
     'context': {
       'person': false,
       'place': true,
-      'expression': `contact.contact_type === '${configs.levels[1].place_type}' && user.parent.contact_type === '${configs.levels[2].place_type}'`,
+      'expression': `contact.contact_type === '${configs.levels[1].place_type}' && user.parent.contact_type === '${configs.levels[2].place_type}' && user.role === '${configs.levels[2].role}'`,
     },
     title: languages.map((lang) => {
       return {

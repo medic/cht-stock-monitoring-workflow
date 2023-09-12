@@ -95,19 +95,15 @@ function getTasks(configs) {
         title: constants.TRANSLATION_PREFIX + 'stock_supply.tasks.reception-confirmation',
         icon: 'icon-healthcare-medicine',
         appliesTo: 'reports',
-        appliesToType: [constants.SUPPLY_ADDITIONAL_DOC],
+        appliesToType: [configs.features.stock_supply.form_name],
         appliesIf: function (contact, report) {
-          var needConfirmation = Utils.getField(report, 'need_confirmation');
-          if (needConfirmation === 'no') {
-            return false;
-          }
           var confirmationReport = contact
             .reports
             .find(function (rp) {
               return rp.form === configs.features.stock_supply.confirm_supply.form_name &&
                 Utils.getField(rp, 'inputs.supply_doc_id') === report._id;
             });
-          return !confirmationReport && user.parent._id === report.place_id;
+          return !confirmationReport && user.parent._id === Utils.getField(report, 'place_id');
         },
         events: [
           {
@@ -124,11 +120,10 @@ function getTasks(configs) {
             modifyContent: function (content, contact, report) {
               for (var i = 0; i < items.length; i++) {
                 var item = items[i];
-                content[item.name+'_received'] = Utils.getField(report, item.name+'_in');
+                content[item.name+'_received'] = Utils.getField(report, 'out.'+item.name+'_supply');
               }
               content['supply_doc_id'] = report._id;
-              // eslint-disable-next-line no-undef
-              content['supplier_id'] = report.supplier_id;
+              content['supplier_id'] = Utils.getField(report, 'user_contact_id');
             }
           }
         ]
@@ -148,14 +143,14 @@ function getTasks(configs) {
             }
             return false;
           });
+          var supplierId = Utils.getField(report, 'inputs.supplier_id');
           if (!itemDescrepancy) {
             return false;
           }
           var discrepancyConfirm = contact.reports.find(function (rp) {
-            return rp.form === constants.DESCREPANCY_ADD_DOC &&
+            return rp.form === configs.features.stock_supply.discrepancy.form_name &&
               Utils.getField(rp, 'confirmation_id') === report._id;
           });
-          var supplierId = Utils.getField(report, 'inputs.supplier_id');
           // eslint-disable-next-line no-undef
           return !discrepancyConfirm && user._id === supplierId;
         },
@@ -169,12 +164,12 @@ function getTasks(configs) {
           },
         ],
         resolvedIf: function (contact, report) {
-          var confirmationReport = contact.reports.find(function(current){
-            var supplyConfirmId = Utils.getField(current, 'supply_confirm_id');
-            return current.form === configs.features.stock_supply.discrepancy.form_name &&
-              report._id === supplyConfirmId;
+          return  contact.reports.find(function(current){
+            if (current.form !== constants.DESCREPANCY_ADD_DOC) {
+                return false;
+            }
+            return report._id === Utils.getField(current, 'confirmation_id');
           });
-          return confirmationReport;
         },
         actions: [
           {
@@ -276,7 +271,7 @@ function getTasks(configs) {
                 itemsInLowStock.push(itemKey);
               }
             }
-            
+
           } else {
             for (var j = 0; j < items.length; j++) {
               var item = items[j];

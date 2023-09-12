@@ -108,16 +108,13 @@ function getItemCountInReports(itemName, reports, forms) {
     var report = reports[index];
     switch (report.form) {
       /**
-       * *chw - in*
+       * *supervisor - out*
        * Additional doc created from supervisor stock supply form.
-       * Add item quantity from chw stock
+       * Remove item quantity from supervisor stock
        */
       case constants.SUPPLY_ADDITIONAL_DOC:
         {
-          var needConfirmation = Utils.getField(report, 'need_confirmation');
-          if (needConfirmation === 'no') {
-            total += Number(Utils.getField(report, itemName + '_in') || 0);
-          }
+          total -= Number(Utils.getField(report, itemName + '_in') || 0);
         }
         break;
       /**
@@ -133,12 +130,16 @@ function getItemCountInReports(itemName, reports, forms) {
         }
         break;
       /**
-       * *supervisor - out*
+       * *chw - out*
        * Supervisor stock supply form to chw
-       * Remove item quantity from supervisor stock
+       * Add item quantity to chw stock
        */
       case forms.supplyForm:
-        total -= Number(Utils.getField(report, 'out.' + itemName + '_supply') || 0);
+        {
+          if (forms.supplyConfirm.length === 0) {
+            total += Number(Utils.getField(report, 'out.' + itemName + '_supply') || 0);
+          }
+        }
         break;
       /**
        * *chw - out*
