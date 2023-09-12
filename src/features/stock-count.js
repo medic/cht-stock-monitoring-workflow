@@ -159,7 +159,7 @@ async function updateStockCount(configs) {
 
   await workbook.xlsx.writeFile(stockCountPath);
   const expression = stockCountConfigs.contact_types.map((contact) => {
-    return `(contact.contact_type === '${contact.contact_type}' && user.parent.contact_type === '${contact.place_type}')`;
+    return `((contact.contact_type === '${contact.place_type}' || contact.type === '${contact.place_type}') && (user.role === '${contact.role}'))`;
   }).join(' || ');
 
   // Add stock count form properties

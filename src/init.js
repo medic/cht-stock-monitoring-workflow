@@ -6,6 +6,7 @@ const { getStockCountConfigs } = require('./features/stock-count');
 async function getInitConfigs() {
   const appSettings = utils.getAppSettings();
   const appPersonTypes = appSettings.contact_types.filter((ct) => ct.person);
+  const appUserRoles = Object.keys(appSettings.roles);
   console.log(chalk.green(`INFO Stock monitoring configuration`));
   const monitoringType = await inquirer.prompt([
     {
@@ -58,6 +59,12 @@ async function getInitConfigs() {
         name: `${levelNumber}.contact_type`,
         message: `Select level ${levelNumber}${messagePrecision} contact type`,
         choices: appPersonTypes.map((p) => p.id),
+      },
+      {
+        type: 'list',
+        name: `${levelNumber}.role`,
+        message: `Select level ${levelNumber}${messagePrecision} user role`,
+        choices: appUserRoles
       }
     ]);
     const contactType = level[`${levelNumber}`].contact_type;

@@ -42,10 +42,10 @@ function getSummary(configs, reports) {
     return [];
   }
 
-  return stockCountFeature.contact_types.map(function (contactType) {
+  return stockCountFeature.contact_types.map(function (contact) {
     var levels = Object.values(configs.levels);
     var contactLevel = levels.find(function (l) {
-      return l.contact_type === contactType;
+      return l.contact_type === contact.contact_type;
     });
     var placeType = contactLevel.place_type;
     var itemQuantities = common.getItemCountFromLastStockCount(configs, reports);
