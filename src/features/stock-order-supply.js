@@ -88,16 +88,6 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
     }),
     buildRowValues(header, {
       type: 'calculate',
-      name: 'place_id',
-      calculation: '${supply_place_id}'
-    }),
-    buildRowValues(header, {
-      type: 'calculate',
-      name: 's_order_id',
-      calculation: '${order_id}'
-    }),
-    buildRowValues(header, {
-      type: 'calculate',
       name: 'type',
       calculation: '"data_record"'
     }),
@@ -113,11 +103,6 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
       calculation: '"xml"'
     }),
     buildRowValues(header, {
-      type: 'calculate',
-      name: 'supplier_id',
-      calculation: '${user_contact_id}'
-    }),
-    buildRowValues(header, {
       type: 'begin group',
       name: 'contact',
       ...getNoLabelsColums(languages)
@@ -125,7 +110,7 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
     buildRowValues(header, {
       type: 'calculate',
       name: '_id',
-      calculation: '${supply_place_id}'
+      calculation: '${user_contact_id}'
     }),
     buildRowValues(header, {
       type: 'end group',
@@ -135,6 +120,21 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
       type: 'begin group',
       name: 'fields',
       ...getNoLabelsColums(languages)
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'place_id',
+      calculation: '${supply_place_id}'
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 's_order_id',
+      calculation: '${order_id}'
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'supplier_id',
+      calculation: '${user_contact_id}'
     }),
     buildRowValues(header, {
       type: 'calculate',

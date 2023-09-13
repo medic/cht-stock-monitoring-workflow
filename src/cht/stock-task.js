@@ -95,7 +95,7 @@ function getTasks(configs) {
         title: constants.TRANSLATION_PREFIX + 'stock_supply.tasks.reception-confirmation',
         icon: 'icon-healthcare-medicine',
         appliesTo: 'reports',
-        appliesToType: [configs.features.stock_supply.form_name],
+        appliesToType: [constants.SUPPLY_ADDITIONAL_DOC],
         appliesIf: function (contact, report) {
           var confirmationReport = contact
             .reports
@@ -120,10 +120,10 @@ function getTasks(configs) {
             modifyContent: function (content, contact, report) {
               for (var i = 0; i < items.length; i++) {
                 var item = items[i];
-                content[item.name+'_received'] = Utils.getField(report, 'out.'+item.name+'_supply');
+                content[item.name+'_received'] = Utils.getField(report, item.name+'_in');
               }
               content['supply_doc_id'] = report._id;
-              content['supplier_id'] = Utils.getField(report, 'user_contact_id');
+              content['supplier_id'] = Utils.getField(report, 'supplier_id');
             }
           }
         ]
@@ -320,13 +320,27 @@ function getTasks(configs) {
         appliesToType: [configs.features.stock_order.form_name],
         appliesIf: function (contact, report) {
           // eslint-disable-next-line no-undef
-          if (user.parent.contact_type !== configs.levels['3'].place_type) {
+          if (user.role === configs.levels['1'].role) {
             return false;
           }
+          var reportContactType = Utils.getField(report, 'inputs.contact.contact_type');
+          var level1 = configs.levels['1'];
+          var level2 = configs.levels['2'];
+          var level3 = configs.levels['3'];
+          if (reportContactType !== level1.place_type && reportContactType !== level2.place_type) {
+            return false;
+          }
+          if (reportContactType === level1.place_type && level2 && user.role !== level2.role) {
+              return false;
+          }
+          if (reportContactType === level2.place_type && level3 && user.role !== level3.role) {
+              return false;
+          }
+
           // Get a supply additional doc with supply id = report._id
           var orderId = report._id;
           var supplyAdditionalReport = contact.reports.find(function(rp) {
-            return rp.form === constants.SUPPLY_ADDITIONAL_DOC && rp['s_order_id'] === orderId;
+            return rp.form === constants.SUPPLY_ADDITIONAL_DOC && Utils.getField(rp, 's_order_id') === orderId;
           });
           return !supplyAdditionalReport;
         },

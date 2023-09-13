@@ -114,7 +114,9 @@ function getItemCountInReports(itemName, reports, forms) {
        */
       case constants.SUPPLY_ADDITIONAL_DOC:
         {
-          total -= Number(Utils.getField(report, itemName + '_in') || 0);
+          if (forms.supplyConfirm.length === 0) {
+            total += Number(Utils.getField(report, itemName + '_in') || 0);
+          }
         }
         break;
       /**
@@ -136,9 +138,7 @@ function getItemCountInReports(itemName, reports, forms) {
        */
       case forms.supplyForm:
         {
-          if (forms.supplyConfirm.length === 0) {
-            total += Number(Utils.getField(report, 'out.' + itemName + '_supply') || 0);
-          }
+          total -= Number(Utils.getField(report, 'out.' + itemName + '_supply') || 0);
         }
         break;
       /**

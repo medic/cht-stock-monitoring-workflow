@@ -71,11 +71,6 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
     }),
     buildRowValues(header, {
       type: 'calculate',
-      name: 'place_id',
-      calculation: '${supply_place_id}'
-    }),
-    buildRowValues(header, {
-      type: 'calculate',
       name: 'type',
       calculation: '"data_record"'
     }),
@@ -91,11 +86,6 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
       calculation: '"xml"'
     }),
     buildRowValues(header, {
-      type: 'calculate',
-      name: 'supplier_id',
-      calculation: '${user_contact_id}'
-    }),
-    buildRowValues(header, {
       type: 'begin group',
       name: 'contact',
       ...getNoLabelsColums(languages)
@@ -103,7 +93,7 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
     buildRowValues(header, {
       type: 'calculate',
       name: '_id',
-      calculation: '${supply_place_id}'
+      calculation: '${user_contact_id}'
     }),
     buildRowValues(header, {
       type: 'end group',
@@ -113,6 +103,16 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
       type: 'begin group',
       name: 'fields',
       ...getNoLabelsColums(languages)
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'supplier_id',
+      calculation: '${user_contact_id}'
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'place_id',
+      calculation: '${supply_place_id}'
     }),
     buildRowValues(header, {
       type: 'calculate',
@@ -253,7 +253,7 @@ async function updateStockSupply(configs) {
     buildRowValues(header, {
       type: 'calculate',
       name: `supply_place_id`,
-      calculation: `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`
+      calculation: `../inputs/contact/_id`
     }),
     buildRowValues(header, {
       type: 'calculate',
@@ -262,7 +262,7 @@ async function updateStockSupply(configs) {
     })
   ];
   const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', nameColumnIndex);
-  surveyWorkSheet.getRow(position).getCell(8).value = `../inputs/contact/_id`;
+  surveyWorkSheet.getRow(position).getCell(8).value = `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`;
   if (configs.useItemCategory) {
     rows.push(
       buildRowValues(header, {
