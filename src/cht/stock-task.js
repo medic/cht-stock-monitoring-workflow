@@ -204,6 +204,9 @@ function getTasks(configs) {
         appliesTo: 'reports',
         appliesToType: [configs.features.stock_return.form_name],
         appliesIf: function(contact, report) {
+          if (user.role !== configs.levels['2'].role) {
+            return false;
+          }
           var confirmationReport = contact
             .reports
             .find(function (rp) {

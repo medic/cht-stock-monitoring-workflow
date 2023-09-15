@@ -43,11 +43,6 @@ function getSummary(configs, reports) {
   }
 
   return stockCountFeature.contact_types.map(function (contact) {
-    var levels = Object.values(configs.levels);
-    var contactLevel = levels.find(function (l) {
-      return l.contact_type === contact.contact_type;
-    });
-    var placeType = contactLevel.place_type;
     var itemQuantities = common.getItemCountFromLastStockCount(configs, reports);
     var itemsFields = items.map(function (item) {
       var value = itemQuantities[item.name];
@@ -62,7 +57,7 @@ function getSummary(configs, reports) {
     });
     return {
       label: constants.TRANSLATION_PREFIX + 'stock_count.contact_summary.title',
-      appliesToType: placeType,
+      appliesToType: contact.place_type,
       appliesIf: lastStockCount,
       modifyContext: function (context) {
         for (var index = 0; index < itemsFields.length; index++) {

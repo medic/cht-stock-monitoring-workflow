@@ -109,7 +109,7 @@ function addReturnedSummaries(workSheet, languages, items, categories = []) {
             relevant: '${' + `${item.name}_received} = 'yes'`,
             ...languages.reduce((prev, language) => ({
               ...prev,
-              [`label::${language}`]: `${item.label[language]}: ` + '${' + `${item.name}_return}`
+              [`label::${language}`]: `${item.label[language]}: ` + '**${' + `${item.name}_return}**`
             }), {})
           }),
         ]).reduce((prev, next) => ([...prev, ...next]), []),
@@ -388,7 +388,7 @@ async function updateStockReturned(configs) {
     'icon': 'icon-healthcare-medicine',
     'context': {
       'person': false,
-      'place': true,
+      'place': false,
       expression,
     },
     title: languages.map((lang) => {
