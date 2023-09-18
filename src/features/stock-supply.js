@@ -39,10 +39,10 @@ function addStockSupplySummaries(workSheet, items, languages) {
       name: `s_${item.name}`, // Row name
       required: '',
       relevant: '${' + `supply_${item.name}` + '} > 0',
-      appearance: '',
+      appearance: 'h5',
     };
     for (const language of languages) {
-      itemRow[`label::${language}`] = `<h5 style="text-align:center;"> ${item.label[language]}: **` + '${' + `supply_${item.name}` + '} ' + `${item.unit}** </h5>`; // Row label
+      itemRow[`label::${language}`] = `${item.label[language]}: **` + '${' + `supply_${item.name}` + '} ' + `${item.unit}**`; // Row label
     }
     itemRows.push(buildRowValues(header, itemRow));
   }
@@ -322,10 +322,11 @@ async function updateStockSupply(configs) {
       const titleRow = {
         type: 'note',
         name: `note_${item.name}_title`,
+        appearance: 'h3 bold ',
         relevant: 'selected(${selected_items},' + `'${item.name}')`
       };
       for (const language of configs.languages) {
-        titleRow[`label::${language}`] = `<h3 style="text-align:center; font-weight:bold; background-color:#93C47E;">${item.label[language]}</h3>`;
+        titleRow[`label::${language}`] = `${item.label[language]}`;
       }
       rows.push(buildRowValues(header, titleRow));
       const noteRow = {

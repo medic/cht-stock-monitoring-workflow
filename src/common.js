@@ -1,5 +1,5 @@
 const path = require('path');
-const fs = require('fs-extra');
+const fs = require('fs');
 const chalk = require('chalk');
 
 const TRANSLATION_PREFIX = 'cht-stock-monitoring-workflow.';
@@ -50,7 +50,9 @@ function getTranslations(removePrefix = true) {
     .map((locale) => {
       // Get cht app messages path
       const messagePath = path.join(processDir, 'translations', `messages-${locale}.properties`);
-      const messages = fs.readFileSync(messagePath).toString().split('\n');
+      const messages = fs.readFileSync(messagePath, {
+        encoding: 'latin1'
+      }).split('\n');
       return [
         locale,
         messages
