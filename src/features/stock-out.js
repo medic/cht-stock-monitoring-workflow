@@ -87,7 +87,7 @@ async function updateStockOut(configs) {
     );
   }
   // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
@@ -123,13 +123,13 @@ async function updateStockOut(configs) {
       })
     )
   ];
-  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 2);
+  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 1);
   surveyWorkSheet.insertRows(
     contactPosition + 3,
     contactParentRows,
     'i+'
   );
-  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
   surveyWorkSheet.insertRow(
     placeIdPosition + 1,
     buildRowValues(header, {
@@ -156,7 +156,7 @@ async function updateStockOut(configs) {
       })
     ]).reduce((prev, next) => [...prev, ...next], []),
   ];
-  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);
+  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
   surveyWorkSheet.insertRows(
     inputPosition + 1,
     inputs,
@@ -208,7 +208,7 @@ async function updateStockOut(configs) {
   await workbook.xlsx.writeFile(formPath);
 
   // Add stock count form properties
-  const expression = `user.parent.contact_type === '${configs.levels[2].place_type}' && contact.contact_type === '${configs.levels[2].place_type}'`;
+  const expression = `user.parent.contact_type === '${configs.levels[2].place_type}'`;
   const formProperties = {
     'icon': 'icon-healthcare-medicine',
     'context': {

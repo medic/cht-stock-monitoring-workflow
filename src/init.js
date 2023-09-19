@@ -6,6 +6,7 @@ const { getStockCountConfigs } = require('./features/stock-count');
 async function getInitConfigs() {
   const appSettings = utils.getAppSettings();
   const appPersonTypes = appSettings.contact_types.filter((ct) => ct.person);
+  const appUserRoles = Object.keys(appSettings.roles);
   console.log(chalk.green(`INFO Stock monitoring configuration`));
   const monitoringType = await inquirer.prompt([
     {
@@ -58,18 +59,34 @@ async function getInitConfigs() {
         name: `${levelNumber}.contact_type`,
         message: `Select level ${levelNumber}${messagePrecision} contact type`,
         choices: appPersonTypes.map((p) => p.id),
+      },
+      {
+        type: 'list',
+        name: `${levelNumber}.role`,
+        message: `Select level ${levelNumber}${messagePrecision} user role`,
+        choices: appUserRoles
       }
     ]);
+    const contactType = level[`${levelNumber}`].contact_type;
+    // Get parent
+    const contactTypeDetails = appSettings.contact_types.find((ct) => ct.id === contactType);
+    if (contactTypeDetails.parents.length > 1) {
+      const parent = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'parent',
+          message: `Select level ${levelNumber}${messagePrecision} parent`,
+          choices: contactTypeDetails.parents,
+        }
+      ]);
+      level[`${levelNumber}`].place_type = parent.parent;
+    } else {
+      level[`${levelNumber}`].place_type = contactTypeDetails.parents[0];
+    }
     levels = {
       ...levels,
       ...level,
     };
-  }
-  for (const levelNumber of Object.keys(levels)) {
-    const level = levels[levelNumber];
-    // Get parents
-    const contactTypeDetails = appSettings.contact_types.find((ct) => ct.id === level.contact_type);
-    levels[levelNumber]['place_type'] = contactTypeDetails.parents[0];
   }
 
   const answers = await getStockCountConfigs(levels, appSettings.locales);

@@ -72,15 +72,15 @@ function addStockConfirmSummaries(workSheet, items, languages, categories = []) 
           type: 'note',
           name: `${category.name}_summary`,
           appearance: 'h1 blue',
-          relevant: categoryItems.map((item) => '${' + item.name + '_received} > 0').join(' or '),
+          relevant: categoryItems.map((item) => 'number(${' + item.name + '_received}) > 0').join(' or '),
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
         }),
         ...categoryItems.map((item) => (buildRowValues(header, {
           type: 'note',
           name: `${item.name}_summary`,
           appearance: 'li',
-          relevant: '${' + item.name + '_received} > 0',
-          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `<h5> ${item.label[language]}: **` + '${' + `${item.name}_confirmed` + '} ' + `${item.unit}** </h5>` }), {})
+          relevant: 'number(${' + item.name + '_received}) > 0',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.label[language]}: **` + '${' + `${item.name}_confirmed` + '} ' + `${item.unit}**` }), {})
         }))),
       );
     }
@@ -88,8 +88,8 @@ function addStockConfirmSummaries(workSheet, items, languages, categories = []) 
     rows = items.map((item) => ({
       type: 'note', // Row type
       name: `s_${item.name}`, // Row name
-      relevant: '${' + item.name + '_received} > 0',
-      ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `<h5> ${item.label[language]}: **` + '${' + `${item.name}_confirmed` + '} ' + `${item.unit}** </h5>` }), {})
+      relevant: 'number(${' + item.name + '_received}) > 0',
+      ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.label[language]}: **` + '${' + `${item.name}_confirmed` + '} ' + `${item.unit}**` }), {})
     }));
   }
 
@@ -179,7 +179,7 @@ async function updateStockConfirmation(configs, messages) {
 
   const [labelColumns, hintColumns] = getLabelColumns(configs.languages, messages);
   // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
@@ -211,7 +211,7 @@ async function updateStockConfirmation(configs, messages) {
       ...getNoLabelsColums(languages)
     })
   ];
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);
+  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
   surveyWorkSheet.insertRows(
     position + 1,
     inputs,
@@ -262,7 +262,7 @@ async function updateStockConfirmation(configs, messages) {
       }),
     );
   }
-  const [placePosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [placePosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
   surveyWorkSheet.insertRows(
     placePosition + 1,
     rows,

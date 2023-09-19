@@ -158,7 +158,7 @@ async function updateStockOrder(configs) {
     configs.languages,
   );
   // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
@@ -173,6 +173,21 @@ async function updateStockOrder(configs) {
 
   const header = surveyWorkSheet.getRow(1).values;
   header.shift();
+  const nameColumnIndex = header.indexOf('name');
+  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', nameColumnIndex);
+  const contactTypeRow = [
+    buildRowValues(header, {
+      type: 'hidden',
+      name: 'contact_type',
+      appearance: 'hidden',
+      ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: 'NO_LABEL' }), {})
+    }),
+  ];
+  surveyWorkSheet.insertRows(
+    contactPosition + 3,
+    contactTypeRow,
+    'i+'
+  );
 
   const rows = items.map((item) => {
     // Get stock count from summary
@@ -183,7 +198,7 @@ async function updateStockOrder(configs) {
       calculation: `instance('contact-summary')/context/stock_monitoring_${item.name}_qty`
     });
   });
-  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
 
   if (configs.useItemCategory) {
     rows.push(
@@ -273,7 +288,7 @@ async function updateStockOrder(configs) {
   await workbook.xlsx.writeFile(formPath);
 
   // Add stock count form properties
-  const expression = `user.parent.contact_type === '${configs.levels[2].place_type}' && contact.contact_type === '${configs.levels[2].place_type}'`;
+  const expression = orderConfigs.actors.map((actor) => `contact.contact_type === '${actor.place_type}' && user.role === '${actor.role}'`).join(' || ');
   const formProperties = {
     'icon': 'icon-healthcare-medicine',
     'context': {
@@ -303,9 +318,25 @@ async function updateStockOrder(configs) {
  * @returns {String} configs.title.fr
  **/
 const getStockOrderConfigs = async ({
-  languages,
+  languages, levels
 }) => {
+  const actors = [levels[1]];
+  if (levels[3]) {
+    actors.push(levels[2]);
+  }
+
   const configs = await inquirer.prompt([
+    {
+      type: 'checkbox',
+      name: 'actors',
+      message: 'Select the actors',
+      choices: actors.map((actor) => {
+        return {
+          name: actor.role,
+          value: actor,
+        };
+      }),
+    },
     {
       type: 'input',
       name: 'form_name',

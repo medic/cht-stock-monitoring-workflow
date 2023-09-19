@@ -16,10 +16,10 @@ function addStockCountSummaries(workSheet, items, languages) {
       name: `s_${item.name}`, // Row name
       required: '',
       relevant: '${' + `${item.name}` + '} > 0',
-      appearance: '',
+      appearance: 'li',
     };
     for (const language of languages) {
-      itemRow[`label::${language}`] = `<h5 style="text-align:center;"> ${item.label[language]}: **` + '${' + item.name + '} ' + `${item.unit}** </h5>`; // Row label
+      itemRow[`label::${language}`] = `${item.label[language]}: **` + '${' + item.name + '} ' + `${item.unit}**`; // Row label
     }
     itemRows.push(buildRowValues(header, itemRow));
   }
@@ -90,7 +90,7 @@ async function updateStockCount(configs) {
   );
 
   // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
@@ -103,7 +103,7 @@ async function updateStockCount(configs) {
 
   // Add items
   // Find items group last row number
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
   const itemRows = [];
   const header = surveyWorkSheet.getRow(1).values;
   header.shift();
@@ -138,7 +138,7 @@ async function updateStockCount(configs) {
       ...getNoLabelsColums(languages)
     }),
   ];
-  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);
+  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
   surveyWorkSheet.insertRows(
     inputPosition + 1,
     inputs,
@@ -153,18 +153,13 @@ async function updateStockCount(configs) {
     'i+'
   );
   addStockCountSummaries(surveyWorkSheet, Object.values(configs.items), languages);
-  addStockCountCalculation(surveyWorkSheet, Object.values(configs.items), languages);
+  addStockCountCalculation(surveyWorkSheet, Object.values(configs.items));
   settingWorkSheet.getRow(2).getCell(1).value = stockCountConfigs.title[configs.defaultLanguage];
   settingWorkSheet.getRow(2).getCell(2).value = stockCountConfigs.form_name;
 
   await workbook.xlsx.writeFile(stockCountPath);
-  const levels = Object.values(configs.levels);
-  const appSettings = getAppSettings();
-  const expression = stockCountConfigs.contact_types.map((contact_type) => {
-    const placeType = levels.find((level) => level.contact_type === contact_type).place_type;
-    const contactTypeDetails = appSettings.contact_types.find((ct) => ct.id === contact_type);
-    const contactParent = contactTypeDetails.parents[0];
-    return `(contact.contact_type === '${contactParent}' && user.parent.contact_type === '${placeType}')`;
+  const expression = stockCountConfigs.contact_types.map((contact) => {
+    return `((contact.contact_type === '${contact.place_type}' || contact.type === '${contact.place_type}') && (user.role === '${contact.role}'))`;
   }).join(' || ');
 
   // Add stock count form properties
@@ -172,7 +167,7 @@ async function updateStockCount(configs) {
     'icon': 'icon-healthcare-medicine',
     'context': {
       'person': false,
-      'place': stockCountConfigs.type === 'task' ? false : true,
+      'place': stockCountConfigs.type !== 'task',
       expression
     },
     title: languages.map((lang) => {
@@ -205,7 +200,12 @@ async function getStockCountConfigs(levels, locales) {
       type: 'checkbox',
       name: 'features.stock_count.contact_types',
       message: 'Select stock count form levels',
-      choices: Object.values(levels).map(l => l.contact_type),
+      choices: Object.values(levels).map(l => {
+        return {
+          name: `${l.place_type} << ${l.contact_type}`,
+          value: l,
+        };
+      }),
     },
     {
       type: 'list',
