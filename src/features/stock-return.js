@@ -58,7 +58,7 @@ function getItemRows(header, languages, messages, selectionFieldName, items) {
         type: 'decimal',
         name: `${item.name}_returned_qty`,
         required: 'yes',
-        constraint: '. > 0 and . < ${' + item.name + '_current}',
+        constraint: '. > 0 and . <= ${' + item.name + '_current}',
         default: 0,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.qty_returned'] }), {})
       }),
@@ -163,7 +163,7 @@ async function updateStockReturn(configs) {
     configs.languages,
   );
   // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
@@ -178,7 +178,7 @@ async function updateStockReturn(configs) {
 
   const header = surveyWorkSheet.getRow(1).values;
   header.shift();
-  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
 
   const rows = items.map((item) => {
     return buildRowValues(header, {

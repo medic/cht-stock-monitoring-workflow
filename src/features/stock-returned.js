@@ -109,7 +109,7 @@ function addReturnedSummaries(workSheet, languages, items, categories = []) {
             relevant: '${' + `${item.name}_received} = 'yes'`,
             ...languages.reduce((prev, language) => ({
               ...prev,
-              [`label::${language}`]: `${item.label[language]}: ` + '${' + `${item.name}_return}`
+              [`label::${language}`]: `${item.label[language]}: ` + '**${' + `${item.name}_return}**`
             }), {})
           }),
         ]).reduce((prev, next) => ([...prev, ...next]), []),
@@ -239,7 +239,7 @@ async function updateStockReturned(configs) {
   //SURVEY
   const [labelColumns, hintColumns] = getLabelColumns(configs.languages, messages);
   // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
@@ -261,13 +261,13 @@ async function updateStockReturned(configs) {
   // Add parents
   const nbParents = getNumberOfSteps(configs.levels[1].place_type, configs.levels[2].place_type);
   const contactParentRows = getContactParentHierarchy(nbParents, header, languages);
-  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 2);
+  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 1);
   surveyWorkSheet.insertRows(
     contactPosition + 3,
     contactParentRows,
     'i+'
   );
-  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
   surveyWorkSheet.getRow(placeIdPosition).getCell(8).value = `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`;
 
   const inputs = [
@@ -289,7 +289,7 @@ async function updateStockReturned(configs) {
       ...getNoLabelsColums(languages)
     })
   ];
-  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);
+  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
   surveyWorkSheet.insertRows(
     inputPosition + 1,
     inputs,
@@ -335,7 +335,7 @@ async function updateStockReturned(configs) {
       ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
     );
   }
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
   surveyWorkSheet.insertRows(
     position + 1,
     rows,
@@ -383,7 +383,7 @@ async function updateStockReturned(configs) {
   await workbook.xlsx.writeFile(returnedFormPath);
 
   // Add stock count form properties
-  const expression = `user.parent.contact_type === '${configs.levels[2].place_type}' && contact.contact_type === '${configs.levels[2].place_type}'`;
+  const expression = `user.role === '${configs.levels[2].role}'`;
   const formProperties = {
     'icon': 'icon-healthcare-medicine',
     'context': {

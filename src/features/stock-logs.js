@@ -31,7 +31,7 @@ function addStockLogCalculation(workSheet, items) {
   );
 }
 
-function addStockLogSummaries(workSheet, languages, items, categories = [], messages) {
+function addStockLogSummaries(workSheet, languages, items, messages, categories = []) {
   const [, end] = getSheetGroupBeginEnd(workSheet, 'summary');
   const header = workSheet.getRow(1).values;
   header.shift();
@@ -148,7 +148,7 @@ async function updateStockLogs(configs) {
   const surveyWorkSheet = workbook.getWorksheet('survey');
   const choiceWorkSheet = workbook.getWorksheet('choices');
   const settingWorkSheet = workbook.getWorksheet('settings');
-  
+
   // Add language column
   const labelColumns = [];
   const hintColumns = [];
@@ -180,7 +180,7 @@ async function updateStockLogs(configs) {
     );
   }
   // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
@@ -268,15 +268,15 @@ async function updateStockLogs(configs) {
       ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
     );
   }
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
   surveyWorkSheet.insertRows(
     position + 1,
     rows,
     'i+'
   );
 
-  addStockLogSummaries(surveyWorkSheet, languages, Object.values(configs.items), categories, messages);
-  addStockLogCalculation(surveyWorkSheet, Object.values(configs.items), languages);
+  addStockLogSummaries(surveyWorkSheet, languages, Object.values(configs.items), messages, categories);
+  addStockLogCalculation(surveyWorkSheet, Object.values(configs.items));
 
   //Add choices
   addCategoryItemsToChoice(categories, items, choiceWorkSheet, languages);

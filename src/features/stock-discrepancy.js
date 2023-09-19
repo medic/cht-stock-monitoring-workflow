@@ -219,7 +219,7 @@ async function updateStockDiscrepancy(configs) {
     );
   }
   // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
@@ -261,14 +261,14 @@ async function updateStockDiscrepancy(configs) {
       })
     )
   ];
-  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 2);
+  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 1);
   surveyWorkSheet.insertRows(
     contactPosition + 3,
     contactParentRows,
     'i+'
   );
-  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
-  surveyWorkSheet.getRow(placeIdPosition).getCell(8).value = `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`;
+  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
+  surveyWorkSheet.getRow(placeIdPosition).getCell(8).value = '${supply_place_id}';
   //Form inputs
   const inputs = [
     ...items.map((item) => [
@@ -294,7 +294,7 @@ async function updateStockDiscrepancy(configs) {
       ...getNoLabelsColums(languages)
     })
   ];
-  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);
+  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
   surveyWorkSheet.insertRows(
     inputPosition + 1,
     inputs,
@@ -305,6 +305,11 @@ async function updateStockDiscrepancy(configs) {
       type: 'calculate',
       name: `user_contact_id`,
       calculation: `../inputs/user/contact_id`
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'supply_place_id',
+      calculation: `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`
     })
   ];
   if (configs.useItemCategory) {
@@ -340,7 +345,7 @@ async function updateStockDiscrepancy(configs) {
       ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
     );
   }
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
   surveyWorkSheet.insertRows(
     position + 1,
     rows,
@@ -376,7 +381,7 @@ async function updateStockDiscrepancy(configs) {
   await workbook.xlsx.writeFile(formPath);
 
   // Add stock count form properties
-  const expression = `user.parent.contact_type === '${configs.levels[2].place_type}' && contact.contact_type === '${configs.levels[2].place_type}'`;
+  const expression = `user.parent.contact_type === '${configs.levels[2].place_type}' && user.role === '${configs.levels[2].role}'`;
   const formProperties = {
     'icon': 'icon-healthcare-medicine',
     'context': {

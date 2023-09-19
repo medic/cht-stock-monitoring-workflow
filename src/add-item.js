@@ -199,7 +199,7 @@ async function getItemConfig(configs) {
     }
   ]);
   itemDeduction.formular = formularRequest.formular;
-  
+
   formConfig.items[itemConfig.name] = itemDeduction;
   return {
     formConfig,
@@ -214,7 +214,9 @@ function addConfigItem(appConfig, {
   itemConfig
 }) {
   appConfig.items[itemConfig.name] = itemConfig;
-  appConfig.categories[categoryConfig.name] = categoryConfig;
+  if (categoryConfig) {
+    appConfig.categories[categoryConfig.name] = categoryConfig;
+  }
   appConfig.forms[formConfig.name] = formConfig;
   utils.writeConfig(appConfig);
   return appConfig;

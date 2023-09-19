@@ -1,6 +1,5 @@
 const path = require('path');
-const fs = require('fs-extra');
-const ExcelJS = require('exceljs');
+const fs = require('fs');
 const chalk = require('chalk');
 
 const TRANSLATION_PREFIX = 'cht-stock-monitoring-workflow.';
@@ -19,7 +18,9 @@ function getAppSettings() {
     const rawSettings = fs.readFileSync(baseSettingFile, {
       encoding: 'utf-8'
     });
-    return JSON.parse(rawSettings);
+    const settings = JSON.parse(rawSettings);
+    settings.locales = settings.locales.filter((locale) => locale.disabled !== true);
+    return settings;
   } catch (err) {
     console.log('Error reading app settings', err);
     return null;
@@ -49,7 +50,9 @@ function getTranslations(removePrefix = true) {
     .map((locale) => {
       // Get cht app messages path
       const messagePath = path.join(processDir, 'translations', `messages-${locale}.properties`);
-      const messages = fs.readFileSync(messagePath).toString().split('\n');
+      const messages = fs.readFileSync(messagePath, {
+        encoding: 'latin1'
+      }).split('\n');
       return [
         locale,
         messages
@@ -152,38 +155,44 @@ function getConfigs() {
 }
 
 /**
- * Get xform group begin and end index. If not found begin and end = -1
- * @param {WorkSheet} workSheet Xform worksheet
- * @param {string} name Group name
- * @param {number} namePosition Column position of question name
- * @returns [groupBeginIndex, groupEndIndex]
+ * Is excel value rich text
+ * @param value
+ * @returns {boolean}
  */
-function getSheetGroupBeginEnd(workSheet, name, namePosition = 2) {
-  let foundItemBeginGroup = false;
-  let beginGroupRowNumber = -1;
-  let endGroupRowNumber = -1;
-  let interneGroupBegin = 0;
-  workSheet.eachRow(function (row, rowNumber) {
-    if (row.values.includes('begin group')) {
-      if (foundItemBeginGroup) {
-        interneGroupBegin ++;
-      } else if (row.values[namePosition].trim() === name) {
-        foundItemBeginGroup = true;
-        beginGroupRowNumber = rowNumber;
-      }
-    }
-    if (row.values.includes('end group')) {
-      if (interneGroupBegin > 0) {
-        interneGroupBegin --;
-      } else if (endGroupRowNumber === -1 && foundItemBeginGroup) {
-        endGroupRowNumber = rowNumber;
-      }
-    }
-  });
-  return [beginGroupRowNumber, endGroupRowNumber];
+function isRichValue(value) {
+  return Boolean(value && Array.isArray(value.richText));
 }
 
-function getRowWithValueAtPosition(workSheet, value, namePosition = 2) {
+/**
+ * Convert rich text to string
+ * @param rich
+ * @returns {string}
+ */
+function richToString(rich) {
+  return rich.richText.map(({ text }) => text).join('');
+}
+
+/**
+ * Get row value from sheet
+ * @param row
+ * @param position
+ * @returns {null|string}
+ */
+function getRowValue(row, position) {
+  const values = [...row.values];
+  values.shift();
+  const value = values[position];
+  if (value && typeof value === 'string') {
+    return value.trim();
+  }
+  // If it's object (rich text) return the first value
+  if (value && isRichValue(value)) {
+    return richToString(value);
+  }
+  return null;
+}
+
+function getRowWithValueAtPosition(workSheet, value, namePosition = 1) {
   let columns = [];
   let rowData = null;
   let index = -1;
@@ -193,8 +202,8 @@ function getRowWithValueAtPosition(workSheet, value, namePosition = 2) {
       //The row.values first element is undefined
       columns.shift();
     }
-
-    if (row.values[namePosition] && row.values[namePosition].trim() === value) {
+    const rowValue = getRowValue(row, namePosition);
+    if (rowValue === value) {
       if (!rowData) {
         rowData = {};
       }
@@ -208,6 +217,38 @@ function getRowWithValueAtPosition(workSheet, value, namePosition = 2) {
 }
 
 /**
+ * Get xform group begin and end index. If not found begin and end = -1
+ * @param {Worksheet} workSheet Xform worksheet
+ * @param {string} name Group name
+ * @param {number} namePosition Column position of question name
+ * @returns [groupBeginIndex, groupEndIndex]
+ */
+function getSheetGroupBeginEnd(workSheet, name, namePosition = 1) {
+  let endGroupRowNumber = -1;
+  const [beginGroupRowNumber] = getRowWithValueAtPosition(workSheet, name, namePosition);
+  if (beginGroupRowNumber !== -1) {
+    let groupEndFound = false;
+    let index = beginGroupRowNumber + 1;
+    let otherBeginGroup = 0;
+    while (!groupEndFound && index <= workSheet.rowCount) {
+      const row = workSheet.getRow(index);
+      if (row.values.includes('begin group')) {
+        otherBeginGroup++;
+      } else if(row.values.includes('end group')) {
+        if (otherBeginGroup === 0) {
+          endGroupRowNumber = index;
+          groupEndFound = true;
+        } else {
+          otherBeginGroup--;
+        }
+      }
+      index++;
+    }
+  }
+  return [beginGroupRowNumber, endGroupRowNumber];
+}
+
+/**
  * Returns the row number of the first row with the given name in the given interval
  * @param workSheet the worksheet to search in
  * @param name the name to search for
@@ -218,7 +259,7 @@ function getRowWithValueAtPosition(workSheet, value, namePosition = 2) {
  */
 function getRowNumberWithNameInInterval(workSheet, name, begin, end, namePosition = 2) {
   const row = workSheet.getRow(begin + 1);
-  if (row && row.values[namePosition] && row.values[namePosition].trim() === name) {
+  if (row.values[namePosition] && row.values[namePosition].trim() === name) {
     return begin + 1;
   }
   if (begin+1 < end) {
@@ -227,10 +268,32 @@ function getRowNumberWithNameInInterval(workSheet, name, begin, end, namePositio
   return -1;
 }
 
-async function getWorkSheet(excelFilePath, workSheetNumber = 1) {
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(excelFilePath);
-  return workbook.getWorksheet(workSheetNumber);
+/**
+ * Verify if row is empty
+ * @param row
+ */
+function isRowEmpty(row) {
+  return row.values.every((value) => {
+    let text = '';
+    if (value && typeof value === 'string') {
+      text = value.trim();
+    }
+    if (value && isRichValue(value)) {
+      text = richToString(value);
+    }
+    return text.length === 0;
+  });
+}
+
+function getLastGroupIndex(workSheet, typeColumnIndex = 0) {
+  let lastEndGroupIndex = -1;
+  workSheet.eachRow((row, rowNumber) => {
+    const value = getRowValue(row, typeColumnIndex);
+    if (value === 'end group') {
+      lastEndGroupIndex = rowNumber;
+    }
+  });
+  return lastEndGroupIndex;
 }
 
 /**
@@ -402,9 +465,7 @@ module.exports = {
   writeConfig,
   getSheetGroupBeginEnd,
   getRowWithValueAtPosition,
-  getWorkSheet,
   buildRowValues,
-  getConfigs,
   updateTranslations,
   getTranslations,
   getNumberOfSteps,
@@ -413,5 +474,6 @@ module.exports = {
   getNoLabelsColums,
   getRowNumberWithNameInInterval,
   getContactParentHierarchy,
+  getLastGroupIndex,
 };
 
