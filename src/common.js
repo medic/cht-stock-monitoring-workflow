@@ -138,6 +138,19 @@ function updateTranslations(configs) {
 function writeConfig(config) {
   const processDir = process.cwd();
   const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
+
+  // Get package version
+  if (!fs.existsSync(configFilePath) || !config.version) {
+    const packageFilePath = path.join(
+      __dirname,
+      '../package.json'
+    );
+    const packageFileRaw = fs.readFileSync(packageFilePath).toString();
+    if (packageFileRaw.length > 0) {
+      config.version = JSON.parse(packageFileRaw).version;
+    }
+  }
+  config.last_update_date = new Date();
   fs.writeFileSync(configFilePath, JSON.stringify(config, null, 4));
   updateTranslations(config);
 }
@@ -147,11 +160,15 @@ function writeConfig(config) {
  * @return {object} - The config
  * @throws {Error} - If the config file does not exist
  * */
-function getConfigs() {
+function getConfig() {
   const processDir = process.cwd();
+  if (!isAlreadyInit(processDir)) {
+    console.log(chalk.red.bold('Stock monitoring module not found'));
+    return;
+  }
   const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
-  const content = fs.readFileSync(configFilePath);
-  return JSON.parse(content);
+  const configStr = fs.readFileSync(configFilePath);
+  return JSON.parse(configStr);
 }
 
 /**
@@ -475,5 +492,6 @@ module.exports = {
   getRowNumberWithNameInInterval,
   getContactParentHierarchy,
   getLastGroupIndex,
+  getConfig,
 };
 
