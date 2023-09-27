@@ -5,9 +5,16 @@ var Utils = require('cht-nootils')();
 
 var NEGATIVE_STOCK_MSG = '(Ensure that you have entered all stock received)';
 
-function stockItemToSafeHtml (value, item) {
-  var html = '';
-  var innerHtml = (new Fraction(value.toFixed(1))).toString() + ' ' + item.unit;
+function stockItemToSafeHtml (value, item, language) {
+  var innerHtml = (new Fraction(value.toFixed(1))).toString() + ' ' + item.unit.label[language];
+  if (item.isInSet) {
+    var boxCount = Math.floor(value / item.set.count);
+    var remainder = value % item.set.count;
+    innerHtml = boxCount + ' ' + item.set.label[language];
+    if (remainder > 0) {
+        innerHtml += ' + ' + (new Fraction(remainder.toFixed(1))).toString() + ' ' + item.unit.label[language];
+    }
+  }
   if (value < 0) {
     innerHtml += ' '+NEGATIVE_STOCK_MSG;
   }
@@ -18,8 +25,7 @@ function stockItemToSafeHtml (value, item) {
     color = 'orange';
   }
 
-  html += '<strong style="color: ' + color + '">' + innerHtml + '<strong>';
-  return html;
+  return '<strong style="color: ' + color + '">' + innerHtml + '<strong>';
 }
 
 function getSummary(configs, reports) {
@@ -50,7 +56,7 @@ function getSummary(configs, reports) {
         name: item.name,
         label: constants.TRANSLATION_PREFIX + 'items.' + item.name + '.label',
         count: value,
-        value: stockItemToSafeHtml(value, item),
+        value: stockItemToSafeHtml(value, item, configs.defaultLanguage),
         filter: 'safeHtml',
         width: 3,
       };

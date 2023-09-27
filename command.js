@@ -2,6 +2,7 @@ const chalk = require('chalk');
 const fs = require('fs-extra');
 const path = require('path');
 const utils = require('./src/common');
+const { configNeedMigration, migrate } = require('./src/migration');
 const { updateForm } = require('./src/features/form-update');
 const { updateStockCount } = require('./src/features/stock-count');
 const { updateStockReturn } = require('./src/features/stock-return');
@@ -17,6 +18,7 @@ const { updateOrderStockSupply } = require('./src/features/stock-order-supply');
 const { getInitConfigs, createConfigFile } = require('./src/init');
 const { getItemConfig, addConfigItem } = require('./src/add-item');
 const { getFeatureConfigs, addFeatureConfigs, selectFeature } = require('./src/add-feature');
+const inquirer = require('inquirer');
 
 //Stock monitoring module initialization
 async function init() {
@@ -97,9 +99,27 @@ async function proccessFeatureForm(configs) {
   console.log(chalk.green(`INFO All actions completed`));
 }
 
+const beforeCommand = async () => {
+  const needMigration = configNeedMigration();
+  if (needMigration) {
+    console.log(chalk.green('INFO Stock monitoring module need migration from version ' + needMigration[0] + ' to ' + needMigration[1]));
+    const question = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'migrate',
+        message: 'Do you want to migrate now ?',
+      }
+    ]);
+    if (question.migrate) {
+      await migrate(needMigration[0], needMigration[1]);
+    }
+  }
+};
+
 module.exports = {
   init,
   addItem: async () => {
+    await beforeCommand();
     const config = getConfig();
     if (!config) {
       return;
@@ -110,6 +130,7 @@ module.exports = {
     await proccessFeatureForm(updatedConfig);
   },
   addFeature: async () => {
+    await beforeCommand();
     const config = getConfig();
     if (!config) {
       return;
@@ -121,6 +142,16 @@ module.exports = {
     await proccessFeatureForm(updatedConfig);
   },
   build: async () => {
+    await beforeCommand();
+    const config = getConfig();
+    if (!config) {
+      return;
+    }
+    const updatedConfigs = await verifyConfigs(config);
+    await proccessFeatureForm(updatedConfigs);
+  },
+  migrate: async () => {
+    await beforeCommand();
     const config = getConfig();
     if (!config) {
       return;
