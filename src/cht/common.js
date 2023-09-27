@@ -205,6 +205,9 @@ function getItemCountInReports(itemName, reports, forms) {
 }
 
 function getItemCountFromLastStockCount(configs, reports) {
+  if (reports.length === 0) {
+    return {};
+  }
   var reportForms = {
     SUPPLY_ADDITIONAL_DOC: constants.SUPPLY_ADDITIONAL_DOC,
     FORM_ADDITIONAL_DOC_NAME: constants.FORM_ADDITIONAL_DOC_NAME,
@@ -218,10 +221,16 @@ function getItemCountFromLastStockCount(configs, reports) {
     stockLogs: configs.features.stock_logs && configs.features.stock_logs.form_name,
   };
   var lastStockCount = Utils.getMostRecentReport(reports, reportForms.stockCount);
+  if (!lastStockCount) {
+    return {};
+  }
   var reportsFomLastStockCount = reports.filter(function (report) {
     var forms = Object.values(reportForms);
-    return report._id === lastStockCount._id || (forms.includes(report.form) && getDynamicReportedDate(report) > getDynamicReportedDate(lastStockCount));
+    return report && (report._id === lastStockCount._id || (forms.includes(report.form) && getDynamicReportedDate(report) > getDynamicReportedDate(lastStockCount)));
   });
+  if (reportsFomLastStockCount.length === 0) {
+    return {};
+  }
   var items = Object.values(configs.items);
 
   return items.map(function(item) {
