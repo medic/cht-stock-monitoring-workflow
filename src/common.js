@@ -285,23 +285,6 @@ function getRowNumberWithNameInInterval(workSheet, name, begin, end, namePositio
   return -1;
 }
 
-/**
- * Verify if row is empty
- * @param row
- */
-function isRowEmpty(row) {
-  return row.values.every((value) => {
-    let text = '';
-    if (value && typeof value === 'string') {
-      text = value.trim();
-    }
-    if (value && isRichValue(value)) {
-      text = richToString(value);
-    }
-    return text.length === 0;
-  });
-}
-
 function getLastGroupIndex(workSheet, typeColumnIndex = 0) {
   let lastEndGroupIndex = -1;
   workSheet.eachRow((row, rowNumber) => {
@@ -466,7 +449,7 @@ function getDefaultSurveyLabels(feature, messages, languages) {
     );
     hintColumns.push(
       [
-        `hint:${language}`,
+        `hint::${language}`,
       ]
     );
   }

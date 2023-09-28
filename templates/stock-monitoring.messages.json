@@ -103,5 +103,7 @@
   "stock_order.tasks.stock_supply": "Stock Supply",
   "stock_order.label.add_item_qty": "Add item quantity",
   "stock_order.supply.message.qty_ordered": "Quantity ordered: <b>{{qty}}</b>",
-  "stock_order.supply.message.qty": "Quantity to supply"
+  "stock_order.supply.message.qty": "Quantity to supply",
+  "stock_count.message.set_unit_constraint_message": "Should be in the form x/y for x {{set_label}} and y {{unit_label}}",
+  "stock_count.message.unit_quantity_hint": "Add the quantity: {{quantity}} {{unit_label}}"
 }
