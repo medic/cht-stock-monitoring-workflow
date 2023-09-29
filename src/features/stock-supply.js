@@ -38,11 +38,11 @@ function addStockSupplySummaries(workSheet, items, languages) {
       type: 'note', // Row type
       name: `s_${item.name}`, // Row name
       required: '',
-      relevant: '${' + `supply_${item.name}` + '} > 0',
+      relevant: '${' + `${item.name}` + '___count} > 0',
       appearance: 'h5',
     };
     for (const language of languages) {
-      itemRow[`label::${language}`] = `${item.label[language]}: **` + '${' + `supply_${item.name}` + '} ' + `${item.unit}**`; // Row label
+      itemRow[`label::${language}`] = `${item.label[language]}: ` + (item.isInSet ? '**${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase()+'**' : '**${'+`${item.name}___count`+'} '+item.unit.label[language].toLowerCase()+'**'); // Row label
     }
     itemRows.push(buildRowValues(header, itemRow));
   }
@@ -122,7 +122,7 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_in`, // Row name
-      calculation: '${' + item.name + '_supply}',
+      calculation: '${' + item.name + '___count}',
     })),
     buildRowValues(header, {
       type: 'end group',
@@ -135,25 +135,74 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
 }
 
 function getItemRows(header, languages, selectionFieldName, items) {
+  const messages = getTranslations();
   return items.map((item) => {
-    return [
+    const row = [
       buildRowValues(header, {
         type: 'begin group',
         name: `___${item.name}`,
         relevant: 'selected(${' + selectionFieldName + `}, '${item.name}')`,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
       }),
-      buildRowValues(header, {
-        type: 'decimal',
+    ];
+
+
+    if (item.isInSet) {
+      const calculateSetItemRow = {
+        type: 'calculate',
+        name: `${item.name}___set`,
+        calculation: 'if(count-selected(${supply_'+item.name+'}) > 0 and count-selected(substring-before(${supply_'+item.name+'}, "/")) >= 0 and regex(substring-before(${supply_'+item.name+"}, \"/\"), '^[0-9]+$'),number(substring-before(${supply_"+item.name+'}, "/")),0)',
+        default: '0/0'
+      };
+      row.push(buildRowValues(header, calculateSetItemRow));
+      const calculateUnitItemRow = {
+        type: 'calculate',
+        name: `${item.name}___unit`,
+        calculation: 'if(count-selected(${supply_'+item.name+'}) > 0 and count-selected(substring-after(${supply_'+item.name+'}, "/")) >= 0 and regex(substring-after(${supply_'+item.name+"}, \"/\"), '^[0-9]+$'),number(substring-after(${supply_"+item.name+'}, "/")),0)',
+        default: '0/0'
+      };
+      row.push(buildRowValues(header, calculateUnitItemRow));
+      const itemRow = {
+        type: 'string',
         name: `supply_${item.name}`,
         required: 'yes',
-        default: 0,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
-      }),
+        constraint: "regex(., '^\\d+\\/\\d+$')",
+        default: '0/0',
+      };
+      for (const language of languages) {
+        itemRow.constraint_message = messages[language]['stock_supply.message.set_unit_constraint_message'].replace('{{unit_label}}', item.unit.label[language].toLowerCase()).replace('{{set_label}}', item.set.label[language].toLowerCase());
+        itemRow[`label::${language}`] = `${item.label[language]}` || ''; // Row label
+        itemRow[`hint::${language}`] = '${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase(); // Row hint
+      }
+      row.push(buildRowValues(header, itemRow));
+    } else {
+      const itemRow = {
+        type: 'integer',
+        name: `supply_${item.name}`,
+        required: 'yes',
+        default: '0',
+      };
+      for (const language of languages) {
+        itemRow[`label::${language}`] = messages[language]['stock_supply.item.quantity_of'] + ' ' + item.unit.label[language].toLowerCase(); // Row label
+        itemRow[`hint::${language}`] = messages[language]['stock_count.message.unit_quantity_hint'].replace('{{quantity}}', '${supply_'+item.name+'}').replace('{{unit_label}}', item.unit.label[language].toLowerCase()); // Row hint
+      }
+
+      row.push(buildRowValues(header, itemRow));
+    }
+    const calculateItemRowCount = {
+      type: 'calculate',
+      name: `${item.name}___count`,
+      calculation: item.isInSet ? '${'+item.name+'___set} * ' + item.set.count + ' + ${'+item.name+'___unit}' : '${supply_'+item.name+'}',
+    };
+    row.push(buildRowValues(header, calculateItemRowCount));
+
+    row.push(
       buildRowValues(header, {
         type: 'end group',
       }),
-    ];
+    );
+
+    return row;
   });
 }
 
@@ -198,7 +247,7 @@ async function updateStockSupply(configs) {
     );
     hintColumns.push(
       [
-        `hint:${language}`,
+        `hint::${language}`,
       ]
     );
   }
