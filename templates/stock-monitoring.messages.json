@@ -17,12 +17,12 @@
   "stock_supply.submit_note": "<h4 style='text-align:center;'>Be sure you Submit to complete this action.</h4>",
   "stock_supply.summary_note": "Stock items you supply.<i class='fa fa-list-ul'></i>",
   "stock_supply.tasks.reception-confirmation": "Stock received",
-  "stock_supply.confirmation.item_received_question": "Did you received {{qty}} {{unit}} of {{item}}",
+  "stock_supply.confirmation.item_received_confirmation_question": "Did you received {{qty_unit}}",
   "stock_supply.choices.yes_no.yes": "Yes",
   "stock_supply.choices.yes_no.no": "No",
   "stock_supply.forms.additional_doc_title": "Stock uses",
   "stock_supply.forms.item_used_question": "Quantity of {{item}}",
-  "stock_supply.confirmation.qty_received_question": "Enter the quantitity received",
+  "stock_supply.confirmation.qty_received_question": "Enter the quantity received",
   "stock_supply.tasks.stock-descreptancy": "Commodity Discrepancy Resolution",
   "stock_supply.forms.select_items": "Select the different item you want to supply",
   "stock_supply.confirmation.summary_note": "Stock items you received.<i class='fa fa-list-ul'></i>",
@@ -106,5 +106,6 @@
   "stock_order.supply.message.qty": "Quantity to supply",
   "stock_count.message.set_unit_constraint_message": "Should be in the form x/y for x {{set_label}} and y {{unit_label}}",
   "stock_count.message.unit_quantity_hint": "Add the quantity: {{quantity}} {{unit_label}}",
-  "stock_supply.message.set_unit_constraint_message": "Should be in the form x/y for x {{set_label}} and y {{unit_label}}"
+  "stock_supply.message.set_unit_constraint_message": "Should be in the form x/y for x {{set_label}} and y {{unit_label}}",
+  "stock_supply.message.unit_quantity_hint": "Add the quantity: {{quantity}} {{unit_label}}"
 }

@@ -502,8 +502,6 @@ async function getStockSupplyConfigs({
 }
 
 module.exports = {
-  addStockSupplyCalculation,
-  addStockSupplySummaries,
   updateStockSupply,
   getStockSupplyConfigs,
 };
