@@ -218,6 +218,7 @@ function getItemCountFromLastStockCount(configs, reports) {
     DESCREPANCY_ADD_DOC: constants.DESCREPANCY_ADD_DOC,
     stockReturn: configs.features.stock_return && configs.features.stock_return.form_name,
     stockReturned: configs.features.stock_return && configs.features.stock_return.confirmation.form_name,
+    stockReturnedCHW: configs.features.stock_return && constants.RETURNED_ADD_DOC,
     stockLogs: configs.features.stock_logs && configs.features.stock_logs.form_name,
   };
   var lastStockCount = Utils.getMostRecentReport(reports, reportForms.stockCount);

@@ -3,7 +3,7 @@ const path = require('path');
 const chalk = require('chalk');
 const ExcelJS = require('exceljs');
 const { getNoLabelsColums, getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd, getNumberOfSteps,
-  getContactParentHierarchy
+  getContactParentHierarchy, getItemCount
 } = require('../common');
 const { RETURNED_ADD_DOC } = require('../constants');
 
@@ -34,7 +34,7 @@ function getLabelColumns(languages, messages) {
     );
     hintColumns.push(
       [
-        `hint:${language}`,
+        `hint::${language}`,
       ]
     );
   }
@@ -44,35 +44,92 @@ function getLabelColumns(languages, messages) {
 
 function getItemRows(header, languages, messages, items) {
   return items.map((item) => {
-    return [
+    const row = [
       buildRowValues(header, {
         type: 'begin group',
         name: `___${item.name}`,
         relevant: '${' + `${item.name}_return} > 0`,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
       }),
+    ];
+    if (item.isInSet) {
+      row.push(
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}__return___set`,
+          calculation: 'int(${'+item.name+'_return} div '+item.set.count+')'
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}__return___unit`,
+          calculation: '${'+item.name+'_return} mod '+item.set.count
+        }),
+        buildRowValues(header, {
+          type: 'select_one yes_no',
+          name: `${item.name}_received`,
+          required: 'yes',
+          ...languages.reduce((prev, language) => ({
+            ...prev, [`label::${language}`]: messages[language]['stock_return.confirmation.item_received_question']
+              .replace('{{qty}}', '${'+`${item.name}__return___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}__return___unit`+'} '+item.unit.label[language].toLowerCase())
+          }), {})
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}___set`,
+          calculation: 'if(count-selected(${'+item.name+'_received_qty}) > 0 and count-selected(substring-before(${'+item.name+'_received_qty}, "/")) >= 0 and regex(substring-before(${'+item.name+"_received_qty}, \"/\"), '^[0-9]+$'),number(substring-before(${"+item.name+'_received_qty}, "/")),0)',
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}___unit`,
+          calculation: 'if(count-selected(${'+item.name+'_received_qty}) > 0 and count-selected(substring-after(${'+item.name+'_received_qty}, "/")) >= 0 and regex(substring-after(${'+item.name+"_received_qty}, \"/\"), '^[0-9]+$'),number(substring-after(${"+item.name+'_received_qty}, "/")),0)',
+        }),
+        buildRowValues(header, {
+          type: 'string',
+          name: `${item.name}_received_qty`,
+          required: 'yes',
+          constraint: "regex(., '^\\d+\\/\\d+$')",
+          relevant: '${' + item.name + "_received} = 'no'",
+          default: '0/0',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.confirmation.qty_received_question'] }), {}),
+          ...languages.reduce((prev, language) => ({
+            ...prev,
+            [`hint::${language}`]: '${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase()
+          }), {})
+        }),
+      );
+    } else {
+      row.push(
+        buildRowValues(header, {
+          type: 'select_one yes_no',
+          name: `${item.name}_received`,
+          required: 'yes',
+          ...languages.reduce((prev, language) => ({
+            ...prev,
+            [`label::${language}`]: messages[language]['stock_return.confirmation.item_received_question'].replace('{{qty}}', '${' + item.name + '_return} '+item.unit.label[language].toLowerCase())
+          }), {})
+        }),
+        buildRowValues(header, {
+          type: 'decimal',
+          name: `${item.name}_received_qty`,
+          required: 'yes',
+          constraint: '. > 0',
+          relevant: '${' + `${item.name}_received} = 'no'`,
+          default: 0,
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.confirmation.qty_received_question'] }), {})
+        }),
+      );
+    }
+    row.push(
       buildRowValues(header, {
-        type: 'select_one yes_no',
-        name: `${item.name}_received`,
-        required: 'yes',
-        ...languages.reduce((prev, language) => ({
-          ...prev,
-          [`label::${language}`]: messages[language]['stock_return.confirmation.item_received_question'].replace('{{qty}}', '${' + item.name + '_return}').replace('{{unit}}', item.unit).replace('{{item}}', item.label[language])
-        }), {})
-      }),
-      buildRowValues(header, {
-        type: 'decimal',
-        name: `${item.name}_received_qty`,
-        required: 'yes',
-        constraint: '. > 0',
-        relevant: '${' + `${item.name}_received} = 'no'`,
-        default: 0,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.confirmation.qty_received_question'] }), {})
+        type: 'calculate',
+        name: `${item.name}___count`,
+        calculation: item.isInSet ? '${'+item.name+'___set} * ' + item.set.count + ' + ${'+item.name+'___unit}' : '${'+item.name+'_received_qty}',
       }),
       buildRowValues(header, {
         type: 'end group',
       }),
-    ];
+    );
+    return row;
   });
 }
 
@@ -99,7 +156,7 @@ function addReturnedSummaries(workSheet, languages, items, categories = []) {
             relevant: '${' + `${item.name}_received} = 'no'`,
             ...languages.reduce((prev, language) => ({
               ...prev,
-              [`label::${language}`]: `${item.label[language]}: ` + '<span style="color:red"><s>${' + `${item.name}_return}</s></span> | ` + '<b><span style="color:green">${' + `${item.name}_received_qty}</span></b>`
+              [`label::${language}`]: `${item.label[language]}: ` + '<span style="color:red"><s>' + getItemCount(item, language, '__return', '_return') + '</s></span> | <b><span style="color:green">'+ getItemCount(item, language, '') +'</span></b>'
             }), {})
           }),
           buildRowValues(header, {
@@ -109,7 +166,7 @@ function addReturnedSummaries(workSheet, languages, items, categories = []) {
             relevant: '${' + `${item.name}_received} = 'yes'`,
             ...languages.reduce((prev, language) => ({
               ...prev,
-              [`label::${language}`]: `${item.label[language]}: ` + '**${' + `${item.name}_return}**`
+              [`label::${language}`]: `${item.label[language]}: ` + '**'+ getItemCount(item, language, '__return', '_return') +'**'
             }), {})
           }),
         ]).reduce((prev, next) => ([...prev, ...next]), []),
@@ -134,7 +191,7 @@ function addExportCalculation(workSheet, items) {
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_in`, // Row name
-      calculation: 'if(${' + `${item.name}_received} = 'no',` + '${' + `${item.name}_received_qty},` + '${' + `${item.name}_return})`
+      calculation: 'if(${' + `${item.name}_received} = 'no',` + '${' + `${item.name}___count},` + '${' + `${item.name}_return})`
     }))
   ];
 
@@ -203,7 +260,7 @@ function getAdditionalDoc(formName, languages, header, items) {
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_return_difference`, // Row name
-      calculation: 'if(${' + `${item.name}_received} = 'no',` + '${' + `${item.name}_return}-` + '${' + `${item.name}_received_qty},0)`
+      calculation: 'if(${' + `${item.name}_received} = 'no',` + '${' + `${item.name}_return}-` + '${' + `${item.name}___count},0)`
     })),
     buildRowValues(header, {
       type: 'calculate',

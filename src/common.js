@@ -459,6 +459,8 @@ function getDefaultSurveyLabels(feature, messages, languages) {
 
 const getNoLabelsColums = languages => languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {});
 
+const getItemCount = (item, language, suffix = '', unitSuffix = '___count') =>  item.isInSet ? '**${'+`${item.name}${suffix}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}${suffix}___unit`+'} '+item.unit.label[language].toLowerCase()+'**' : '**${'+`${item.name}${unitSuffix}`+'} '+item.unit.label[language].toLowerCase()+'**';
+
 module.exports = {
   getAppSettings,
   isAlreadyInit,
@@ -476,5 +478,6 @@ module.exports = {
   getContactParentHierarchy,
   getLastGroupIndex,
   getConfig,
+  getItemCount,
 };
 
