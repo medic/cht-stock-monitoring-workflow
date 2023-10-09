@@ -200,27 +200,56 @@ async function updateForm(configs) {
           }),
           ...formItems.filter(item => item.category === category.name).map((item) => {
             const itemConfig = formItemConfigs[item.name];
-            return buildRowValues(header, {
-              type: itemConfig['deduction_type'] === 'formula' ? 'calculate' : 'decimal',
+            let itemObj = {
               name: `${item.name}_used_in_${formConfig.name}`,
               relevant: itemConfig['deduction_type'] === 'by_user' ? itemConfig.formular : '',
-              calculation: itemConfig['deduction_type'] === 'formula' ? itemConfig.formular : '',
-              ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_count.forms.item_used_question'].replace('{{item}}', item.label[language]) }), {})
-            });
+            };
+            if (itemConfig['deduction_type'] === 'formula') {
+              itemObj.type = 'calculate';
+              itemObj.calculation = itemConfig['deduction_type'] === 'formula' ? itemConfig.formular : '';
+            } else {
+              itemObj.required = 'yes';
+              if (item.isInSet) {
+                itemObj.type = 'string';
+                itemObj.constraint = "regex(., '^\\d+\\/\\d+$')";
+                itemObj.name = `${item.name}_used_in`;
+                itemObj.default = '0/0';
+                itemObj = Object.assign(itemObj, {
+                  ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_count.forms.item_used_question'].replace('{{item}}', item.label[language]) }), {}),...languages.reduce((prev, language) => ({
+                    ...prev,
+                    [`hint::${language}`]: '${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase()
+                  }), {})
+                });
+              } else {
+                itemObj.type = 'integer';
+                itemObj = Object.assign(itemObj, {
+                  ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_count.forms.item_used_question'].replace('{{item}}', item.label[language]) }), {})
+                });
+              }
+            }
+            return buildRowValues(header, itemObj);
           }),
+          ...formItems.filter(item => item.category === category.name && item.isInSet).map((item) => {
+            return [
+              buildRowValues(header, {
+                type: 'calculate',
+                name: `${item.name}___set`,
+                calculation: 'if(count-selected(${'+item.name+'_used_in}) > 0 and count-selected(substring-before(${'+item.name+'_used_in}, "/")) >= 0 and regex(substring-before(${'+item.name+"_used_in}, \"/\"), '^[0-9]+$'),number(substring-before(${"+item.name+'_used_in}, "/")),0)',
+              }),
+              buildRowValues(header, {
+                type: 'calculate',
+                name: `${item.name}___unit`,
+                calculation: 'if(count-selected(${'+item.name+'_used_in}) > 0 and count-selected(substring-after(${'+item.name+'_used_in}, "/")) >= 0 and regex(substring-after(${'+item.name+"_used_in}, \"/\"), '^[0-9]+$'),number(substring-after(${"+item.name+'_used_in}, "/")),0)',
+              }),
+              buildRowValues(header, {
+                type: 'calculate',
+                name: `${item.name}_used_in_${formConfig.name}`,
+                calculation: '${'+item.name+'___set} * ' + item.set.count + ' + ${'+item.name+'___unit}',
+              }),
+            ];
+          }).reduce((prev, next) => [...prev, ...next], []),
         ];
       }).reduce((prev, next) => [...prev, ...next], []),
-      ...(formCategoryIds.length === 0 ? formItems.map((item) => {
-        const itemConfig = formItemConfigs[item.name];
-        return buildRowValues(header, {
-          type: itemConfig['deduction_type'] === 'formula' ? 'calculate' : 'decimal',
-          name: `${item.name}_used_in_${formConfig.name}`,
-          required: itemConfig['deduction_type'] === 'formula' ? '' : 'yes',
-          relevant: itemConfig['deduction_type'] === 'by_user' ? itemConfig.formular : '',
-          calculation: itemConfig['deduction_type'] === 'formula' ? itemConfig.formular : '',
-          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_count.forms.item_used_question'].replace('{{item}}', item.label[language]) }), {})
-        });
-      }) : []),
       buildRowValues(header, {
         type: 'end group',
         name: 'fields',
