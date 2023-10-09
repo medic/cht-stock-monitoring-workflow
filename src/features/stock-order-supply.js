@@ -1,5 +1,6 @@
 const { getNoLabelsColums, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getNumberOfSteps, getDefaultSurveyLabels,
-  getContactParentHierarchy
+  getContactParentHierarchy,
+  getItemCount
 } = require('../common');
 const chalk = require('chalk');
 const path = require('path');
@@ -15,7 +16,7 @@ function addOrderSupplyCalculation(workSheet, items) {
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_supply`, // Row name
-      calculation: '${' + `supply_${item.name}` + '}'
+      calculation: item.isInSet ? '${'+item.name+'___set} * ' + item.set.count + ' + ${'+item.name+'___unit}' : '${supply_'+item.name+'}',
     }))
   ];
 
@@ -48,7 +49,7 @@ function addOrderSupplySummaries(workSheet, items, languages, categories = []) {
           name: `${item.name}_summary`,
           appearance: 'li',
           relevant: '${' + `${item.name}_ordered` + '} > 0',
-          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.label[language]}: ` + '${' + `supply_${item.name}}` }), {})
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.label[language]}: ` + getItemCount(item, language, '', '_supply') }), {})
         }))),
       );
     }
@@ -59,7 +60,7 @@ function addOrderSupplySummaries(workSheet, items, languages, categories = []) {
         name: `${item.name}_summary`,
         appearance: 'li',
         relevant: '${' + `${item.name}_ordered` + '} > 0',
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.name[language]}: ` + '${' + `supply_${item.name}}` }), {})
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.name[language]}: ` + getItemCount(item, language, '', '_supply') }), {})
       }))
     );
   }
@@ -158,7 +159,7 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
 
 function getItemRows(header, languages, items, messages) {
   return items.map((item) => {
-    return [
+    const row = [
       buildRowValues(header, {
         type: 'begin group',
         name: `___${item.name}`,
@@ -168,19 +169,61 @@ function getItemRows(header, languages, items, messages) {
       buildRowValues(header, {
         type: 'note',
         name: `supply_${item.name}_note`,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.supply.message.qty_ordered'].replace('{{qty}}', '${' + `${item.name}_ordered}`) }), {})
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.supply.message.qty_ordered'].replace('{{qty}}', getItemCount(item, language, '_ordered', '_ordered')) }), {})
       }),
-      buildRowValues(header, {
-        type: 'decimal',
-        name: `supply_${item.name}`,
-        required: 'yes',
-        default: 0,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.supply.message.qty'] }), {})
-      }),
+    ];
+    if (item.isInSet) {
+      row.push(
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}_ordered___set`,
+          calculation: 'int(${'+item.name+'_ordered} div '+item.set.count+')'
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}_ordered___unit`,
+          calculation: '${'+item.name+'_ordered} mod '+item.set.count
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}___set`,
+          calculation: 'if(count-selected(${supply_'+item.name+'}) > 0 and count-selected(substring-before(${supply_'+item.name+'}, "/")) >= 0 and regex(substring-before(${supply_'+item.name+"}, \"/\"), '^[0-9]+$'),number(substring-before(${supply_"+item.name+'}, "/")),0)',
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}___unit`,
+          calculation: 'if(count-selected(${supply_'+item.name+'}) > 0 and count-selected(substring-after(${supply_'+item.name+'}, "/")) >= 0 and regex(substring-after(${supply_'+item.name+"}, \"/\"), '^[0-9]+$'),number(substring-after(${supply_"+item.name+'}, "/")),0)',
+        }),
+        buildRowValues(header, {
+          type: 'string',
+          name: `supply_${item.name}`,
+          required: 'yes',
+          constraint: "regex(., '^\\d+\\/\\d+$')",
+          default: '0/0',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.supply.message.qty'] }), {}),
+          ...languages.reduce((prev, language) => ({
+            ...prev,
+            [`hint::${language}`]: '${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase()
+          }), {})
+        }),
+      );
+    } else {
+      row.push(
+        buildRowValues(header, {
+          type: 'integer',
+          name: `supply_${item.name}`,
+          required: 'yes',
+          default: 0,
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.supply.message.qty'] }), {})
+        }),
+      );
+    }
+    row.push(
       buildRowValues(header, {
         type: 'end group',
       }),
-    ];
+    );
+    return row;
   });
 }
 
