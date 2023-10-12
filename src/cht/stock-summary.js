@@ -33,6 +33,7 @@ function getSummary(configs, reports) {
   var dynamicFormNames = {
     stockCount: stockCountFeature.form_name,
     supplyForm: configs.features.stock_supply && configs.features.stock_supply.form_name,
+    orderSupplyForm: configs.features.stock_order && configs.features.stock_order.stock_supply && configs.features.stock_order.stock_supply.form_name,
     supplyConfirm: '',
     supplyDiscrepancy: configs.features.stock_supply && configs.features.stock_supply.discrepancy && configs.features.stock_supply.discrepancy.form_name,
     stockReturn: configs.features.stock_return && configs.features.stock_return.form_name,
@@ -48,7 +49,7 @@ function getSummary(configs, reports) {
     return [];
   }
 
-  return stockCountFeature.contact_types.map(function (contact) {
+  return stockCountFeature.contact_types.map(function (contactLevel) {
     var itemQuantities = common.getItemCountFromLastStockCount(configs, reports);
     var itemsFields = items.map(function (item) {
       var value = itemQuantities[item.name];
@@ -63,7 +64,7 @@ function getSummary(configs, reports) {
     });
     return {
       label: constants.TRANSLATION_PREFIX + 'stock_count.contact_summary.title',
-      appliesToType: contact.place_type,
+      appliesToType: contactLevel.place_type,
       appliesIf: lastStockCount,
       modifyContext: function (context) {
         for (var index = 0; index < itemsFields.length; index++) {

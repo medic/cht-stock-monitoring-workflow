@@ -137,6 +137,7 @@ function getItemCountInReports(itemName, reports, forms) {
        * Add item quantity to chw stock
        */
       case forms.supplyForm:
+      case forms.orderSupplyForm:
         {
           total -= Number(Utils.getField(report, 'out.' + itemName + '_supply') || 0);
         }
@@ -194,12 +195,13 @@ function getItemCountInReports(itemName, reports, forms) {
        * Supervisor received item returned by chw
        */
       case forms.stockReturned:
+      {
         total += Number(Utils.getField(report, 'out.' + itemName + '_in') || 0);
         break;
+      }
       default:
         break;
     }
-
   }
   return total;
 }
@@ -213,6 +215,7 @@ function getItemCountFromLastStockCount(configs, reports) {
     FORM_ADDITIONAL_DOC_NAME: constants.FORM_ADDITIONAL_DOC_NAME,
     stockCount: configs.features.stock_count && configs.features.stock_count.form_name,
     supplyForm: configs.features.stock_supply && configs.features.stock_supply.form_name,
+    orderSupplyForm: configs.features.stock_order && configs.features.stock_order.stock_supply && configs.features.stock_order.stock_supply.form_name,
     supplyConfirm: (configs.features.stock_supply && configs.features.stock_supply.confirm_supply && configs.features.stock_supply.confirm_supply.active) ? configs.features.stock_supply.confirm_supply.form_name : '',
     supplyDiscrepancy: (configs.features.stock_supply && configs.features.stock_supply.discrepancy) ? configs.features.stock_supply.discrepancy.form_name : '',
     DESCREPANCY_ADD_DOC: constants.DESCREPANCY_ADD_DOC,
