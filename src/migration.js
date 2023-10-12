@@ -90,9 +90,10 @@ const migrate = async (fromVersion, toVersion) => {
   }
   const versionsToMigrate = allVersions.slice(fromVersionIndex + 1, toVersionIndex + 1);
   let config = getConfig();
-  console.log(versionsToMigrate);
   for (const version of versionsToMigrate) {
     config = await migrationFunctions[version](config);
+    config.version = version;
+    config.created_date = new Date();
   }
   writeConfig(config);
 };
