@@ -16,7 +16,7 @@ function addStockSupplyCalculation(workSheet, items) {
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_supply`, // Row name
-      calculation: '${' + `supply_${item.name}` + '}'
+      calculation: '${' + `${item.name}` + '___count}'
     }))
   ];
 
