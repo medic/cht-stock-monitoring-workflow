@@ -51,7 +51,7 @@ function getTranslations(removePrefix = true) {
       // Get cht app messages path
       const messagePath = path.join(processDir, 'translations', `messages-${locale}.properties`);
       const messages = fs.readFileSync(messagePath, {
-        encoding: 'latin1'
+        encoding: 'utf-8'
       }).split('\n');
       return [
         locale,
