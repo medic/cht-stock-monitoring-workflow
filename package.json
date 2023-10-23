@@ -10,20 +10,30 @@
   "bin": {
     "cht-stock-monitoring-workflow": "./main.js"
   },
+  "scripts": {
+    "cz": "cz"
+  },
   "license": "AGPL-3.0-only",
   "devDependencies": {
     "@medic/eslint-config": "^1.1.0",
     "cht-nootils": "^4.2.0",
+    "commitizen": "^4.3.0",
     "eslint": "^6.8.0",
     "eslint-plugin-json": "^2.0.1",
+    "git-cz": "^4.9.0",
     "rewire": "^6.0.0"
   },
   "dependencies": {
-    "fraction.js": "^4.2.0",
+    "chalk": "^4.1.0",
     "exceljs": "^4.3.0",
+    "fraction.js": "^4.2.0",
     "fs-extra": "^11.1.0",
     "inquirer": "^8.2.5",
-    "luxon": "^3.3.0",
-    "chalk": "^4.1.0"
+    "luxon": "^3.3.0"
+  },
+  "config": {
+    "commitizen": {
+      "path": "git-cz"
+    }
   }
 }
