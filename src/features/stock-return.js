@@ -116,7 +116,7 @@ function getItemRows(header, languages, messages, selectionFieldName, items) {
           type: 'integer',
           name: `${item.name}_returned_qty`,
           required: 'yes',
-          constraint: '. > 0 and . <= ${' + item.name + '_current}',
+          constraint: '. > 0 and . <= number(${' + item.name + '_current})',
           default: 0,
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.qty_returned'] }), {}),
         }),
