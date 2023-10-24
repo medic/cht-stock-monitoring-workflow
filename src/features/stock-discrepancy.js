@@ -140,7 +140,7 @@ function getItemRows(header, languages, messages, items) {
       buildRowValues(header, {
         type: 'begin group',
         name: `___${item.name}`,
-        relevant: '${' + `${item.name}_received} !=` + '${' + `${item.name}_confirmed}`,
+        relevant: 'coalesce(${' + `${item.name}_received},0) !=` + 'coalesce(${' + `${item.name}_confirmed},0)`,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
       }),
     ];
