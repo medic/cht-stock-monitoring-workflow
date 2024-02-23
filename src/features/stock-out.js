@@ -3,11 +3,13 @@ const path = require('path');
 const fs = require('fs-extra');
 const ExcelJS = require('exceljs');
 const inquirer = require('inquirer');
-const { getNoLabelsColums, getTranslations, getRowWithValueAtPosition, getNumberOfSteps, buildRowValues, getSheetGroupBeginEnd } = require('../common');
+const { getNoLabelsColums, getTranslations, getRowWithValueAtPosition, getNumberOfSteps, buildRowValues, getSheetGroupBeginEnd,
+  getItemCount
+} = require('../common');
 
 function getItemRows(header, languages, messages, items) {
   return items.map((item) => {
-    return [
+    const row = [
       buildRowValues(header, {
         type: 'note',
         name: `${item.name}_name`,
@@ -25,7 +27,7 @@ function getItemRows(header, languages, messages, items) {
         relevant: '${' + `${item.name}_at_hand} <=` + '${' + `${item.name}_required}`,
         ...languages.reduce((prev, language) => ({
           ...prev,
-          [`label::${language}`]: messages[language]['stock_out.message.stock_at_hand'].replace('{{qty}}', '${' + item.name + '_at_hand}')
+          [`label::${language}`]: messages[language]['stock_out.message.stock_at_hand'].replace('{{qty}}', getItemCount(item, language, '_at_hand', '_at_hand'))
         }), {})
       }),
       buildRowValues(header, {
@@ -35,10 +37,35 @@ function getItemRows(header, languages, messages, items) {
         relevant: '${' + `${item.name}_at_hand} <=` + '${' + `${item.name}_required}`,
         ...languages.reduce((prev, language) => ({
           ...prev,
-          [`label::${language}`]: messages[language]['stock_out.message.stock_required'].replace('{{qty}}', '${' + item.name + '_required}')
+          [`label::${language}`]: messages[language]['stock_out.message.stock_required'].replace('{{qty}}', getItemCount(item, language, '_required', '_required'))
         }), {})
       }),
     ];
+    if (item.isInSet) {
+      row.push(
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}_at_hand___set`,
+          calculation: 'int(${'+item.name+'_at_hand} div '+item.set.count+')'
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}_at_hand___unit`,
+          calculation: '${'+item.name+'_at_hand} mod '+item.set.count
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}_required___set`,
+          calculation: 'int(${'+item.name+'_required} div '+item.set.count+')'
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}_required___unit`,
+          calculation: '${'+item.name+'_required} mod '+item.set.count
+        }),
+      );
+    }
+    return row;
   });
 }
 

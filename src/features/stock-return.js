@@ -29,7 +29,7 @@ function getChoicesFromMessage(messages, languages, choiceName, key = 'stock_ret
 // @returns {Array} - The item rows to add to worksheet
 function getItemRows(header, languages, messages, selectionFieldName, items) {
   return items.map((item) => {
-    return [
+    const row = [
       buildRowValues(header, {
         type: 'begin group',
         name: `___${item.name}`,
@@ -49,33 +49,100 @@ function getItemRows(header, languages, messages, selectionFieldName, items) {
         relevant: 'selected(${' + item.name + '_return_reason}, ' + `'other')`,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.specify'] }), {})
       }),
+    ];
+    const beforeQtNoteInLanguage = (item, language) => messages[language]['stock_return.forms.qty_before'] + (item.isInSet ? (': ${'+`${item.name}_before___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}_before___unit`+'} '+item.unit.label[language].toLowerCase()) : ': ${' + item.name + '_current}');
+    const afterNote = (item, language) => messages[language]['stock_return.forms.qty_after'] + (item.isInSet ? (': ${'+`${item.name}_after___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}_after___unit`+'} '+item.unit.label[language].toLowerCase()) : ': ${' + item.name + '_after}');
+    if (item.isInSet) {
+      row.push(
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}_before___set`,
+          calculation: 'int(${'+item.name+'_current} div '+item.set.count+')',
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}_before___unit`,
+          calculation: '${'+item.name+'_current} mod '+item.set.count,
+        }),
+        buildRowValues(header, {
+          type: 'note',
+          name: `${item.name}_before`,
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: beforeQtNoteInLanguage(item, language) }), {})
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}___set`,
+          calculation: 'if(count-selected(${'+item.name+'_returned_qty}) > 0 and count-selected(substring-before(${'+item.name+'_returned_qty}, "/")) >= 0 and regex(substring-before(${'+item.name+"_returned_qty}, \"/\"), '^[0-9]+$'),number(substring-before(${"+item.name+'_returned_qty}, "/")),0)',
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}___unit`,
+          calculation: 'if(count-selected(${'+item.name+'_returned_qty}) > 0 and count-selected(substring-after(${'+item.name+'_returned_qty}, "/")) >= 0 and regex(substring-after(${'+item.name+"_returned_qty}, \"/\"), '^[0-9]+$'),number(substring-after(${"+item.name+'_returned_qty}, "/")),0)',
+        }),
+        buildRowValues(header, {
+          type: 'string',
+          name: `${item.name}_returned_qty`,
+          required: 'yes',
+          constraint: "regex(., '^\\d+\\/\\d+$')",
+          default: '0/0',
+          ...languages.reduce((prev, language) => ({
+            ...prev,
+            [`label::${language}`]: messages[language]['stock_return.forms.qty_returned']
+          }), {}),
+          ...languages.reduce((prev, language) => ({
+            ...prev,
+            [`hint::${language}`]: '${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase()
+          }), {})
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}_after___set`,
+          calculation: 'int(${'+item.name+'_after} div '+item.set.count+')',
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}_after___unit`,
+          calculation: '${'+item.name+'_after} mod '+item.set.count,
+        }),
+      );
+    } else {
+      row.push(
+        buildRowValues(header, {
+          type: 'note',
+          name: `${item.name}_before`,
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: beforeQtNoteInLanguage(item, language) }), {})
+        }),
+        buildRowValues(header, {
+          type: 'integer',
+          name: `${item.name}_returned_qty`,
+          required: 'yes',
+          constraint: '. > 0 and . <= number(${' + item.name + '_current})',
+          default: 0,
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.qty_returned'] }), {}),
+        }),
+      );
+    }
+    row.push(
       buildRowValues(header, {
-        type: 'note',
-        name: `${item.name}_before`,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.qty_before'] + ': ${' + item.name + '_current}' }), {})
-      }),
-      buildRowValues(header, {
-        type: 'decimal',
-        name: `${item.name}_returned_qty`,
-        required: 'yes',
-        constraint: '. > 0 and . <= ${' + item.name + '_current}',
-        default: 0,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.qty_returned'] }), {})
+        type: 'calculate',
+        name: `${item.name}___count`,
+        calculation: item.isInSet ? '${'+item.name+'___set} * ' + item.set.count + ' + ${'+item.name+'___unit}' : '${'+item.name+'_returned_qty}',
       }),
       buildRowValues(header, {
         type: 'calculate',
         name: `${item.name}_after`,
-        calculation: '${' + item.name + '_current} - if(${' + `${item.name}_returned_qty} != '',` + '${' + `${item.name}_returned_qty},0)`
+        calculation: '${' + item.name + '_current} - if(${' + `${item.name}_returned_qty} != '',` + '${' + `${item.name}___count},0)`
       }),
       buildRowValues(header, {
         type: 'note',
         name: `${item.name}_after_note`,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.qty_after'] + ': ${' + item.name + '_after}' }), {})
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: afterNote(item, language) }), {})
       }),
       buildRowValues(header, {
         type: 'end group',
       }),
-    ];
+    );
+    return row;
   });
 }
 
@@ -84,6 +151,7 @@ function addReturnedSummaries(workSheet, languages, items, categories = []) {
   const header = workSheet.getRow(1).values;
   header.shift();
   let rows = [];
+  const summaryLabel = (item, language) =>  item.isInSet ? '**${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase()+'**' : '**${'+`${item.name}___count`+'} '+item.unit.label[language].toLowerCase()+'**';
   if (categories.length > 0) {
     for (const category of categories) {
       rows.push(
@@ -99,7 +167,7 @@ function addReturnedSummaries(workSheet, languages, items, categories = []) {
           name: `${item.name}_summary`,
           appearance: 'li',
           relevant: 'selected(${' + category.name + '_items_selected}, ' + `'${item.name}')`,
-          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.label[language]}: ` + '${' + `${item.name}_returned_qty}` }), {})
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.label[language]}: `  + summaryLabel(item, language) }), {})
         }))),
       );
     }
@@ -109,7 +177,7 @@ function addReturnedSummaries(workSheet, languages, items, categories = []) {
       name: `${item.name}_summary`,
       appearance: 'li',
       relevant: 'selected(${list_items_selected}, ' + `'${item.name}')`,
-      ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.name[language]}: ` + '${' + `${item.name}_returned_qty}` }), {})
+      ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.name[language]}: ` + summaryLabel(item, language) }), {})
     }));
   }
   //Insert item
@@ -128,7 +196,7 @@ function addExportCalculation(workSheet, items) {
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_out`, // Row name
-      calculation: 'if(${' + `${item.name}_returned_qty} != '',` + '${' + `${item.name}_returned_qty},0)`
+      calculation: 'if(${' + `${item.name}_returned_qty} != '',` + '${' + `${item.name}___count},0)`
     }))
   ];
 

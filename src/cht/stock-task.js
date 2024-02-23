@@ -136,12 +136,11 @@ function getTasks(configs) {
         appliesToType: [configs.features.stock_supply.confirm_supply.form_name],
         appliesIf: function (contact, report) {
           var itemDescrepancy = items.find(function(item) {
-            var itemReceived = Number(Utils.getField(report, 'inputs.'+item.name+'_received') || 0);
-            var itemConfirmed = Number(Utils.getField(report, 'out.'+item.name+'_confirmed') || 0);
-            if (itemReceived !== itemConfirmed) {
-              return true;
-            }
-            return false;
+            var itemReceived = Utils.getField(report, 'inputs.'+item.name+'_received');
+            var itemConfirmed = Utils.getField(report, 'out.'+item.name+'_confirmed');
+            itemReceived = itemReceived === 'NaN' ? 0 : Number(itemReceived || 0);
+            itemConfirmed = itemConfirmed === 'NaN' ? 0 : Number(itemConfirmed || 0);
+            return itemReceived !== itemConfirmed;
           });
           var supplierId = Utils.getField(report, 'inputs.supplier_id');
           if (!itemDescrepancy) {
@@ -178,6 +177,8 @@ function getTasks(configs) {
               var itemDescrepancys = items.filter(function(item) {
                 var itemReceived = Utils.getField(report, 'inputs.'+item.name+'_received');
                 var itemConfirmed = Utils.getField(report, 'out.'+item.name+'_confirmed');
+                itemReceived = itemReceived === 'NaN' ? 0 : Number(itemReceived || 0);
+                itemConfirmed = itemConfirmed === 'NaN' ? 0 : Number(itemConfirmed || 0);
                 return itemReceived !== itemConfirmed;
               });
               for (var i = 0; i < itemDescrepancys.length; i++) {

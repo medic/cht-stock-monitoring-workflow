@@ -51,7 +51,7 @@ function getTranslations(removePrefix = true) {
       // Get cht app messages path
       const messagePath = path.join(processDir, 'translations', `messages-${locale}.properties`);
       const messages = fs.readFileSync(messagePath, {
-        encoding: 'latin1'
+        encoding: 'utf-8'
       }).split('\n');
       return [
         locale,
@@ -138,6 +138,19 @@ function updateTranslations(configs) {
 function writeConfig(config) {
   const processDir = process.cwd();
   const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
+
+  // Get package version
+  if (!fs.existsSync(configFilePath) || !config.version) {
+    const packageFilePath = path.join(
+      __dirname,
+      '../package.json'
+    );
+    const packageFileRaw = fs.readFileSync(packageFilePath).toString();
+    if (packageFileRaw.length > 0) {
+      config.version = JSON.parse(packageFileRaw).version;
+    }
+  }
+  config.last_update_date = new Date();
   fs.writeFileSync(configFilePath, JSON.stringify(config, null, 4));
   updateTranslations(config);
 }
@@ -147,11 +160,15 @@ function writeConfig(config) {
  * @return {object} - The config
  * @throws {Error} - If the config file does not exist
  * */
-function getConfigs() {
+function getConfig() {
   const processDir = process.cwd();
+  if (!isAlreadyInit(processDir)) {
+    console.log(chalk.red.bold('Stock monitoring module not found'));
+    return;
+  }
   const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
-  const content = fs.readFileSync(configFilePath);
-  return JSON.parse(content);
+  const configStr = fs.readFileSync(configFilePath);
+  return JSON.parse(configStr);
 }
 
 /**
@@ -266,23 +283,6 @@ function getRowNumberWithNameInInterval(workSheet, name, begin, end, namePositio
     return getRowNumberWithNameInInterval(workSheet, name, begin+1, end);
   }
   return -1;
-}
-
-/**
- * Verify if row is empty
- * @param row
- */
-function isRowEmpty(row) {
-  return row.values.every((value) => {
-    let text = '';
-    if (value && typeof value === 'string') {
-      text = value.trim();
-    }
-    if (value && isRichValue(value)) {
-      text = richToString(value);
-    }
-    return text.length === 0;
-  });
 }
 
 function getLastGroupIndex(workSheet, typeColumnIndex = 0) {
@@ -449,7 +449,7 @@ function getDefaultSurveyLabels(feature, messages, languages) {
     );
     hintColumns.push(
       [
-        `hint:${language}`,
+        `hint::${language}`,
       ]
     );
   }
@@ -458,6 +458,8 @@ function getDefaultSurveyLabels(feature, messages, languages) {
 }
 
 const getNoLabelsColums = languages => languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {});
+
+const getItemCount = (item, language, suffix = '', unitSuffix = '___count') =>  item.isInSet ? '**${'+`${item.name}${suffix}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}${suffix}___unit`+'} '+item.unit.label[language].toLowerCase()+'**' : '**${'+`${item.name}${unitSuffix}`+'} '+item.unit.label[language].toLowerCase()+'**';
 
 module.exports = {
   getAppSettings,
@@ -475,5 +477,7 @@ module.exports = {
   getRowNumberWithNameInInterval,
   getContactParentHierarchy,
   getLastGroupIndex,
+  getConfig,
+  getItemCount,
 };
 
