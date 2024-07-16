@@ -27,10 +27,6 @@ async function selectFeature(configs) {
       'stock_supply',
       'stock_return',
       'stock_out',
-    );
-  }
-  if (configs.levels['3']) {
-    features.push(
       'stock_order',
     );
   }

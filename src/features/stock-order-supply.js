@@ -1,4 +1,7 @@
-const { getNoLabelsColums, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getNumberOfSteps, getDefaultSurveyLabels } = require('../common');
+const { getNoLabelsColums, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getNumberOfSteps, getDefaultSurveyLabels,
+  getContactParentHierarchy,
+  getItemCount
+} = require('../common');
 const chalk = require('chalk');
 const path = require('path');
 const fs = require('fs-extra');
@@ -13,7 +16,7 @@ function addOrderSupplyCalculation(workSheet, items) {
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_supply`, // Row name
-      calculation: '${' + `supply_${item.name}` + '}'
+      calculation: item.isInSet ? '${'+item.name+'___set} * ' + item.set.count + ' + ${'+item.name+'___unit}' : '${supply_'+item.name+'}',
     }))
   ];
 
@@ -46,7 +49,7 @@ function addOrderSupplySummaries(workSheet, items, languages, categories = []) {
           name: `${item.name}_summary`,
           appearance: 'li',
           relevant: '${' + `${item.name}_ordered` + '} > 0',
-          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.label[language]}: ` + '${' + `supply_${item.name}}` }), {})
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.label[language]}: ` + getItemCount(item, language, '', '_supply') }), {})
         }))),
       );
     }
@@ -57,7 +60,7 @@ function addOrderSupplySummaries(workSheet, items, languages, categories = []) {
         name: `${item.name}_summary`,
         appearance: 'li',
         relevant: '${' + `${item.name}_ordered` + '} > 0',
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.name[language]}: ` + '${' + `supply_${item.name}}` }), {})
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.name[language]}: ` + getItemCount(item, language, '', '_supply') }), {})
       }))
     );
   }
@@ -86,16 +89,6 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
     }),
     buildRowValues(header, {
       type: 'calculate',
-      name: 'place_id',
-      calculation: '${supply_place_id}'
-    }),
-    buildRowValues(header, {
-      type: 'calculate',
-      name: 's_order_id',
-      calculation: '${order_id}'
-    }),
-    buildRowValues(header, {
-      type: 'calculate',
       name: 'type',
       calculation: '"data_record"'
     }),
@@ -111,11 +104,6 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
       calculation: '"xml"'
     }),
     buildRowValues(header, {
-      type: 'calculate',
-      name: 'supplier_id',
-      calculation: '${user_contact_id}'
-    }),
-    buildRowValues(header, {
       type: 'begin group',
       name: 'contact',
       ...getNoLabelsColums(languages)
@@ -123,7 +111,7 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
     buildRowValues(header, {
       type: 'calculate',
       name: '_id',
-      calculation: '${supply_place_id}'
+      calculation: '${user_contact_id}'
     }),
     buildRowValues(header, {
       type: 'end group',
@@ -133,6 +121,21 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
       type: 'begin group',
       name: 'fields',
       ...getNoLabelsColums(languages)
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'place_id',
+      calculation: '${supply_place_id}'
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 's_order_id',
+      calculation: '${order_id}'
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'supplier_id',
+      calculation: '${user_contact_id}'
     }),
     buildRowValues(header, {
       type: 'calculate',
@@ -156,7 +159,7 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
 
 function getItemRows(header, languages, items, messages) {
   return items.map((item) => {
-    return [
+    const row = [
       buildRowValues(header, {
         type: 'begin group',
         name: `___${item.name}`,
@@ -166,19 +169,61 @@ function getItemRows(header, languages, items, messages) {
       buildRowValues(header, {
         type: 'note',
         name: `supply_${item.name}_note`,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.supply.message.qty_ordered'].replace('{{qty}}', '${' + `${item.name}_ordered}`) }), {})
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.supply.message.qty_ordered'].replace('{{qty}}', getItemCount(item, language, '_ordered', '_ordered')) }), {})
       }),
-      buildRowValues(header, {
-        type: 'decimal',
-        name: `supply_${item.name}`,
-        required: 'yes',
-        default: 0,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.supply.message.qty'] }), {})
-      }),
+    ];
+    if (item.isInSet) {
+      row.push(
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}_ordered___set`,
+          calculation: 'int(${'+item.name+'_ordered} div '+item.set.count+')'
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}_ordered___unit`,
+          calculation: '${'+item.name+'_ordered} mod '+item.set.count
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}___set`,
+          calculation: 'if(count-selected(${supply_'+item.name+'}) > 0 and count-selected(substring-before(${supply_'+item.name+'}, "/")) >= 0 and regex(substring-before(${supply_'+item.name+"}, \"/\"), '^[0-9]+$'),number(substring-before(${supply_"+item.name+'}, "/")),0)',
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}___unit`,
+          calculation: 'if(count-selected(${supply_'+item.name+'}) > 0 and count-selected(substring-after(${supply_'+item.name+'}, "/")) >= 0 and regex(substring-after(${supply_'+item.name+"}, \"/\"), '^[0-9]+$'),number(substring-after(${supply_"+item.name+'}, "/")),0)',
+        }),
+        buildRowValues(header, {
+          type: 'string',
+          name: `supply_${item.name}`,
+          required: 'yes',
+          constraint: "regex(., '^\\d+\\/\\d+$')",
+          default: '0/0',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.supply.message.qty'] }), {}),
+          ...languages.reduce((prev, language) => ({
+            ...prev,
+            [`hint::${language}`]: '${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase()
+          }), {})
+        }),
+      );
+    } else {
+      row.push(
+        buildRowValues(header, {
+          type: 'integer',
+          name: `supply_${item.name}`,
+          required: 'yes',
+          default: 0,
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.supply.message.qty'] }), {})
+        }),
+      );
+    }
+    row.push(
       buildRowValues(header, {
         type: 'end group',
       }),
-    ];
+    );
+    return row;
   });
 }
 
@@ -201,7 +246,7 @@ async function updateOrderStockSupply(configs) {
   const [labelColumns, hintColumns ] = getDefaultSurveyLabels('stock_order.supply', messages, languages);
 
   // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
@@ -225,30 +270,8 @@ async function updateOrderStockSupply(configs) {
   header.shift();
   // Get level 2
   const nbParents = getNumberOfSteps(configs.levels[1].place_type, configs.levels[2].place_type);
-  const contactParentRows = [];
-  for (let i = 0; i < nbParents; i++) {
-    contactParentRows.push(
-      buildRowValues(header, {
-        type: 'begin group',
-        name: `parent`,
-        appearance: `hidden`,
-        ...getNoLabelsColums(languages)
-      }),
-      buildRowValues(header, {
-        type: 'string',
-        name: `_id`,
-        ...getNoLabelsColums(languages)
-      })
-    );
-  }
-  for (let i = 0; i < nbParents; i++) {
-    contactParentRows.push(
-      buildRowValues(header, {
-        type: 'end group',
-      })
-    );
-  }
-  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 2);
+  const contactParentRows = getContactParentHierarchy(nbParents, header, languages);
+  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 1);
   surveyWorkSheet.insertRows(
     contactPosition + 3,
     contactParentRows,
@@ -268,7 +291,7 @@ async function updateOrderStockSupply(configs) {
       ...getNoLabelsColums(languages)
     })
   ];
-  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);
+  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
   surveyWorkSheet.insertRows(
     inputPosition + 1,
     inputs,
@@ -287,7 +310,7 @@ async function updateOrderStockSupply(configs) {
       calculation: `../inputs/user/contact_id`
     })
   ];
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
   surveyWorkSheet.getRow(position).getCell(8).value = `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`;
   if (configs.useItemCategory) {
     rows.push(
@@ -338,7 +361,7 @@ async function updateOrderStockSupply(configs) {
     'i+'
   );
   addOrderSupplySummaries(surveyWorkSheet, Object.values(configs.items), languages, categories);
-  addOrderSupplyCalculation(surveyWorkSheet, Object.values(configs.items), languages);
+  addOrderSupplyCalculation(surveyWorkSheet, Object.values(configs.items));
   const [, end] = getSheetGroupBeginEnd(surveyWorkSheet, 'out');
   const additionalDocRows = getAdditionalDoc(featureConfigs.form_name, languages, header, items, supplyConfigs.confirm_supply.active);
   surveyWorkSheet.insertRows(

@@ -3,7 +3,9 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const { Workbook } = require('exceljs');
-const { getTranslations, getRowWithValueAtPosition, getDefaultSurveyLabels, buildRowValues, addCategoryItemsToChoice, getSheetGroupBeginEnd } = require('../common');
+const { getTranslations, getRowWithValueAtPosition, getDefaultSurveyLabels, buildRowValues, addCategoryItemsToChoice, getSheetGroupBeginEnd,
+  getItemCount
+} = require('../common');
 
 /**
  * This function takes a header, a list of languages, a list of messages, a selection field name, and a list of items, and
@@ -37,7 +39,7 @@ const { getTranslations, getRowWithValueAtPosition, getDefaultSurveyLabels, buil
  **/
 function getItemRows(header, languages, messages, selectionFieldName, items) {
   return items.map((item) => {
-    return [
+    const row = [
       buildRowValues(header, {
         type: 'begin group',
         name: `___${item.name}`,
@@ -47,30 +49,87 @@ function getItemRows(header, languages, messages, selectionFieldName, items) {
       buildRowValues(header, {
         type: 'note',
         name: `${item.name}_before`,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.qty_before'] + ': ${' + item.name + '_current}' }), {})
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.qty_before'] + ': ' + getItemCount(item, language, '___current', '_current') }), {})
+      }),
+    ];
+    if (item.isInSet) {
+      row.push(
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}___current___set`,
+          calculation: 'int(${'+item.name+'_current} div '+item.set.count+')'
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}___current___unit`,
+          calculation: '${'+item.name+'_current} mod '+item.set.count
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}___set`,
+          calculation: 'if(count-selected(${'+item.name+'_order_qty}) > 0 and count-selected(substring-before(${'+item.name+'_order_qty}, "/")) >= 0 and regex(substring-before(${'+item.name+"_order_qty}, \"/\"), '^[0-9]+$'),number(substring-before(${"+item.name+'_order_qty}, "/")),0)',
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}___unit`,
+          calculation: 'if(count-selected(${'+item.name+'_order_qty}) > 0 and count-selected(substring-after(${'+item.name+'_order_qty}, "/")) >= 0 and regex(substring-after(${'+item.name+"_order_qty}, \"/\"), '^[0-9]+$'),number(substring-after(${"+item.name+'_order_qty}, "/")),0)',
+        }),
+        buildRowValues(header, {
+          type: 'string',
+          name: `${item.name}_order_qty`,
+          required: 'yes',
+          constraint: "regex(., '^\\d+\\/\\d+$')",
+          default: '0/0',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.qty_ordered'] }), {}),
+          ...languages.reduce((prev, language) => ({
+            ...prev,
+            [`hint::${language}`]: '${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase()
+          }), {})
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}___after___set`,
+          calculation: 'int(${'+item.name+'_after} div '+item.set.count+')'
+        }),
+        buildRowValues(header, {
+          type: 'calculate',
+          name: `${item.name}___after___unit`,
+          calculation: '${'+item.name+'_after} mod '+item.set.count
+        }),
+      );
+    } else {
+      row.push(
+        buildRowValues(header, {
+          type: 'integer',
+          name: `${item.name}_order_qty`,
+          required: 'yes',
+          constraint: '. > 0',
+          default: 0,
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.qty_ordered'] }), {})
+        }),
+      );
+    }
+    row.push(
+      buildRowValues(header, {
+        type: 'note',
+        name: `${item.name}_after_note`,
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.qty_after'] + ': ' + getItemCount(item, language, '___after', '_after') }), {})
       }),
       buildRowValues(header, {
-        type: 'decimal',
-        name: `${item.name}_order_qty`,
-        required: 'yes',
-        constraint: '. > 0',
-        default: 0,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.qty_ordered'] }), {})
+        type: 'calculate',
+        name: `${item.name}___count`,
+        calculation: item.isInSet ? '${'+item.name+'___set} * ' + item.set.count + ' + ${'+item.name+'___unit}' : '${'+item.name+'_order_qty}',
       }),
       buildRowValues(header, {
         type: 'calculate',
         name: `${item.name}_after`,
-        calculation: '${' + item.name + '_current} + if(${' + `${item.name}_order_qty} != '',` + '${' + `${item.name}_order_qty},0)`
-      }),
-      buildRowValues(header, {
-        type: 'note',
-        name: `${item.name}_after_note`,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.qty_after'] + ': ${' + item.name + '_after}' }), {})
+        calculation: '${' + item.name + '_current} + if(${' + `${item.name}_order_qty} != '',` + '${' + `${item.name}___count},0)`
       }),
       buildRowValues(header, {
         type: 'end group',
       }),
-    ];
+    );
+    return row;
   });
 }
 
@@ -94,7 +153,7 @@ function addOrderSummaries(workSheet, languages, items, categories = []) {
           name: `${item.name}_summary`,
           appearance: 'li',
           relevant: 'selected(${' + category.name + '_items_selected}, ' + `'${item.name}')`,
-          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.label[language]}: ` + '${' + `${item.name}_order_qty}` }), {})
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.label[language]}: ` + getItemCount(item, language) }), {})
         }))),
       );
     }
@@ -104,7 +163,7 @@ function addOrderSummaries(workSheet, languages, items, categories = []) {
       name: `${item.name}_summary`,
       appearance: 'li',
       relevant: 'selected(${list_items_selected}, ' + `'${item.name}')`,
-      ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.name[language]}: ` + '${' + `${item.name}_order_qty}` }), {})
+      ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.name[language]}: ` + getItemCount(item, language) }), {})
     }));
   }
   //Insert item
@@ -123,7 +182,7 @@ function addExportCalculation(workSheet, items) {
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_ordered`, // Row name
-      calculation: 'if(${' + `${item.name}_order_qty} != '',` + '${' + `${item.name}_order_qty},0)`
+      calculation: 'if(${' + `${item.name}_order_qty} != '',` + '${' + `${item.name}___count},0)`
     }))
   ];
 
@@ -158,7 +217,7 @@ async function updateStockOrder(configs) {
     configs.languages,
   );
   // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
@@ -173,6 +232,21 @@ async function updateStockOrder(configs) {
 
   const header = surveyWorkSheet.getRow(1).values;
   header.shift();
+  const nameColumnIndex = header.indexOf('name');
+  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', nameColumnIndex);
+  const contactTypeRow = [
+    buildRowValues(header, {
+      type: 'hidden',
+      name: 'contact_type',
+      appearance: 'hidden',
+      ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: 'NO_LABEL' }), {})
+    }),
+  ];
+  surveyWorkSheet.insertRows(
+    contactPosition + 3,
+    contactTypeRow,
+    'i+'
+  );
 
   const rows = items.map((item) => {
     // Get stock count from summary
@@ -183,7 +257,7 @@ async function updateStockOrder(configs) {
       calculation: `instance('contact-summary')/context/stock_monitoring_${item.name}_qty`
     });
   });
-  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
 
   if (configs.useItemCategory) {
     rows.push(
@@ -273,7 +347,7 @@ async function updateStockOrder(configs) {
   await workbook.xlsx.writeFile(formPath);
 
   // Add stock count form properties
-  const expression = `user.parent.contact_type === '${configs.levels[2].place_type}' && contact.contact_type === '${configs.levels[2].place_type}'`;
+  const expression = orderConfigs.actors.map((actor) => `contact.contact_type === '${actor.place_type}' && user.role === '${actor.role}'`).join(' || ');
   const formProperties = {
     'icon': 'icon-healthcare-medicine',
     'context': {
@@ -303,9 +377,25 @@ async function updateStockOrder(configs) {
  * @returns {String} configs.title.fr
  **/
 const getStockOrderConfigs = async ({
-  languages,
+  languages, levels
 }) => {
+  const actors = [levels[1]];
+  if (levels[3]) {
+    actors.push(levels[2]);
+  }
+
   const configs = await inquirer.prompt([
+    {
+      type: 'checkbox',
+      name: 'actors',
+      message: 'Select the actors',
+      choices: actors.map((actor) => {
+        return {
+          name: actor.role,
+          value: actor,
+        };
+      }),
+    },
     {
       type: 'input',
       name: 'form_name',

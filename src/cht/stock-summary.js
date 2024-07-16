@@ -5,9 +5,16 @@ var Utils = require('cht-nootils')();
 
 var NEGATIVE_STOCK_MSG = '(Ensure that you have entered all stock received)';
 
-function stockItemToSafeHtml (value, item) {
-  var html = '';
-  var innerHtml = (new Fraction(value.toFixed(1))).toString() + ' ' + item.unit;
+function stockItemToSafeHtml (value, item, language) {
+  var innerHtml = (new Fraction(value.toFixed(1))).toString() + ' ' + item.unit.label[language];
+  if (item.isInSet) {
+    var boxCount = Math.floor(value / item.set.count);
+    var remainder = value % item.set.count;
+    innerHtml = boxCount + ' ' + item.set.label[language];
+    if (remainder > 0) {
+        innerHtml += ' + ' + (new Fraction(remainder.toFixed(1))).toString() + ' ' + item.unit.label[language];
+    }
+  }
   if (value < 0) {
     innerHtml += ' '+NEGATIVE_STOCK_MSG;
   }
@@ -18,8 +25,7 @@ function stockItemToSafeHtml (value, item) {
     color = 'orange';
   }
 
-  html += '<strong style="color: ' + color + '">' + innerHtml + '<strong>';
-  return html;
+  return '<strong style="color: ' + color + '">' + innerHtml + '<strong>';
 }
 
 function getSummary(configs, reports) {
@@ -27,6 +33,7 @@ function getSummary(configs, reports) {
   var dynamicFormNames = {
     stockCount: stockCountFeature.form_name,
     supplyForm: configs.features.stock_supply && configs.features.stock_supply.form_name,
+    orderSupplyForm: configs.features.stock_order && configs.features.stock_order.stock_supply && configs.features.stock_order.stock_supply.form_name,
     supplyConfirm: '',
     supplyDiscrepancy: configs.features.stock_supply && configs.features.stock_supply.discrepancy && configs.features.stock_supply.discrepancy.form_name,
     stockReturn: configs.features.stock_return && configs.features.stock_return.form_name,
@@ -42,12 +49,7 @@ function getSummary(configs, reports) {
     return [];
   }
 
-  return stockCountFeature.contact_types.map(function (contactType) {
-    var levels = Object.values(configs.levels);
-    var contactLevel = levels.find(function (l) {
-      return l.contact_type === contactType;
-    });
-    var placeType = contactLevel.place_type;
+  return stockCountFeature.contact_types.map(function (contactLevel) {
     var itemQuantities = common.getItemCountFromLastStockCount(configs, reports);
     var itemsFields = items.map(function (item) {
       var value = itemQuantities[item.name];
@@ -55,14 +57,14 @@ function getSummary(configs, reports) {
         name: item.name,
         label: constants.TRANSLATION_PREFIX + 'items.' + item.name + '.label',
         count: value,
-        value: stockItemToSafeHtml(value, item),
+        value: stockItemToSafeHtml(value, item, configs.defaultLanguage),
         filter: 'safeHtml',
         width: 3,
       };
     });
     return {
       label: constants.TRANSLATION_PREFIX + 'stock_count.contact_summary.title',
-      appliesToType: placeType,
+      appliesToType: contactLevel.place_type,
       appliesIf: lastStockCount,
       modifyContext: function (context) {
         for (var index = 0; index < itemsFields.length; index++) {

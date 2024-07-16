@@ -40,6 +40,9 @@ function isChtApp() {
     if (action === 'init') {
       return command.init();
     }
+    if (action === 'migrate') {
+      return command.migrate();
+    }
     if (action === 'add') {
       if (!type) {
         console.log(chalk.red('ERROR No type found. Options are: item and feature'));
@@ -58,6 +61,7 @@ function isChtApp() {
       console.log(chalk.green('INFO Building stock monitoring configs'));
       return command.build();
     }
+    console.log(chalk.red(`ERROR Unknown command ${action}`));
   } catch (e) {
     console.error(e);
     process.exitCode = 1; // emit a non-zero exit code for scripting

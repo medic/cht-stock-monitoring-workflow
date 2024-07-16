@@ -31,7 +31,7 @@ function getLabelColumns(languages, messages) {
     );
     hintColumns.push(
       [
-        `hint:${language}`,
+        `hint::${language}`,
       ]
     );
   }
@@ -47,7 +47,7 @@ function addStockConfirmCalculation(workSheet, items) {
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_confirmed`, // Row name
-      calculation: 'if(${have_receive_' + item.name + "_qty} = 'yes',${" + item.name + '_received},' + '${' + item.name + '_real_qty})',
+      calculation: 'if(${have_receive_' + item.name + "_qty} = 'yes',${" + item.name + '_received},' + '${' + item.name + '___count})',
     }))
   ];
 
@@ -63,7 +63,9 @@ function addStockConfirmSummaries(workSheet, items, languages, categories = []) 
   const [, end] = getSheetGroupBeginEnd(workSheet, 'summary');
   const header = workSheet.getRow(1).values;
   header.shift();
-  let rows = [];
+  const rows = [];
+  const itemSummaryWithLanguage = (item, language) => `${item.label[language]}: ` + (item.isInSet ? '**${'+`${item.name}__received___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}__received___unit`+'} '+item.unit.label[language].toLowerCase()+'**' : '**${'+`${item.name}_received`+'} '+item.unit.label[language].toLowerCase()+'**');
+  const itemDiffSummaryWithLanguage = (item, language) => `${item.label[language]}: ` + (item.isInSet ? '**${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase()+'**' : '**${'+`${item.name}_real_qty`+'} '+item.unit.label[language].toLowerCase()+'**');
   if (categories.length > 0) {
     for (const category of categories) {
       const categoryItems = items.filter(it => it.category === category.name);
@@ -72,25 +74,48 @@ function addStockConfirmSummaries(workSheet, items, languages, categories = []) 
           type: 'note',
           name: `${category.name}_summary`,
           appearance: 'h1 blue',
-          relevant: categoryItems.map((item) => '${' + item.name + '_received} > 0').join(' or '),
+          relevant: categoryItems.map((item) => 'number(${' + item.name + '_received}) > 0').join(' or '),
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
         }),
         ...categoryItems.map((item) => (buildRowValues(header, {
           type: 'note',
-          name: `${item.name}_summary`,
+          name: `${item.name}_summary_yes`,
           appearance: 'li',
-          relevant: '${' + item.name + '_received} > 0',
-          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `<h5> ${item.label[language]}: **` + '${' + `${item.name}_confirmed` + '} ' + `${item.unit}** </h5>` }), {})
+          relevant: 'number(${' + item.name + '_received}) > 0 and ${have_receive_' + item.name + "_qty} = 'yes'",
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: itemSummaryWithLanguage(item, language) }), {})
+        }))),
+        ...categoryItems.map((item) => (buildRowValues(header, {
+          type: 'note',
+          name: `${item.name}_summary_no`,
+          appearance: 'li',
+          relevant: 'number(${' + item.name + '_received}) > 0 and ${have_receive_' + item.name + "_qty} = 'no'",
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: itemDiffSummaryWithLanguage(item, language) }), {})
         }))),
       );
     }
   } else {
-    rows = items.map((item) => ({
-      type: 'note', // Row type
-      name: `s_${item.name}`, // Row name
-      relevant: '${' + item.name + '_received} > 0',
-      ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `<h5> ${item.label[language]}: **` + '${' + `${item.name}_confirmed` + '} ' + `${item.unit}** </h5>` }), {})
-    }));
+    rows.push(
+      buildRowValues(header, {
+        type: 'note',
+        name: 'summary',
+        appearance: 'h1 blue',
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: 'Stock Received' }), {})
+      }),
+      ...items.map((item) => (buildRowValues(header, {
+        type: 'note',
+        name: `${item.name}_summary_yes`,
+        appearance: 'li',
+        relevant: 'number(${' + item.name + '_received}) > 0 and ${have_receive_' + item.name + "_qty} = 'yes'",
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: itemSummaryWithLanguage(item, language) }), {})
+      }))),
+      ...items.map((item) => (buildRowValues(header, {
+        type: 'note',
+        name: `${item.name}_summary_no`,
+        appearance: 'li',
+        relevant: 'number(${' + item.name + '_received}) > 0 and ${have_receive_' + item.name + "_qty} = 'no'",
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: itemDiffSummaryWithLanguage(item, language) }), {})
+      }))),
+    );
   }
 
   //Insert item
@@ -103,35 +128,105 @@ function addStockConfirmSummaries(workSheet, items, languages, categories = []) 
 
 function getItemRows(header, languages, messages, items) {
   return items.map((item) => {
-    return [
+    const row = [
       buildRowValues(header, {
         type: 'begin group',
         name: `___${item.name}`,
         relevant: '${' + item.name + '_received} > 0',
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
       }),
-      buildRowValues(header, {
-        type: 'select_one yes_no',
-        name: `have_receive_${item.name}_qty`,
-        required: 'yes',
-        ...languages.reduce((prev, language) => ({
-          ...prev, [`label::${language}`]: messages[language]['stock_supply.confirmation.item_received_question']
-            .replace('{{qty}}', '${' + item.name + '_received}')
-            .replace('{{unit}}', item.unit)
-            .replace('{{item}}', item.label[language]) }), {})
-      }),
-      buildRowValues(header, {
-        type: 'decimal',
+    ];
+    if (item.isInSet) {
+      row.push(
+        ...[
+          buildRowValues(header, {
+            type: 'calculate',
+            name: `${item.name}__received___set`,
+            calculation: 'int(${'+item.name+'_received} div '+item.set.count+')',
+            default: '0'
+          }),
+          buildRowValues(header, {
+            type: 'calculate',
+            name: `${item.name}__received___unit`,
+            calculation: '${'+item.name+'_received} mod '+item.set.count,
+            default: '0'
+          }),
+          buildRowValues(header, {
+            type: 'select_one yes_no',
+            name: `have_receive_${item.name}_qty`,
+            required: 'yes',
+            ...languages.reduce((prev, language) => ({
+              ...prev, [`label::${language}`]: messages[language]['stock_supply.confirmation.item_received_confirmation_question']
+                .replace('{{qty_unit}}', '${'+`${item.name}__received___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}__received___unit`+'} '+item.unit.label[language].toLowerCase())
+            }), {})
+          }),
+          buildRowValues(header,  {
+            type: 'calculate',
+            name: `${item.name}___set`,
+            calculation: 'if(count-selected(${'+item.name+'_real_qty}) > 0 and count-selected(substring-before(${'+item.name+'_real_qty}, "/")) >= 0 and regex(substring-before(${'+item.name+"_real_qty}, \"/\"), '^[0-9]+$'),number(substring-before(${"+item.name+'_real_qty}, "/")),0)',
+            default: '0/0'
+          }),
+          buildRowValues(header, {
+            type: 'calculate',
+            name: `${item.name}___unit`,
+            calculation: 'if(count-selected(${'+item.name+'_real_qty}) > 0 and count-selected(substring-after(${'+item.name+'_real_qty}, "/")) >= 0 and regex(substring-after(${'+item.name+"_real_qty}, \"/\"), '^[0-9]+$'),number(substring-after(${"+item.name+'_real_qty}, "/")),0)',
+            default: '0/0'
+          })
+        ]
+      );
+      const itemRow = {
+        type: 'string',
         name: `${item.name}_real_qty`,
         required: 'yes',
+        constraint: "regex(., '^\\d+\\/\\d+$')",
+        relevant: '${have_receive_' + item.name + "_qty} = 'no'",
+        default: '0/0',
+      };
+      for (const language of languages) {
+        itemRow.constraint_message = messages[language]['stock_supply.message.set_unit_constraint_message'].replace('{{unit_label}}', item.unit.label[language].toLowerCase()).replace('{{set_label}}', item.set.label[language].toLowerCase());
+        itemRow[`label::${language}`] = messages[language]['stock_supply.confirmation.qty_received_question'];
+        itemRow[`hint::${language}`] = '${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase(); // Row hint
+      }
+      row.push(buildRowValues(header, itemRow));
+    } else {
+      row.push(
+        buildRowValues(header, {
+          type: 'select_one yes_no',
+          name: `have_receive_${item.name}_qty`,
+          required: 'yes',
+          ...languages.reduce((prev, language) => ({
+            ...prev, [`label::${language}`]: messages[language]['stock_supply.confirmation.item_received_confirmation_question']
+              .replace('{{qty_unit}}', '${'+`${item.name}_received`+'} '+item.unit.label[language].toLowerCase())
+          }), {})
+        })
+      );
+      const itemRow = {
+        type: 'integer',
+        name: `${item.name}_real_qty`,
         constraint: '. != ${' + item.name + '_received}',
         relevant: '${have_receive_' + item.name + "_qty} = 'no'",
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_supply.confirmation.qty_received_question'] }), {})
-      }),
+        required: 'yes',
+        default: '0',
+      };
+      for (const language of languages) {
+        itemRow[`label::${language}`] = messages[language]['stock_supply.confirmation.qty_received_question']; // Row label
+        itemRow[`hint::${language}`] = messages[language]['stock_supply.message.unit_quantity_hint'].replace('{{quantity}}', '${'+item.name+'_real_qty}').replace('{{unit_label}}', item.unit.label[language].toLowerCase()); // Row hint
+      }
+
+      row.push(buildRowValues(header, itemRow));
+    }
+    const calculateItemRowCount = {
+      type: 'calculate',
+      name: `${item.name}___count`,
+      calculation: item.isInSet ? '${'+item.name+'___set} * ' + item.set.count + ' + ${'+item.name+'___unit}' : '${'+item.name+'_real_qty}',
+    };
+    row.push(buildRowValues(header, calculateItemRowCount));
+    row.push(
       buildRowValues(header, {
         type: 'end group',
-      }),
-    ];
+      })
+    );
+    return row;
   });
 }
 
@@ -179,7 +274,7 @@ async function updateStockConfirmation(configs, messages) {
 
   const [labelColumns, hintColumns] = getLabelColumns(configs.languages, messages);
   // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
@@ -211,7 +306,7 @@ async function updateStockConfirmation(configs, messages) {
       ...getNoLabelsColums(languages)
     })
   ];
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 2);
+  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
   surveyWorkSheet.insertRows(
     position + 1,
     inputs,
@@ -262,7 +357,7 @@ async function updateStockConfirmation(configs, messages) {
       }),
     );
   }
-  const [placePosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [placePosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
   surveyWorkSheet.insertRows(
     placePosition + 1,
     rows,

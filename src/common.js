@@ -1,6 +1,5 @@
 const path = require('path');
-const fs = require('fs-extra');
-const ExcelJS = require('exceljs');
+const fs = require('fs');
 const chalk = require('chalk');
 
 const TRANSLATION_PREFIX = 'cht-stock-monitoring-workflow.';
@@ -19,7 +18,9 @@ function getAppSettings() {
     const rawSettings = fs.readFileSync(baseSettingFile, {
       encoding: 'utf-8'
     });
-    return JSON.parse(rawSettings);
+    const settings = JSON.parse(rawSettings);
+    settings.locales = settings.locales.filter((locale) => locale.disabled !== true);
+    return settings;
   } catch (err) {
     console.log('Error reading app settings', err);
     return null;
@@ -49,7 +50,9 @@ function getTranslations(removePrefix = true) {
     .map((locale) => {
       // Get cht app messages path
       const messagePath = path.join(processDir, 'translations', `messages-${locale}.properties`);
-      const messages = fs.readFileSync(messagePath).toString().split('\n');
+      const messages = fs.readFileSync(messagePath, {
+        encoding: 'utf-8'
+      }).split('\n');
       return [
         locale,
         messages
@@ -105,7 +108,7 @@ function updateTranslations(configs) {
     for (const lang of locales) {
       const key = `cht-stock-monitoring-workflow.items.${item.name}.label`;
       if (!chtAppMsgKeys.includes(key)) {
-        missingMsgs[lang][key] = item.label[lang];
+        missingMsgs[lang][key] = item.label[lang] || '';
       }
     }
   }
@@ -113,7 +116,7 @@ function updateTranslations(configs) {
   // Append missing locales
   for (const lang of locales) {
     const localFilePath = path.join(processDir, 'translations', `messages-${lang}.properties`);
-    const langMsg = Object.keys(missingMsgs[lang]).map(k => `${k} = ${missingMsgs[lang][k].replaceAll("'", '"')}`).join('\n');
+    const langMsg = Object.keys(missingMsgs[lang]).map(k => `${k} = ${(missingMsgs[lang][k] || '').replaceAll("'", '"')}`).join('\n');
     if (fs.existsSync(localFilePath)) {
       fs.appendFileSync(localFilePath, `\n${langMsg}`);
     }
@@ -135,6 +138,19 @@ function updateTranslations(configs) {
 function writeConfig(config) {
   const processDir = process.cwd();
   const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
+
+  // Get package version
+  if (!fs.existsSync(configFilePath) || !config.version) {
+    const packageFilePath = path.join(
+      __dirname,
+      '../package.json'
+    );
+    const packageFileRaw = fs.readFileSync(packageFilePath).toString();
+    if (packageFileRaw.length > 0) {
+      config.version = JSON.parse(packageFileRaw).version;
+    }
+  }
+  config.last_update_date = new Date();
   fs.writeFileSync(configFilePath, JSON.stringify(config, null, 4));
   updateTranslations(config);
 }
@@ -144,46 +160,56 @@ function writeConfig(config) {
  * @return {object} - The config
  * @throws {Error} - If the config file does not exist
  * */
-function getConfigs() {
+function getConfig() {
   const processDir = process.cwd();
+  if (!isAlreadyInit(processDir)) {
+    console.log(chalk.red.bold('Stock monitoring module not found'));
+    return;
+  }
   const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
-  const content = fs.readFileSync(configFilePath);
-  return JSON.parse(content);
+  const configStr = fs.readFileSync(configFilePath);
+  return JSON.parse(configStr);
 }
 
 /**
- * Get xform group begin and end index. If not found begin and end = -1
- * @param {WorkSheet} workSheet Xform worksheet
- * @param {string} name Group name
- * @param {number} namePosition Column position of question name
- * @returns [groupBeginIndex, groupEndIndex]
+ * Is excel value rich text
+ * @param value
+ * @returns {boolean}
  */
-function getSheetGroupBeginEnd(workSheet, name, namePosition = 2) {
-  let foundItemBeginGroup = false;
-  let beginGroupRowNumber = -1;
-  let endGroupRowNumber = -1;
-  let interneGroupBegin = 0;
-  workSheet.eachRow(function (row, rowNumber) {
-    if (row.values.includes('begin group')) {
-      if (foundItemBeginGroup) {
-        interneGroupBegin ++;
-      } else if (row.values[namePosition].trim() === name) {
-        foundItemBeginGroup = true;
-        beginGroupRowNumber = rowNumber;
-      }
-    }
-    if (row.values.includes('end group')) {
-      if (interneGroupBegin > 0) {
-        interneGroupBegin --;
-      } else if (endGroupRowNumber === -1 && foundItemBeginGroup) {
-        endGroupRowNumber = rowNumber;
-      }
-    }
-  });
-  return [beginGroupRowNumber, endGroupRowNumber];
+function isRichValue(value) {
+  return Boolean(value && Array.isArray(value.richText));
 }
 
-function getRowWithValueAtPosition(workSheet, value, namePosition = 2) {
+/**
+ * Convert rich text to string
+ * @param rich
+ * @returns {string}
+ */
+function richToString(rich) {
+  return rich.richText.map(({ text }) => text).join('');
+}
+
+/**
+ * Get row value from sheet
+ * @param row
+ * @param position
+ * @returns {null|string}
+ */
+function getRowValue(row, position) {
+  const values = [...row.values];
+  values.shift();
+  const value = values[position];
+  if (value && typeof value === 'string') {
+    return value.trim();
+  }
+  // If it's object (rich text) return the first value
+  if (value && isRichValue(value)) {
+    return richToString(value);
+  }
+  return null;
+}
+
+function getRowWithValueAtPosition(workSheet, value, namePosition = 1) {
   let columns = [];
   let rowData = null;
   let index = -1;
@@ -193,8 +219,8 @@ function getRowWithValueAtPosition(workSheet, value, namePosition = 2) {
       //The row.values first element is undefined
       columns.shift();
     }
-
-    if (row.values[namePosition] && row.values[namePosition].trim() === value) {
+    const rowValue = getRowValue(row, namePosition);
+    if (rowValue === value) {
       if (!rowData) {
         rowData = {};
       }
@@ -208,6 +234,38 @@ function getRowWithValueAtPosition(workSheet, value, namePosition = 2) {
 }
 
 /**
+ * Get xform group begin and end index. If not found begin and end = -1
+ * @param {Worksheet} workSheet Xform worksheet
+ * @param {string} name Group name
+ * @param {number} namePosition Column position of question name
+ * @returns [groupBeginIndex, groupEndIndex]
+ */
+function getSheetGroupBeginEnd(workSheet, name, namePosition = 1) {
+  let endGroupRowNumber = -1;
+  const [beginGroupRowNumber] = getRowWithValueAtPosition(workSheet, name, namePosition);
+  if (beginGroupRowNumber !== -1) {
+    let groupEndFound = false;
+    let index = beginGroupRowNumber + 1;
+    let otherBeginGroup = 0;
+    while (!groupEndFound && index <= workSheet.rowCount) {
+      const row = workSheet.getRow(index);
+      if (row.values.includes('begin group')) {
+        otherBeginGroup++;
+      } else if(row.values.includes('end group')) {
+        if (otherBeginGroup === 0) {
+          endGroupRowNumber = index;
+          groupEndFound = true;
+        } else {
+          otherBeginGroup--;
+        }
+      }
+      index++;
+    }
+  }
+  return [beginGroupRowNumber, endGroupRowNumber];
+}
+
+/**
  * Returns the row number of the first row with the given name in the given interval
  * @param workSheet the worksheet to search in
  * @param name the name to search for
@@ -218,7 +276,7 @@ function getRowWithValueAtPosition(workSheet, value, namePosition = 2) {
  */
 function getRowNumberWithNameInInterval(workSheet, name, begin, end, namePosition = 2) {
   const row = workSheet.getRow(begin + 1);
-  if (row && row.values[namePosition] && row.values[namePosition].trim() === name) {
+  if (row.values[namePosition] && row.values[namePosition].trim() === name) {
     return begin + 1;
   }
   if (begin+1 < end) {
@@ -227,10 +285,15 @@ function getRowNumberWithNameInInterval(workSheet, name, begin, end, namePositio
   return -1;
 }
 
-async function getWorkSheet(excelFilePath, workSheetNumber = 1) {
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(excelFilePath);
-  return workbook.getWorksheet(workSheetNumber);
+function getLastGroupIndex(workSheet, typeColumnIndex = 0) {
+  let lastEndGroupIndex = -1;
+  workSheet.eachRow((row, rowNumber) => {
+    const value = getRowValue(row, typeColumnIndex);
+    if (value === 'end group') {
+      lastEndGroupIndex = rowNumber;
+    }
+  });
+  return lastEndGroupIndex;
 }
 
 /**
@@ -331,6 +394,34 @@ function addCategoryItemsToChoice(categories, items, choiceWorkSheet, languages)
   );
 }
 
+// Get contact parent hierarchy
+function getContactParentHierarchy(nbParents, formHeader, languages) {
+  const contactParentRows = [];
+  for (let i = 0; i < nbParents; i++) {
+    contactParentRows.push(
+      buildRowValues(formHeader, {
+        type: 'begin group',
+        name: `parent`,
+        appearance: `hidden`,
+        ...getNoLabelsColums(languages)
+      }),
+      buildRowValues(formHeader, {
+        type: 'string',
+        name: '_id',
+        ...getNoLabelsColums(languages)
+      }),
+    );
+  }
+  for (let i = 0; i < nbParents; i++) {
+    contactParentRows.push(
+      buildRowValues(formHeader, {
+        type: 'end group',
+      })
+    );
+  }
+  return contactParentRows;
+}
+
 function getDefaultSurveyLabels(feature, messages, languages) {
   // Add language column
   const labelColumns = [];
@@ -358,7 +449,7 @@ function getDefaultSurveyLabels(feature, messages, languages) {
     );
     hintColumns.push(
       [
-        `hint:${language}`,
+        `hint::${language}`,
       ]
     );
   }
@@ -368,15 +459,15 @@ function getDefaultSurveyLabels(feature, messages, languages) {
 
 const getNoLabelsColums = languages => languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {});
 
+const getItemCount = (item, language, suffix = '', unitSuffix = '___count') =>  item.isInSet ? '**${'+`${item.name}${suffix}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}${suffix}___unit`+'} '+item.unit.label[language].toLowerCase()+'**' : '**${'+`${item.name}${unitSuffix}`+'} '+item.unit.label[language].toLowerCase()+'**';
+
 module.exports = {
   getAppSettings,
   isAlreadyInit,
   writeConfig,
   getSheetGroupBeginEnd,
   getRowWithValueAtPosition,
-  getWorkSheet,
   buildRowValues,
-  getConfigs,
   updateTranslations,
   getTranslations,
   getNumberOfSteps,
@@ -384,5 +475,9 @@ module.exports = {
   getDefaultSurveyLabels,
   getNoLabelsColums,
   getRowNumberWithNameInInterval,
+  getContactParentHierarchy,
+  getLastGroupIndex,
+  getConfig,
+  getItemCount,
 };
 

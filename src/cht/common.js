@@ -108,14 +108,13 @@ function getItemCountInReports(itemName, reports, forms) {
     var report = reports[index];
     switch (report.form) {
       /**
-       * *chw - in*
+       * *supervisor - out*
        * Additional doc created from supervisor stock supply form.
-       * Add item quantity from chw stock
+       * Remove item quantity from supervisor stock
        */
       case constants.SUPPLY_ADDITIONAL_DOC:
         {
-          var needConfirmation = Utils.getField(report, 'need_confirmation');
-          if (needConfirmation === 'no') {
+          if (forms.supplyConfirm.length === 0) {
             total += Number(Utils.getField(report, itemName + '_in') || 0);
           }
         }
@@ -133,12 +132,15 @@ function getItemCountInReports(itemName, reports, forms) {
         }
         break;
       /**
-       * *supervisor - out*
+       * *chw - out*
        * Supervisor stock supply form to chw
-       * Remove item quantity from supervisor stock
+       * Add item quantity to chw stock
        */
       case forms.supplyForm:
-        total -= Number(Utils.getField(report, 'out.' + itemName + '_supply') || 0);
+      case forms.orderSupplyForm:
+        {
+          total -= Number(Utils.getField(report, 'out.' + itemName + '_supply') || 0);
+        }
         break;
       /**
        * *chw - out*
@@ -193,34 +195,46 @@ function getItemCountInReports(itemName, reports, forms) {
        * Supervisor received item returned by chw
        */
       case forms.stockReturned:
+      {
         total += Number(Utils.getField(report, 'out.' + itemName + '_in') || 0);
         break;
+      }
       default:
         break;
     }
-
   }
   return total;
 }
 
 function getItemCountFromLastStockCount(configs, reports) {
+  if (reports.length === 0) {
+    return {};
+  }
   var reportForms = {
     SUPPLY_ADDITIONAL_DOC: constants.SUPPLY_ADDITIONAL_DOC,
     FORM_ADDITIONAL_DOC_NAME: constants.FORM_ADDITIONAL_DOC_NAME,
     stockCount: configs.features.stock_count && configs.features.stock_count.form_name,
     supplyForm: configs.features.stock_supply && configs.features.stock_supply.form_name,
+    orderSupplyForm: configs.features.stock_order && configs.features.stock_order.stock_supply && configs.features.stock_order.stock_supply.form_name,
     supplyConfirm: (configs.features.stock_supply && configs.features.stock_supply.confirm_supply && configs.features.stock_supply.confirm_supply.active) ? configs.features.stock_supply.confirm_supply.form_name : '',
     supplyDiscrepancy: (configs.features.stock_supply && configs.features.stock_supply.discrepancy) ? configs.features.stock_supply.discrepancy.form_name : '',
     DESCREPANCY_ADD_DOC: constants.DESCREPANCY_ADD_DOC,
     stockReturn: configs.features.stock_return && configs.features.stock_return.form_name,
     stockReturned: configs.features.stock_return && configs.features.stock_return.confirmation.form_name,
+    stockReturnedCHW: configs.features.stock_return && constants.RETURNED_ADD_DOC,
     stockLogs: configs.features.stock_logs && configs.features.stock_logs.form_name,
   };
   var lastStockCount = Utils.getMostRecentReport(reports, reportForms.stockCount);
+  if (!lastStockCount) {
+    return {};
+  }
   var reportsFomLastStockCount = reports.filter(function (report) {
     var forms = Object.values(reportForms);
-    return report._id === lastStockCount._id || (forms.includes(report.form) && getDynamicReportedDate(report) > getDynamicReportedDate(lastStockCount));
+    return report && (report._id === lastStockCount._id || (forms.includes(report.form) && getDynamicReportedDate(report) > getDynamicReportedDate(lastStockCount)));
   });
+  if (reportsFomLastStockCount.length === 0) {
+    return {};
+  }
   var items = Object.values(configs.items);
 
   return items.map(function(item) {

@@ -99,6 +99,7 @@ async function getItemConfig(configs) {
     }
   }
 
+  // Creating a new item
   if (!itemConfig) {
     if (configs.useItemCategory) {
       if (configs.categories && Object.keys(configs.categories).length > 0) {
@@ -153,21 +154,52 @@ async function getItemConfig(configs) {
         message: `Enter item label in ${language}`
       })),
       {
-        type: 'input',
-        name: 'unit',
-        message: 'Enter item unit',
+        type: 'confirm',
+        name: 'isInSet',
+        message: 'Can this item be organized in set like box/blister?',
+        default: true,
       },
+    ]);
+
+    if (itemConfig.isInSet) {
+      const setConfigs = await inquirer.prompt([
+        ...configs.languages.map((language) => ({
+          type: 'input',
+          name: `set.label.${language}`,
+          message: `What is the name of the set? Ex: box of 8 in ${language} ?`
+        })),
+        {
+          type: 'number',
+          name: 'set.count',
+          message: 'How many units are there in the set ? '
+        },
+      ]);
+      Object.assign(itemConfig, setConfigs);
+    }
+    const itemGeneralConfigs = await inquirer.prompt([
+      ...configs.languages.map((language) => ({
+        type: 'input',
+        name: `unit.label.${language}`,
+        message: `What is the name of the unit? Ex: Tablet in ${language} ?`
+      })),
       {
         type: 'number',
         name: 'warning_total',
-        message: 'Warning total',
+        message: 'What is the threshold (quantity) that requires attention ? ',
       },
       {
         type: 'number',
         name: 'danger_total',
-        message: 'Danger total',
+        message: 'What is the threshold (quantity) that triggers a stock out ? ',
+      },
+      {
+        type: 'number',
+        name: 'max_total',
+        message: 'What is the maximum quantity to have for this item ? ',
+        default: -1,
       }
     ]);
+    Object.assign(itemConfig, itemGeneralConfigs);
     if (categoryConfig) {
       itemConfig.category = categoryConfig.name;
     }
@@ -199,7 +231,7 @@ async function getItemConfig(configs) {
     }
   ]);
   itemDeduction.formular = formularRequest.formular;
-  
+
   formConfig.items[itemConfig.name] = itemDeduction;
   return {
     formConfig,
@@ -214,7 +246,9 @@ function addConfigItem(appConfig, {
   itemConfig
 }) {
   appConfig.items[itemConfig.name] = itemConfig;
-  appConfig.categories[categoryConfig.name] = categoryConfig;
+  if (categoryConfig) {
+    appConfig.categories[categoryConfig.name] = categoryConfig;
+  }
   appConfig.forms[formConfig.name] = formConfig;
   utils.writeConfig(appConfig);
   return appConfig;

@@ -1,4 +1,6 @@
-const { getNoLabelsColums, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getNumberOfSteps, addCategoryItemsToChoice } = require('../common');
+const { getNoLabelsColums, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getNumberOfSteps, addCategoryItemsToChoice,
+  getContactParentHierarchy
+} = require('../common');
 const chalk = require('chalk');
 const path = require('path');
 const fs = require('fs-extra');
@@ -14,7 +16,7 @@ function addStockSupplyCalculation(workSheet, items) {
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_supply`, // Row name
-      calculation: '${' + `supply_${item.name}` + '}'
+      calculation: '${' + `${item.name}` + '___count}'
     }))
   ];
 
@@ -36,11 +38,11 @@ function addStockSupplySummaries(workSheet, items, languages) {
       type: 'note', // Row type
       name: `s_${item.name}`, // Row name
       required: '',
-      relevant: '${' + `supply_${item.name}` + '} > 0',
-      appearance: '',
+      relevant: '${' + `${item.name}` + '___count} > 0',
+      appearance: 'h5',
     };
     for (const language of languages) {
-      itemRow[`label::${language}`] = `<h5 style="text-align:center;"> ${item.label[language]}: **` + '${' + `supply_${item.name}` + '} ' + `${item.unit}** </h5>`; // Row label
+      itemRow[`label::${language}`] = `${item.label[language]}: ` + (item.isInSet ? '**${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase()+'**' : '**${'+`${item.name}___count`+'} '+item.unit.label[language].toLowerCase()+'**'); // Row label
     }
     itemRows.push(buildRowValues(header, itemRow));
   }
@@ -69,11 +71,6 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
     }),
     buildRowValues(header, {
       type: 'calculate',
-      name: 'place_id',
-      calculation: '${supply_place_id}'
-    }),
-    buildRowValues(header, {
-      type: 'calculate',
       name: 'type',
       calculation: '"data_record"'
     }),
@@ -89,11 +86,6 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
       calculation: '"xml"'
     }),
     buildRowValues(header, {
-      type: 'calculate',
-      name: 'supplier_id',
-      calculation: '${user_contact_id}'
-    }),
-    buildRowValues(header, {
       type: 'begin group',
       name: 'contact',
       ...getNoLabelsColums(languages)
@@ -101,7 +93,7 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
     buildRowValues(header, {
       type: 'calculate',
       name: '_id',
-      calculation: '${supply_place_id}'
+      calculation: '${user_contact_id}'
     }),
     buildRowValues(header, {
       type: 'end group',
@@ -114,13 +106,23 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
     }),
     buildRowValues(header, {
       type: 'calculate',
+      name: 'supplier_id',
+      calculation: '${user_contact_id}'
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
+      name: 'place_id',
+      calculation: '${supply_place_id}'
+    }),
+    buildRowValues(header, {
+      type: 'calculate',
       name: 'need_confirmation',
       calculation: needConfirmation ? '"yes"' : '"no"'
     }),
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
       name: `${item.name}_in`, // Row name
-      calculation: '${' + item.name + '_supply}',
+      calculation: '${' + item.name + '___count}',
     })),
     buildRowValues(header, {
       type: 'end group',
@@ -133,25 +135,74 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
 }
 
 function getItemRows(header, languages, selectionFieldName, items) {
+  const messages = getTranslations();
   return items.map((item) => {
-    return [
+    const row = [
       buildRowValues(header, {
         type: 'begin group',
         name: `___${item.name}`,
         relevant: 'selected(${' + selectionFieldName + `}, '${item.name}')`,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
       }),
-      buildRowValues(header, {
-        type: 'decimal',
+    ];
+
+
+    if (item.isInSet) {
+      const calculateSetItemRow = {
+        type: 'calculate',
+        name: `${item.name}___set`,
+        calculation: 'if(count-selected(${supply_'+item.name+'}) > 0 and count-selected(substring-before(${supply_'+item.name+'}, "/")) >= 0 and regex(substring-before(${supply_'+item.name+"}, \"/\"), '^[0-9]+$'),number(substring-before(${supply_"+item.name+'}, "/")),0)',
+        default: '0/0'
+      };
+      row.push(buildRowValues(header, calculateSetItemRow));
+      const calculateUnitItemRow = {
+        type: 'calculate',
+        name: `${item.name}___unit`,
+        calculation: 'if(count-selected(${supply_'+item.name+'}) > 0 and count-selected(substring-after(${supply_'+item.name+'}, "/")) >= 0 and regex(substring-after(${supply_'+item.name+"}, \"/\"), '^[0-9]+$'),number(substring-after(${supply_"+item.name+'}, "/")),0)',
+        default: '0/0'
+      };
+      row.push(buildRowValues(header, calculateUnitItemRow));
+      const itemRow = {
+        type: 'string',
         name: `supply_${item.name}`,
         required: 'yes',
-        default: 0,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
-      }),
+        constraint: "regex(., '^\\d+\\/\\d+$')",
+        default: '0/0',
+      };
+      for (const language of languages) {
+        itemRow.constraint_message = messages[language]['stock_supply.message.set_unit_constraint_message'].replace('{{unit_label}}', item.unit.label[language].toLowerCase()).replace('{{set_label}}', item.set.label[language].toLowerCase());
+        itemRow[`label::${language}`] = `${item.label[language]}` || ''; // Row label
+        itemRow[`hint::${language}`] = '${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase(); // Row hint
+      }
+      row.push(buildRowValues(header, itemRow));
+    } else {
+      const itemRow = {
+        type: 'integer',
+        name: `supply_${item.name}`,
+        required: 'yes',
+        default: '0',
+      };
+      for (const language of languages) {
+        itemRow[`label::${language}`] = messages[language]['stock_supply.item.quantity_of'] + ' ' + item.unit.label[language].toLowerCase(); // Row label
+        itemRow[`hint::${language}`] = messages[language]['stock_count.message.unit_quantity_hint'].replace('{{quantity}}', '${supply_'+item.name+'}').replace('{{unit_label}}', item.unit.label[language].toLowerCase()); // Row hint
+      }
+
+      row.push(buildRowValues(header, itemRow));
+    }
+    const calculateItemRowCount = {
+      type: 'calculate',
+      name: `${item.name}___count`,
+      calculation: item.isInSet ? '${'+item.name+'___set} * ' + item.set.count + ' + ${'+item.name+'___unit}' : '${supply_'+item.name+'}',
+    };
+    row.push(buildRowValues(header, calculateItemRowCount));
+
+    row.push(
       buildRowValues(header, {
         type: 'end group',
       }),
-    ];
+    );
+
+    return row;
   });
 }
 
@@ -196,20 +247,25 @@ async function updateStockSupply(configs) {
     );
     hintColumns.push(
       [
-        `hint:${language}`,
+        `hint::${language}`,
       ]
     );
   }
+  const header = surveyWorkSheet.getRow(1).values;
+  header.shift();
   // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 1);
+  const typeColumnIndex = header.indexOf('type');
+  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', typeColumnIndex);
   let lastColumnIndex = Object.keys(firstRowData).length;
   for (const labelColumn of labelColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
     lastColumnIndex++;
+    header.push(labelColumn[0]);
   }
   for (const hintColumn of hintColumns) {
     surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
     lastColumnIndex++;
+    header.push(hintColumn[0]);
   }
   surveyWorkSheet.getColumn(lastColumnIndex + 1).values = [
     `instance::db-doc`,
@@ -218,40 +274,18 @@ async function updateStockSupply(configs) {
     `instance::db-doc-ref`,
   ];
   surveyWorkSheet.getColumn(lastColumnIndex + 3).values = ['choice_filter'];
+  header.push(...['instance::db-doc', 'instance::db-doc-ref', 'choice_filter']);
   settingWorkSheet.getRow(2).getCell(1).value = featureConfigs.title[configs.defaultLanguage];
   settingWorkSheet.getRow(2).getCell(2).value = featureConfigs.form_name;
 
   //Add choices
   addCategoryItemsToChoice(categories, items, choiceWorkSheet, languages);
 
-  const header = surveyWorkSheet.getRow(1).values;
-  header.shift();
   // Get level 2
   const nbParents = getNumberOfSteps(configs.levels[1].place_type, configs.levels[2].place_type);
-  const contactParentRows = [];
-  for (let i = 0; i < nbParents; i++) {
-    contactParentRows.push(
-      buildRowValues(header, {
-        type: 'begin group',
-        name: `parent`,
-        appearance: `hidden`,
-        ...getNoLabelsColums(languages)
-      }),
-      buildRowValues(header, {
-        type: 'string',
-        name: `_id`,
-        ...getNoLabelsColums(languages)
-      })
-    );
-  }
-  for (let i = 0; i < nbParents; i++) {
-    contactParentRows.push(
-      buildRowValues(header, {
-        type: 'end group',
-      })
-    );
-  }
-  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 2);
+  const contactParentRows = getContactParentHierarchy(nbParents, header, languages);
+  const nameColumnIndex = header.indexOf('name');
+  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', nameColumnIndex);
   surveyWorkSheet.insertRows(
     contactPosition + 3,
     contactParentRows,
@@ -276,7 +310,7 @@ async function updateStockSupply(configs) {
       calculation: `../inputs/user/contact_id`
     })
   ];
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 2);
+  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', nameColumnIndex);
   surveyWorkSheet.getRow(position).getCell(8).value = `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`;
   if (configs.useItemCategory) {
     rows.push(
@@ -337,10 +371,11 @@ async function updateStockSupply(configs) {
       const titleRow = {
         type: 'note',
         name: `note_${item.name}_title`,
+        appearance: 'h3 bold ',
         relevant: 'selected(${selected_items},' + `'${item.name}')`
       };
       for (const language of configs.languages) {
-        titleRow[`label::${language}`] = `<h3 style="text-align:center; font-weight:bold; background-color:#93C47E;">${item.label[language]}</h3>`;
+        titleRow[`label::${language}`] = `${item.label[language]}`;
       }
       rows.push(buildRowValues(header, titleRow));
       const noteRow = {
@@ -375,7 +410,7 @@ async function updateStockSupply(configs) {
     'i+'
   );
   addStockSupplySummaries(surveyWorkSheet, Object.values(configs.items), languages);
-  addStockSupplyCalculation(surveyWorkSheet, Object.values(configs.items), languages);
+  addStockSupplyCalculation(surveyWorkSheet, Object.values(configs.items));
   const [, end] = getSheetGroupBeginEnd(surveyWorkSheet, 'out');
   const additionalDocRows = getAdditionalDoc(featureConfigs.form_name, languages, header, items, featureConfigs.confirm_supply.active);
   surveyWorkSheet.insertRows(
@@ -391,7 +426,7 @@ async function updateStockSupply(configs) {
     'context': {
       'person': false,
       'place': true,
-      'expression': `contact.contact_type === '${configs.levels[1].place_type}' && user.parent.contact_type === '${configs.levels[2].place_type}'`,
+      'expression': `contact.contact_type === '${configs.levels[1].place_type}' && user.parent.contact_type === '${configs.levels[2].place_type}' && user.role === '${configs.levels[2].role}'`,
     },
     title: languages.map((lang) => {
       return {
@@ -467,8 +502,6 @@ async function getStockSupplyConfigs({
 }
 
 module.exports = {
-  addStockSupplyCalculation,
-  addStockSupplySummaries,
   updateStockSupply,
   getStockSupplyConfigs,
 };

@@ -97,17 +97,13 @@ function getTasks(configs) {
         appliesTo: 'reports',
         appliesToType: [constants.SUPPLY_ADDITIONAL_DOC],
         appliesIf: function (contact, report) {
-          var needConfirmation = Utils.getField(report, 'need_confirmation');
-          if (needConfirmation === 'no') {
-            return false;
-          }
           var confirmationReport = contact
             .reports
             .find(function (rp) {
               return rp.form === configs.features.stock_supply.confirm_supply.form_name &&
                 Utils.getField(rp, 'inputs.supply_doc_id') === report._id;
             });
-          return !confirmationReport && user.parent._id === report.place_id;
+          return !confirmationReport && user.parent._id === Utils.getField(report, 'place_id');
         },
         events: [
           {
@@ -127,8 +123,7 @@ function getTasks(configs) {
                 content[item.name+'_received'] = Utils.getField(report, item.name+'_in');
               }
               content['supply_doc_id'] = report._id;
-              // eslint-disable-next-line no-undef
-              content['supplier_id'] = report.supplier_id;
+              content['supplier_id'] = Utils.getField(report, 'supplier_id');
             }
           }
         ]
@@ -141,21 +136,20 @@ function getTasks(configs) {
         appliesToType: [configs.features.stock_supply.confirm_supply.form_name],
         appliesIf: function (contact, report) {
           var itemDescrepancy = items.find(function(item) {
-            var itemReceived = Number(Utils.getField(report, 'inputs.'+item.name+'_received') || 0);
-            var itemConfirmed = Number(Utils.getField(report, 'out.'+item.name+'_confirmed') || 0);
-            if (itemReceived !== itemConfirmed) {
-              return true;
-            }
-            return false;
+            var itemReceived = Utils.getField(report, 'inputs.'+item.name+'_received');
+            var itemConfirmed = Utils.getField(report, 'out.'+item.name+'_confirmed');
+            itemReceived = itemReceived === 'NaN' ? 0 : Number(itemReceived || 0);
+            itemConfirmed = itemConfirmed === 'NaN' ? 0 : Number(itemConfirmed || 0);
+            return itemReceived !== itemConfirmed;
           });
+          var supplierId = Utils.getField(report, 'inputs.supplier_id');
           if (!itemDescrepancy) {
             return false;
           }
           var discrepancyConfirm = contact.reports.find(function (rp) {
-            return rp.form === constants.DESCREPANCY_ADD_DOC &&
+            return rp.form === configs.features.stock_supply.discrepancy.form_name &&
               Utils.getField(rp, 'confirmation_id') === report._id;
           });
-          var supplierId = Utils.getField(report, 'inputs.supplier_id');
           // eslint-disable-next-line no-undef
           return !discrepancyConfirm && user._id === supplierId;
         },
@@ -169,12 +163,12 @@ function getTasks(configs) {
           },
         ],
         resolvedIf: function (contact, report) {
-          var confirmationReport = contact.reports.find(function(current){
-            var supplyConfirmId = Utils.getField(current, 'supply_confirm_id');
-            return current.form === configs.features.stock_supply.discrepancy.form_name &&
-              report._id === supplyConfirmId;
+          return  contact.reports.find(function(current){
+            if (current.form !== constants.DESCREPANCY_ADD_DOC) {
+                return false;
+            }
+            return report._id === Utils.getField(current, 'confirmation_id');
           });
-          return confirmationReport;
         },
         actions: [
           {
@@ -183,6 +177,8 @@ function getTasks(configs) {
               var itemDescrepancys = items.filter(function(item) {
                 var itemReceived = Utils.getField(report, 'inputs.'+item.name+'_received');
                 var itemConfirmed = Utils.getField(report, 'out.'+item.name+'_confirmed');
+                itemReceived = itemReceived === 'NaN' ? 0 : Number(itemReceived || 0);
+                itemConfirmed = itemConfirmed === 'NaN' ? 0 : Number(itemConfirmed || 0);
                 return itemReceived !== itemConfirmed;
               });
               for (var i = 0; i < itemDescrepancys.length; i++) {
@@ -209,6 +205,9 @@ function getTasks(configs) {
         appliesTo: 'reports',
         appliesToType: [configs.features.stock_return.form_name],
         appliesIf: function(contact, report) {
+          if (user.role !== configs.levels['2'].role) {
+            return false;
+          }
           var confirmationReport = contact
             .reports
             .find(function (rp) {
@@ -276,7 +275,7 @@ function getTasks(configs) {
                 itemsInLowStock.push(itemKey);
               }
             }
-            
+
           } else {
             for (var j = 0; j < items.length; j++) {
               var item = items[j];
@@ -325,13 +324,27 @@ function getTasks(configs) {
         appliesToType: [configs.features.stock_order.form_name],
         appliesIf: function (contact, report) {
           // eslint-disable-next-line no-undef
-          if (user.parent.contact_type !== configs.levels['3'].place_type) {
+          if (user.role === configs.levels['1'].role) {
             return false;
           }
+          var reportContactType = Utils.getField(report, 'inputs.contact.contact_type');
+          var level1 = configs.levels['1'];
+          var level2 = configs.levels['2'];
+          var level3 = configs.levels['3'];
+          if (reportContactType !== level1.place_type && reportContactType !== level2.place_type) {
+            return false;
+          }
+          if (reportContactType === level1.place_type && level2 && user.role !== level2.role) {
+              return false;
+          }
+          if (reportContactType === level2.place_type && level3 && user.role !== level3.role) {
+              return false;
+          }
+
           // Get a supply additional doc with supply id = report._id
           var orderId = report._id;
           var supplyAdditionalReport = contact.reports.find(function(rp) {
-            return rp.form === constants.SUPPLY_ADDITIONAL_DOC && rp['s_order_id'] === orderId;
+            return rp.form === constants.SUPPLY_ADDITIONAL_DOC && Utils.getField(rp, 's_order_id') === orderId;
           });
           return !supplyAdditionalReport;
         },
