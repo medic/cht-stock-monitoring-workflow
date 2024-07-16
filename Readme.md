@@ -147,3 +147,16 @@ Create a stock Out task for level 2 if level 1 has low stock
 | `form_name`              | `string`  | The stock out form name/ID | true   |
 | `title[lang]`              | `string`  | The stock order form title | true   |
 | `formular` | `item_danger_qty` or `weekly_qty`  | if weekly_qty, there is low stock if stock count < 2 * estimated weekly consumption. Else, there is low stock if stock count < item.danger_total | true   |
+
+# Development
+
+### Commit format
+The commit format should follow this [conventional-changelog angular preset](https://github.com/conventional-changelog/conventional-changelog/tree/master/packages/conventional-changelog-angular).
+
+# Copyright
+
+Copyright 2013-2024 Medic Mobile, Inc. <hello@medic.org>
+
+# License
+
+The software is provided under AGPL-3.0. Contributions to this project are accepted under the same license.
