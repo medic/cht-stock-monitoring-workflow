@@ -209,7 +209,7 @@ function getRowValue(row, position) {
   return null;
 }
 
-function getRowWithValueAtPosition(workSheet, value, namePosition = 1) {
+function getRowWithValueAtPosition(workSheet, value, namePosition = 1, rowType = undefined) {
   let columns = [];
   let rowData = null;
   let index = -1;
@@ -220,7 +220,9 @@ function getRowWithValueAtPosition(workSheet, value, namePosition = 1) {
       columns.shift();
     }
     const rowValue = getRowValue(row, namePosition);
-    if (rowValue === value) {
+    const rowTypeMatches = rowType === undefined || getRowValue(row, 0) === rowType;
+
+    if (rowValue === value && rowTypeMatches) {
       if (!rowData) {
         rowData = {};
       }
@@ -242,7 +244,8 @@ function getRowWithValueAtPosition(workSheet, value, namePosition = 1) {
  */
 function getSheetGroupBeginEnd(workSheet, name, namePosition = 1) {
   let endGroupRowNumber = -1;
-  const [beginGroupRowNumber] = getRowWithValueAtPosition(workSheet, name, namePosition);
+  const rowType = 'begin group';
+  const [beginGroupRowNumber] = getRowWithValueAtPosition(workSheet, name, namePosition, rowType);
   if (beginGroupRowNumber !== -1) {
     let groupEndFound = false;
     let index = beginGroupRowNumber + 1;
