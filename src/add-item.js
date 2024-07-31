@@ -1,7 +1,6 @@
 const inquirer = require('inquirer');
 const utils = require('./common');
 const path = require('path');
-const chalk = require('chalk');
 const fs = require('fs-extra');
 
 /**
