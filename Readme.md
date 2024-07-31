@@ -33,6 +33,9 @@ This tool enables you to add comprehensive stock monitoring workflows to your ex
   <li>Stock logs: Create stock-related logs</li>
 </ul>
 
+> [!NOTE]
+> For more details please check features documentation here: [docs/features](docs/features)
+
 # Known issues
 
 After adding an item, or any other action that update the existing forms, this form may be broken. To fix it, you need to try to repair manually by opening it with excel.
@@ -99,6 +102,9 @@ To add features, use:
 npx cht-stock-monitoring-workflow add feature
 ```
 
+> [!NOTE]
+> For more details about available features please check features documentation here: [docs/features](docs/features)
+
 ## Stock Logs
 
 Create a stock form for level 3
@@ -109,64 +115,6 @@ Create a stock form for level 3
 | --------------- | ---------- | --------------------------- | -------- |
 | `form_name`   | `string` | The stock logs form name/ID | true     |
 | `title[lang]` | `string` | The stock logs form title   | true     |
-
-## Stock Supply
-
-1. Create a stock supply form for level 2
-2. Create a supply confirmation task for level 1 when level 2 submit a stock supply form
-3. If there is a difference between supplied quantity and received quantity a stock discrepancy resolution task will be create for level 2
-
-### Questions parameters
-
-| Name                           | Type              | Description                                                                                | Required                               |
-| ------------------------------ | ----------------- | ------------------------------------------------------------------------------------------ | -------------------------------------- |
-| `form_name`                  | `string`        | The stock supply form name/ID                                                              | true                                   |
-| `title[lang]`                | `string`        | The stock supply form title                                                                | true                                   |
-| `confirm_supply.active`      | `yes` or `no` | If stock supply need confirmation. If not quantities will be deducted without confirmation | true                                   |
-| `confirm_supply.form_name`   | `string`        | The confirmation form name                                                                 | true, if confirm_supply.active = 'yes' |
-| `confirm_supply.title[lang]` | `string`        | The confirmation form title                                                                | true, if confirm_supply.active = 'yes' |
-| `discrepancy.form_name`      | `string`        | The discrepancy resolution form name                                                       | true, if confirm_supply.active = 'yes' |
-| `discrepancy.title[lang]`    | `string`        | The discrepancy resolution form title                                                      | true, if confirm_supply.active = 'yes' |
-
-## Stock Return
-
-1. Create a stock return form for level 1
-2. Create a stock return confirmation task for level 2
-
-### Questions parameters
-
-| Name                         | Type       | Description                   | Required |
-| ---------------------------- | ---------- | ----------------------------- | -------- |
-| `form_name`                | `string` | The stock return form name/ID | true     |
-| `title[lang]`              | `string` | The stock return form title   | true     |
-| `confirmation.form_name`   | `string` | The confirmation form name    | true     |
-| `confirmation.title[lang]` | `string` | The confirmation form title   | true     |
-
-## Stock Order
-
-1. Create a stock order form for level 2
-2. Create a stock order supply task for level 3
-3. Follow the Stock Supply steps
-
-### Questions parameters
-
-| Name                         | Type       | Description                  | Required |
-| ---------------------------- | ---------- | ---------------------------- | -------- |
-| `form_name`                | `string` | The stock order form name/ID | true     |
-| `title[lang]`              | `string` | The stock order form title   | true     |
-| `stock_supply.form_name`   | `string` | The supply form name         | true     |
-| `stock_supply.title[lang]` | `string` | The supply form title        | true     |
-
-## Stock Out
-
-Create a stock Out task for level 2 if level 1 has low stock
-
-### Questions parameters
-| Name              | Type   | Description | Required |
-| ----------------- | --------- | ----------- | -------- |
-| `form_name`              | `string`  | The stock out form name/ID | true   |
-| `title[lang]`              | `string`  | The stock order form title | true   |
-| `formular` | `item_danger_qty` or `weekly_qty`  | if weekly_qty, there is low stock if stock count < 2 * estimated weekly consumption. Else, there is low stock if stock count < item.danger_total | true   |
 
 # Development
 
