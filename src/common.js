@@ -209,7 +209,7 @@ function getRowValue(row, position) {
   return null;
 }
 
-function getRowWithValueAtPosition(workSheet, value, namePosition = 1, rowType = undefined) {
+function getRowWithValueAtPosition(workSheet, value, namePosition = 1, rowType) {
   let columns = [];
   let rowData = null;
   let index = -1;

@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "chalk": "^4.1.0",
-    "exceljs": "^4.3.0",
+    "exceljs": "^4.4.0",
     "fraction.js": "^4.2.0",
     "fs-extra": "^11.1.0",
     "inquirer": "^8.2.5",
