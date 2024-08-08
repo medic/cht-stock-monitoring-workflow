@@ -5,6 +5,11 @@ const chalk = require('chalk');
 const TRANSLATION_PREFIX = 'cht-stock-monitoring-workflow.';
 
 
+/**
+ * Custom exception used to break out of the worksheet iteration loop.
+ **/
+class BreakException extends Error {}
+
 
 /**
  * Get CHT app settings
@@ -213,23 +218,31 @@ function getRowWithValueAtPosition(workSheet, value, namePosition = 1) {
   let columns = [];
   let rowData = null;
   let index = -1;
-  workSheet.eachRow(function (row, rowNumber) {
-    if (rowNumber === 1) {
-      columns = row.values;
-      //The row.values first element is undefined
-      columns.shift();
-    }
-    const rowValue = getRowValue(row, namePosition);
-    if (rowValue === value) {
-      if (!rowData) {
-        rowData = {};
+  
+  try {
+    workSheet.eachRow(function (row, rowNumber) {
+      if (rowNumber === 1) {
+        columns = row.values;
+        //The row.values first element is undefined
+        columns.shift();
       }
-      for (let i = 0; i < columns.length; i++) {
-        rowData[columns[i]] = row.values[i];
+      const rowValue = getRowValue(row, namePosition);
+
+      if (rowValue === value) {
+        if (!rowData) {
+          rowData = {};
+        }
+        for (let i = 0; i < columns.length; i++) {
+          rowData[columns[i]] = row.values[i];
+        }
+        index = rowNumber;
+        // Stop iteration :)
+        throw new BreakException();
       }
-      index = rowNumber;
-    }
-  });
+    });
+  } catch (err) {
+    if (!(err instanceof BreakException)) { throw err; }
+  }
   return [index, rowData];
 }
 
