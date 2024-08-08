@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const ExcelJS = require('exceljs');
-const { getRowWithValueAtPosition, getSheetGroupBeginEnd, buildRowValues, getTranslations, getRowNumberWithNameInInterval,
+const { getRowWithValueAtPosition, getSheetGroupBeginEnd, buildRowValues, getTranslations,
   getLastGroupIndex
 } = require('../common');
 const chalk = require('chalk');
@@ -51,24 +51,13 @@ async function updateForm(configs) {
     const namePosition = header.indexOf('name');
     const [userBegin, userEnd] = getSheetGroupBeginEnd(surveyWorkSheet, 'user', namePosition);
     const userAppend = [];
-    const parentRows = [
-      buildRowValues(header, {
-        type: 'begin group',
-        name: 'parent',
-        ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
-      }),
-      buildRowValues(header, {
-        type: 'hidden',
-        name: '_id',
-        ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
-      }),
-      buildRowValues(header, {
-        type: 'end group',
-        name: 'parent',
-      }),
-    ];
-    const [inputBegin,] = getSheetGroupBeginEnd(surveyWorkSheet, 'inputs', namePosition);
-    let insertionPosition = inputBegin+1;
+    const userFacilityRow = buildRowValues(header, {
+      type: 'hidden',
+      name: 'facility_id',
+      ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
+    });
+    const [,inputEnd] = getSheetGroupBeginEnd(surveyWorkSheet, 'inputs', namePosition);
+    let insertionPosition = inputEnd;
     if (userBegin === -1) {
       userAppend.push(
         buildRowValues(header, {
@@ -82,20 +71,15 @@ async function updateForm(configs) {
           appearance: 'db-object',
           ...languages.reduce((prev, next) => ({ ...prev, [`label::${next}`]: 'NO_LABEL' }), {})
         }),
-        ...parentRows,
+        userFacilityRow,
         buildRowValues(header, {
           type: 'end group',
           name: 'user',
         }),
       );
     } else {
-      const userParentBegin = getRowNumberWithNameInInterval(surveyWorkSheet, 'parent', userBegin, userEnd, namePosition);
-      if (userParentBegin === -1) {
-        insertionPosition = userBegin + 1;
-        userAppend.push(
-          ...parentRows,
-        );
-      }
+      insertionPosition = userEnd;
+      userAppend.push(userFacilityRow);
     }
     if (userAppend.length > 0) {
       surveyWorkSheet.insertRows(insertionPosition, userAppend, '+i');
@@ -120,7 +104,7 @@ async function updateForm(configs) {
         buildRowValues(header, {
           type: 'calculate',
           name: referenceToLevel,
-          calculation: '../inputs/user/parent/_id',
+          calculation: '../inputs/user/facility_id',
         })
       ] : []),
       buildRowValues(header, {
