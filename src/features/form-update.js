@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const ExcelJS = require('exceljs');
 const { getRowWithValueAtPosition, getSheetGroupBeginEnd, buildRowValues, getTranslations,
-  getLastGroupIndex
+  getLastGroupIndex, getRowNumberWithNameInInterval
 } = require('../common');
 const chalk = require('chalk');
 const { FORM_ADDITIONAL_DOC_NAME } = require('../constants');
@@ -78,8 +78,13 @@ async function updateForm(configs) {
         }),
       );
     } else {
-      insertionPosition = userEnd;
-      userAppend.push(userFacilityRow);
+      const userFacilityIndex = getRowNumberWithNameInInterval(
+        surveyWorkSheet, 'facility_id', userBegin, userEnd, 1
+      );
+      if (userFacilityIndex === -1) {
+        insertionPosition = userEnd;
+        userAppend.push(userFacilityRow);
+      }
     }
     if (userAppend.length > 0) {
       surveyWorkSheet.insertRows(insertionPosition, userAppend, '+i');
