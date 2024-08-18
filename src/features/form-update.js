@@ -262,8 +262,33 @@ async function updateForm(configs) {
         ...additionalDocRows
       );
     }
+
+    // Before writing the workbook, check and adjust the settings sheet
+    await handleSettingsSheet(formWorkbook);
+
     await formWorkbook.xlsx.writeFile(formPath);
     console.log(chalk.green(`INFO ${formName} form updated successfully`));
+  }
+}
+
+async function handleSettingsSheet(workbook) {
+  const settingsSheet = workbook.getWorksheet('settings');
+  if (!settingsSheet) {return;}
+
+  // Assuming version column is the first column
+  const headerRow = settingsSheet.getRow(1);
+  const versionColumnIndex = headerRow.values.indexOf('version');
+
+
+  // Handle case where version row not found
+  if (!versionColumnIndex === -1) {return;}
+
+  // Assuming version value is in the next row
+  const versionCell = settingsSheet.getCell(2, versionColumnIndex); 
+
+  // Fix where the form is broken
+  if (versionCell.value?.result?.toString() === 'Invalid Date') {
+    versionCell.value.result = undefined;
   }
 }
 
