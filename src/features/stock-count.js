@@ -228,12 +228,35 @@ async function getStockCountConfigs(levels, locales) {
       name: 'useItemCategory',
       message: 'Categorize stock items',
       default: true,
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[9]){
+          return true;
+        }
+        answers.useItemCategory = argv[9];
+        return false;
+      }
     },
     {
       type: 'input',
       name: 'features.stock_count.form_name',
       message: 'Stock count form (Used to fill in balances on hand) ID',
       default: 'stock_count',
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[9]){
+          return true;
+        }
+        const answer = {
+          features: {
+            stock_count: {
+              form_name: argv[9]
+            }
+          }
+        };
+        Object.assign(answers, answer);
+        return false;
+      }
     },
     {
       type: 'checkbox',
@@ -245,6 +268,16 @@ async function getStockCountConfigs(levels, locales) {
           value: l,
         };
       }),
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[10]){
+          return true;
+        }
+
+        answers.features.stock_count.contact_types = eval(argv[10]);
+        
+        return false;
+      }
     },
     {
       type: 'list',
@@ -260,6 +293,15 @@ async function getStockCountConfigs(levels, locales) {
           value: 'task'
         }
       ],
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[11]){
+          return true;
+        }
+  
+        answers.features.stock_count.type = argv[11];
+        return false;
+      }
     },
   ]);
 
@@ -283,6 +325,14 @@ async function getStockCountConfigs(levels, locales) {
             value: 'end_of_month'
           }
         ],
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[12]){
+            return true;
+          }
+          answers.frequency = argv[12];
+          return false;
+        }
       }
     ]);
     answers.features.stock_count.frequency = tasksAnswers.frequency;
@@ -294,7 +344,20 @@ async function getStockCountConfigs(levels, locales) {
         type: 'input',
         name: locale.code,
         message: `Stock count form title in ${locale.name}`,
-        default: 'Stock count'
+        default: 'Stock count',
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[13]){
+            return true;
+          }
+
+          const answer = {
+            'en': argv[13].split(',')[0],
+            'fr': argv[13].split(',')[1]
+          };
+          Object.assign(answers, answer);
+          return false;
+        }
       };
     }),
   ]);

@@ -1,0 +1,18 @@
+{
+  "title": [
+    {
+      "locale": "en",
+      "content": "CEP of the sick child"
+    },
+    {
+      "locale": "fr",
+      "content": "PEC de l'enfant malade"
+    }
+  ],
+  "context": {
+    "place": false,
+    "person": true,
+    "expression": "contact.contact_type === 'c92_household' && summary.alive && ageInYears(contact) < 5 && user.role === 'chw'"
+  },
+  "icon": "infant"
+}

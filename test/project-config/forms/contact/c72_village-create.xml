@@ -1,0 +1,149 @@
+<?xml version="1.0"?>
+<h:html xmlns="http://www.w3.org/2002/xforms" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <h:head>
+    <h:title>Ajouter personne</h:title>
+    <model>
+      <itext>
+        <translation lang="en">
+          <text id="/data/c72_village/first_name:label">
+            <value>First name</value>
+          </text>
+          <text id="/data/c72_village/last_name:label">
+            <value>Last name</value>
+          </text>
+          <text id="/data/c72_village/phone:hint">
+            <value>Put "11111111" if no number is available</value>
+          </text>
+          <text id="/data/c72_village/phone:jr:constraintMsg">
+            <value>Please enter a valid local number, or use the standard international format, which includes a plus sign (+) and country code. For example: +254712345678</value>
+          </text>
+          <text id="/data/c72_village/phone:label">
+            <value>Phone Number</value>
+          </text>
+          <text id="/data/c72_village/sex/female:label">
+            <value>Female</value>
+          </text>
+          <text id="/data/c72_village/sex/male:label">
+            <value>Male</value>
+          </text>
+          <text id="/data/c72_village/sex:label">
+            <value>Sex</value>
+          </text>
+        </translation>
+        <translation lang="fr">
+          <text id="/data/c72_village/first_name:label">
+            <value>Prénom (s)</value>
+          </text>
+          <text id="/data/c72_village/last_name:label">
+            <value>Nom</value>
+          </text>
+          <text id="/data/c72_village/meta:label">
+            <value>-</value>
+          </text>
+          <text id="/data/c72_village/phone:hint">
+            <value>Si le numéro n'est pas disponible, mettre "11111111"</value>
+          </text>
+          <text id="/data/c72_village/phone:jr:constraintMsg">
+            <value>Entrez un numero valide sous la forme XXXXXXXX</value>
+          </text>
+          <text id="/data/c72_village/phone:label">
+            <value>N° de téléphone</value>
+          </text>
+          <text id="/data/c72_village/sex/female:label">
+            <value>Femme</value>
+          </text>
+          <text id="/data/c72_village/sex/male:label">
+            <value>Homme</value>
+          </text>
+          <text id="/data/c72_village/sex:label">
+            <value>Sexe</value>
+          </text>
+        </translation>
+      </itext>
+      <instance>
+        <data delimiter="#" id="contact:c72_village:create" prefix="J1!contact:c72_village:create!" version="2022-05-09 19-28">
+          <inputs>
+            <meta>
+              <location>
+                <lat/>
+                <long/>
+                <error/>
+                <message/>
+              </location>
+            </meta>
+            <user>
+              <contact_id/>
+              <facility_id/>
+              <name/>
+            </user>
+          </inputs>
+          <c72_village>
+            <parent>PARENT</parent>
+            <first_name/>
+            <last_name/>
+            <name/>
+            <sex/>
+            <phone/>
+            <role/>
+            <meta tag="hidden">
+              <created_by/>
+              <created_by_person_uuid/>
+              <created_by_place_uuid/>
+            </meta>
+          </c72_village>
+          <meta tag="hidden">
+            <instanceID/>
+          </meta>
+        </data>
+      </instance>
+      <bind nodeset="/data/inputs" relevant="false()"/>
+      <bind nodeset="/data/inputs/user/contact_id" type="string"/>
+      <bind nodeset="/data/inputs/user/facility_id" type="string"/>
+      <bind nodeset="/data/inputs/user/name" type="string"/>
+      <bind nodeset="/data/c72_village/parent" type="string"/>
+      <bind nodeset="/data/c72_village/first_name" required="true()" type="string"/>
+      <bind nodeset="/data/c72_village/last_name" required="true()" type="string"/>
+      <bind calculate="concat( /data/c72_village/first_name ,' ', /data/c72_village/last_name )" nodeset="/data/c72_village/name" type="string"/>
+      <bind nodeset="/data/c72_village/sex" required="true()" type="select1"/>
+      <bind constraint="regex(.,'^(\d{2}\s?){4}$')" jr:constraintMsg="jr:itext('/data/c72_village/phone:jr:constraintMsg')" nodeset="/data/c72_village/phone" required="false()" type="string"/>
+      <bind calculate="&quot;village_head&quot;" nodeset="/data/c72_village/role" type="string"/>
+      <bind calculate="../../../inputs/user/name" nodeset="/data/c72_village/meta/created_by" type="string"/>
+      <bind calculate="../../../inputs/user/contact_id" nodeset="/data/c72_village/meta/created_by_person_uuid" type="string"/>
+      <bind calculate="../../../inputs/user/facility_id" nodeset="/data/c72_village/meta/created_by_place_uuid" type="string"/>
+      <bind calculate="concat('uuid:', uuid())" nodeset="/data/meta/instanceID" readonly="true()" type="string"/>
+    </model>
+  </h:head>
+  <h:body>
+    <group ref="/data/inputs">
+      <group ref="/data/inputs/user">
+        <input ref="/data/inputs/user/contact_id"/>
+        <input ref="/data/inputs/user/facility_id"/>
+        <input ref="/data/inputs/user/name"/>
+      </group>
+    </group>
+    <group appearance="field-list" ref="/data/c72_village">
+      <input ref="/data/c72_village/first_name">
+        <label ref="jr:itext('/data/c72_village/first_name:label')"/>
+      </input>
+      <input ref="/data/c72_village/last_name">
+        <label ref="jr:itext('/data/c72_village/last_name:label')"/>
+      </input>
+      <select1 appearance="horizontal" ref="/data/c72_village/sex">
+        <label ref="jr:itext('/data/c72_village/sex:label')"/>
+        <item>
+          <label ref="jr:itext('/data/c72_village/sex/female:label')"/>
+          <value>female</value>
+        </item>
+        <item>
+          <label ref="jr:itext('/data/c72_village/sex/male:label')"/>
+          <value>male</value>
+        </item>
+      </select1>
+      <input ref="/data/c72_village/phone">
+        <label ref="jr:itext('/data/c72_village/phone:label')"/>
+        <hint ref="jr:itext('/data/c72_village/phone:hint')"/>
+      </input>
+      <group appearance="hidden" ref="/data/c72_village/meta"/>
+    </group>
+  </h:body>
+</h:html>

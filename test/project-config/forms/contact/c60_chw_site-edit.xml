@@ -1,0 +1,176 @@
+<?xml version="1.0"?>
+<h:html xmlns="http://www.w3.org/2002/xforms" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <h:head>
+    <h:title>Edit CHW Site</h:title>
+    <model>
+      <itext>
+        <translation lang="en">
+          <text id="/data/c60_chw_site/contact/_id:label">
+            <value>Primary Contact</value>
+          </text>
+          <text id="/data/c60_chw_site/name:label">
+            <value>CHW site</value>
+          </text>
+          <text id="/data/c60_chw_site/site_category/existing:label">
+            <value>Existing</value>
+          </text>
+          <text id="/data/c60_chw_site/site_category/unexisting:label">
+            <value>Non existing</value>
+          </text>
+          <text id="/data/c60_chw_site/site_category:label">
+            <value>Site category</value>
+          </text>
+        </translation>
+        <translation lang="fr">
+          <text id="/data/c60_chw_site/contact/_id:label">
+            <value>Contact primaire</value>
+          </text>
+          <text id="/data/c60_chw_site/meta/created_by:label">
+            <value>-</value>
+          </text>
+          <text id="/data/c60_chw_site/meta/created_by_person_uuid:label">
+            <value>-</value>
+          </text>
+          <text id="/data/c60_chw_site/meta/created_by_place_uuid:label">
+            <value>-</value>
+          </text>
+          <text id="/data/c60_chw_site/meta:label">
+            <value>-</value>
+          </text>
+          <text id="/data/c60_chw_site/name:label">
+            <value>Nom du site ASC</value>
+          </text>
+          <text id="/data/c60_chw_site/parent:label">
+            <value>-</value>
+          </text>
+          <text id="/data/c60_chw_site/site_category/existing:label">
+            <value>Existant</value>
+          </text>
+          <text id="/data/c60_chw_site/site_category/unexisting:label">
+            <value>Non existant</value>
+          </text>
+          <text id="/data/c60_chw_site/site_category:label">
+            <value>Catégorie de site</value>
+          </text>
+          <text id="/data/c60_chw_site/type:label">
+            <value>-</value>
+          </text>
+          <text id="/data/c60_chw_site:label">
+            <value>-</value>
+          </text>
+          <text id="/data/inputs/user/contact_id:label">
+            <value>-</value>
+          </text>
+          <text id="/data/inputs/user/facility_id:label">
+            <value>-</value>
+          </text>
+          <text id="/data/inputs/user/name:label">
+            <value>-</value>
+          </text>
+          <text id="/data/inputs/user:label">
+            <value>-</value>
+          </text>
+          <text id="/data/inputs:label">
+            <value>-</value>
+          </text>
+        </translation>
+      </itext>
+      <instance>
+        <data id="contact:c60_chw_site:edit" prefix="J1!contact:c60_chw_site:edit!" delimiter="#" version="2023-11-30  10-16">
+          <inputs>
+            <meta>
+              <location>
+                <lat/>
+                <long/>
+                <error/>
+                <message/>
+              </location>
+            </meta>
+            <user>
+              <contact_id/>
+              <facility_id/>
+              <name/>
+            </user>
+          </inputs>
+          <c60_chw_site>
+            <parent/>
+            <parent_place_id/>
+            <type/>
+            <contact>
+              <name/>
+              <contact_name/>
+              <_id/>
+            </contact>
+            <health_area/>
+            <name/>
+            <site_category/>
+            <geolocation/>
+            <meta tag="hidden">
+              <created_by/>
+              <created_by_person_uuid/>
+              <created_by_place_uuid/>
+              <last_edited_by/>
+              <last_edited_by_person_uuid/>
+              <last_edited_by_place_uuid/>
+            </meta>
+          </c60_chw_site>
+          <meta tag="hidden">
+            <instanceID/>
+          </meta>
+        </data>
+      </instance>
+      <bind nodeset="/data/inputs" relevant="0"/>
+      <bind nodeset="/data/inputs/user/contact_id" type="string"/>
+      <bind nodeset="/data/inputs/user/facility_id" type="string"/>
+      <bind nodeset="/data/inputs/user/name" type="string"/>
+      <bind nodeset="/data/c60_chw_site/parent" readonly="true()" type="string"/>
+      <bind calculate="../parent" nodeset="/data/c60_chw_site/parent_place_id" type="string"/>
+      <bind nodeset="/data/c60_chw_site/type" readonly="true()" type="string"/>
+      <bind nodeset="/data/c60_chw_site/contact/name" readonly="true()" type="string"/>
+      <bind calculate="../name" nodeset="/data/c60_chw_site/contact/contact_name" type="string"/>
+      <bind nodeset="/data/c60_chw_site/contact/_id" required="true()" type="string"/>
+      <bind nodeset="/data/c60_chw_site/health_area" type="string"/>
+      <bind nodeset="/data/c60_chw_site/name" type="string" required="true()"/>
+      <bind nodeset="/data/c60_chw_site/site_category" type="select1" required="true()"/>
+      <bind nodeset="/data/c60_chw_site/geolocation" type="string" calculate="concat(../../inputs/meta/location/lat, concat(' ', ../../inputs/meta/location/long))"/>
+      <bind nodeset="/data/c60_chw_site/meta/created_by" type="string" readonly="true()"/>
+      <bind nodeset="/data/c60_chw_site/meta/created_by_person_uuid" type="string" readonly="true()"/>
+      <bind nodeset="/data/c60_chw_site/meta/created_by_place_uuid" type="string"/>
+      <bind calculate="../../../inputs/user/name" nodeset="/data/c60_chw_site/meta/last_edited_by" type="string"/>
+      <bind calculate="../../../inputs/user/contact_id" nodeset="/data/c60_chw_site/meta/last_edited_by_person_uuid" type="string"/>
+      <bind calculate="../../../inputs/user/facility_id" nodeset="/data/c60_chw_site/meta/last_edited_by_place_uuid" type="string"/>
+      <bind calculate="concat('uuid:', uuid())" nodeset="/data/meta/instanceID" readonly="true()" type="string"/>
+    </model>
+  </h:head>
+  <h:body>
+    <group ref="/data/inputs">
+      <group ref="/data/inputs/user">
+        <input ref="/data/inputs/user/contact_id"/>
+        <input ref="/data/inputs/user/facility_id"/>
+        <input ref="/data/inputs/user/name"/>
+      </group>
+    </group>
+    <group appearance="field-list" ref="/data/c60_chw_site">
+      <group ref="/data/c60_chw_site/contact">
+        <input appearance="select-contact type-c62_chw" ref="/data/c60_chw_site/contact/_id">
+          <label ref="jr:itext('/data/c60_chw_site/contact/_id:label')"/>
+        </input>
+      </group>
+      <input ref="/data/c60_chw_site/name">
+        <label ref="jr:itext('/data/c60_chw_site/name:label')"/>
+      </input>
+      <select1 appearance="horizontal" ref="/data/c60_chw_site/site_category">
+        <label ref="jr:itext('/data/c60_chw_site/site_category:label')"/>
+        <item>
+          <label ref="jr:itext('/data/c60_chw_site/site_category/existing:label')"/>
+          <value>existing</value>
+        </item>
+        <item>
+          <label ref="jr:itext('/data/c60_chw_site/site_category/unexisting:label')"/>
+          <value>unexisting</value>
+        </item>
+      </select1>
+      <group appearance="hidden" ref="/data/c60_chw_site/meta"/>
+    </group>
+  </h:body>
+</h:html>

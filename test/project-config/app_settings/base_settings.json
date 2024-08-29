@@ -1,0 +1,449 @@
+{
+  "app_url": "https://moh-mali-chw.dev.medicmobile.org",
+  "token_login": {
+    "enabled": true,
+    "translation_key": "sms.token.login.help"
+  },
+  "sms": {
+    "outgoing_service": "rapidpro",
+    "rapidpro": {
+      "url": "https://rapidpro.app.medicmobile.org/"
+    }
+  },
+  "locales": [
+    {
+      "code": "en",
+      "name": "English"
+    },
+    {
+      "code": "fr",
+      "name": "French"
+    }
+  ],
+  "locale": "fr",
+  "locale_outgoing": "fr",
+  "date_format": "ddd, Do MMM, YYYY",
+  "reported_date_format": "ddd, MMM Do, YYYY [at] h:mm A",
+  "forms_only_mode": false,
+  "task_days_overdue": true,
+  "roles": {
+    "central_admin": {
+      "name": "usertype.central_admin"
+    },
+    "regional_admin": {
+      "name": "usertype.national_admin"
+    },
+    "district_admin": {
+      "name": "usertype.district_admin"
+    },
+    "dtc": {
+      "name": "usertype.dtc",
+      "offline": true
+    },
+    "supervisor": {
+      "name": "usertype.supervisor",
+      "offline": true
+    },
+    "chw": {
+      "name": "usertype.chw",
+      "offline": true
+    },
+    "oca": {
+      "name": "usertype.oca",
+      "offline": true
+    },
+    "oca_supervisor": {
+      "name": "usertype.oca_supervisor",
+      "offline": true
+    },
+    "savings": {
+      "name": "usertype.savings",
+      "offline": true
+    },
+    "wash_comity": {
+      "name": "usertype.wash_comity",
+      "offline": true
+    },
+    "cvs": {
+      "name": "usertype.cvs",
+      "offline": true
+    },
+    "manager_stock": {
+      "name": "usertype.manager_stock",
+      "offline": true
+    }
+  },
+  "replication_depth": [
+    {
+      "role": "dtc",
+      "depth": 1
+    },
+    {
+      "role": "supervisor",
+      "depth": 2,
+      "report_depth": 0
+    },
+    {
+      "role": "oca_supervisor",
+      "depth": 3,
+      "report_depth": 0
+    },
+    {
+      "role": "savings",
+      "depth": 3,
+      "report_depth": 0
+    },
+    {
+      "role": "oca",
+      "depth": 3,
+      "report_depth": 0
+    },
+    {
+      "role": "wash_comity",
+      "depth": 3,
+      "report_depth": 0
+    },
+    {
+      "role": "cvs",
+      "depth": 3,
+      "report_depth": 0
+    },
+    {
+      "role": "chw",
+      "depth": 4,
+      "report_depth": 0
+    },
+    {
+      "role": "manager_stock",
+      "depth": 2,
+      "report_depth": 1
+    }
+  ],
+  "permissions": {
+    "can_access_gateway_api": [],
+    "can_aggregate_targets": [],
+    "can_bulk_delete_reports": [
+      "central_admin",
+      "regional_admin"
+    ],
+    "can_configure": [
+      "central_admin"
+    ],
+    "can_create_people": [
+      "central_admin",
+      "regional_admin",
+      "chw",
+      "oca_supervisor"
+    ],
+    "can_create_places": [
+      "central_admin",
+      "regional_admin",
+      "chw",
+      "oca_supervisor"
+    ],
+    "can_create_records": [
+      "central_admin",
+      "regional_admin",
+      "chw",
+      "oca",
+      "savings",
+      "wash_comity",
+      "cvs",
+      "oca_supervisor",
+      "supervisor"
+    ],
+    "can_create_users": [
+      "central_admin",
+      "regional_admin"
+    ],
+    "can_delete_contacts": [
+      "central_admin"
+    ],
+    "can_delete_messages": [
+      "central_admin"
+    ],
+    "can_delete_reports": [
+      "central_admin"
+    ],
+    "can_delete_users": [],
+    "can_edit": [
+      "central_admin",
+      "regional_admin",
+      "district_admin",
+      "dtc",
+      "supervisor",
+      "chw",
+      "oca_supervisor",
+      "savings",
+      "oca",
+      "wash_comity",
+      "cvs",
+      "manager_stock"
+    ],
+    "can_edit_profile": [
+      "central_admin",
+      "regional_admin"
+    ],
+    "can_edit_verification": [
+      "central_admin",
+      "regional_admin",
+      "district_admin",
+      "dtc",
+      "supervisor",
+      "oca_supervisor",
+      "manager_stock"
+    ],
+    "can_export_all": [],
+    "can_export_contacts": [
+      "central_admin",
+      "regional_admin"
+    ],
+    "can_export_dhis": [],
+    "can_export_feedback": [],
+    "can_export_messages": [],
+    "can_log_out_on_android": [],
+    "can_update_places": [
+      "central_admin",
+      "regional_admin",
+      "district_admin",
+      "chw",
+      "oca"
+    ],
+    "can_update_reports": [
+      "central_admin",
+      "regional_admin",
+      "district_admin"
+    ],
+    "can_update_users": [
+      "central_admin"
+    ],
+    "can_verify_reports": [
+      "central_admin",
+      "regional_admin",
+      "district_admin",
+      "dtc",
+      "supervisor",
+      "chw",
+      "oca",
+      "oca_supervisor",
+      "manager_stock"
+    ],
+    "can_view_analytics": [
+      "chw",
+      "oca",
+      "savings",
+      "wash_comity",
+      "cvs"
+    ],
+    "can_view_analytics_tab": [
+      "chw",
+      "oca",
+      "savings",
+      "wash_comity",
+      "cvs"
+    ],
+    "can_view_call_action": [],
+    "can_view_contacts": [
+      "central_admin",
+      "regional_admin",
+      "district_admin",
+      "dtc",
+      "supervisor",
+      "chw",
+      "oca",
+      "wash_comity",
+      "cvs",
+      "oca_supervisor",
+      "savings",
+      "manager_stock"
+    ],
+    "can_view_contacts_tab": [
+      "central_admin",
+      "regional_admin",
+      "district_admin",
+      "dtc",
+      "supervisor",
+      "chw",
+      "oca",
+      "oca_supervisor",
+      "savings",
+      "cvs",
+      "wash_comity",
+      "manager_stock"
+    ],
+    "can_view_last_visited_date": [],
+    "can_view_message_action": [],
+    "can_view_messages": [],
+    "can_view_messages_tab": [],
+    "can_view_outgoing_messages": [],
+    "can_view_reports": [
+      "central_admin",
+      "regional_admin",
+      "district_admin",
+      "dtc"
+    ],
+    "can_view_reports_tab": [
+      "central_admin",
+      "regional_admin",
+      "district_admin",
+      "dtc"
+    ],
+    "can_view_tasks": [
+      "dtc",
+      "supervisor",
+      "chw",
+      "oca",
+      "oca_supervisor",
+      "savings",
+      "wash_comity",
+      "cvs",
+      "manager_stock"
+    ],
+    "can_view_tasks_tab": [
+      "dtc",
+      "supervisor",
+      "chw",
+      "oca",
+      "oca_supervisor",
+      "savings",
+      "wash_comity",
+      "cvs",
+      "manager_stock"
+    ],
+    "can_view_uhc_stats": [],
+    "can_view_unallocated_data_records": [
+      "central_admin",
+      "regional_admin",
+      "district_admin"
+    ],
+    "can_view_users": [
+      "central_admin",
+      "regional_admin",
+      "district_admin"
+    ],
+    "can_write_wealth_quintiles": [],
+    "can_create_chw": [
+      "central_admin",
+      "regional_admin"
+    ],
+    "can_manage_cvss": [
+      "savings",
+      "oca"
+    ],
+    "can_view_old_action_bar": [
+      "central_admin",
+      "regional_admin",
+      "district_admin",
+      "dtc",
+      "supervisor",
+      "chw",
+      "oca",
+      "savings",
+      "manager_stock"
+    ]
+  },
+  "place_hierarchy_types": [
+    "c50_supervision_area",
+    "c60_chw_site",
+    "c70_village"
+  ],
+  "contact_types": [
+    {
+      "id": "c50_supervision_area",
+      "name_key": "contact.type.c50_supervision_area",
+      "group_key": "contact.type.c50_supervision_area.plural",
+      "create_key": "contact.type.c50_supervision_area.new",
+      "edit_key": "contact.type.c50_supervision_area.edit",
+      "icon": "icon-manager",
+      "create_form": "form:contact:c50_supervision_area:create",
+      "edit_form": "form:contact:c50_supervision_area:edit"
+    },
+    {
+      "id": "c60_chw_site",
+      "name_key": "contact.type.c60_chw_site",
+      "group_key": "contact.type.c60_chw_site.plural",
+      "create_key": "contact.type.c60_chw_site.new",
+      "edit_key": "contact.type.c60_chw_site.edit",
+      "parents": [
+        "c50_supervision_area"
+      ],
+      "icon": "icon-chw-area",
+      "create_form": "form:contact:c60_chw_site:create",
+      "edit_form": "form:contact:c60_chw_site:edit"
+    },
+    {
+      "id": "c70_village",
+      "name_key": "contact.type.c70_village",
+      "group_key": "contact.type.c70_village.plural",
+      "create_key": "contact.type.c70_village.new",
+      "edit_key": "contact.type.c70_village.edit",
+      "parents": [
+        "c60_chw_site"
+      ],
+      "icon": "icon-community",
+      "create_form": "form:contact:c70_village:create",
+      "edit_form": "form:contact:c70_village:edit"
+    },
+    {
+      "id": "c52_supervisor",
+      "name_key": "contact.type.c52_supervisor",
+      "group_key": "contact.type.c52_supervisor.plural",
+      "create_key": "contact.type.c52_supervisor.new",
+      "edit_key": "contact.type.c52_supervisor.edit",
+      "parents": [
+        "c50_supervision_area"
+      ],
+      "icon": "icon-manager",
+      "create_form": "form:contact:c52_supervisor:create",
+      "edit_form": "form:contact:c52_supervisor:edit",
+      "person": true
+    },
+    {
+      "id": "c62_chw",
+      "name_key": "contact.type.c62_chw",
+      "group_key": "contact.type.c62_chw.plural",
+      "create_key": "contact.type.c62_chw.new",
+      "edit_key": "contact.type.c62_chw.edit",
+      "parents": [
+        "c60_chw_site"
+      ],
+      "icon": "icon-chw",
+      "create_form": "form:contact:c62_chw:create",
+      "edit_form": "form:contact:c62_chw:edit",
+      "person": true
+    },
+    {
+      "id": "c72_village",
+      "name_key": "contact.type.c72_village",
+      "group_key": "contact.type.c72_village.plural",
+      "create_key": "contact.type.c72_village.new",
+      "edit_key": "contact.type.c72_village.edit",
+      "parents": [
+        "c70_village"
+      ],
+      "icon": "medic-person",
+      "create_form": "form:contact:c72_village:create",
+      "edit_form": "form:contact:c72_village:edit",
+      "person": true
+    }
+  ],
+  "create_user_for_contacts": {
+    "replace_forms": [
+      "replace_user"
+    ]
+  },
+  "transitions": {
+    "death_reporting": true,
+    "default_responses": true,
+    "update_clinics": true,
+    "conditional_alerts": true,
+    "generate_shortcode_on_contacts": true,
+    "create_user_for_contacts": true
+  },
+  "death_reporting": {
+    "mark_deceased_forms": [
+      "death_report"
+    ],
+    "date_field": "fields.death_report.date_of_death"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "title": [
+    {
+      "locale": "en",
+      "content": "New CHW"
+    },
+    {
+      "locale": "fr",
+      "content": "Ajouter personne"
+    }
+  ],
+  "context": {
+    "permission": "can_create_chw"
+  }
+}

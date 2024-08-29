@@ -27,6 +27,14 @@ async function getInitConfigs() {
           value: '3_levels'
         }
       ],
+      when: function (answers) {
+        const argv = process.argv;
+        if (argv[3] === '2_levels') {
+          answers.monitoring_type = argv[3];
+          return false;
+        }
+        return true;
+      },
     }
   ]);
 
@@ -59,14 +67,73 @@ async function getInitConfigs() {
         name: `${levelNumber}.contact_type`,
         message: `Select level ${levelNumber}${messagePrecision} contact type`,
         choices: appPersonTypes.map((p) => p.id),
+        when: function (answers) {
+          const argv = process.argv;
+          let answer = {};
+          if (!argv[4] || !argv[6]){
+            return true;
+          }
+          
+          switch(levelNumber){
+            case 1:
+              answer = {
+                1: {
+                  contact_type: argv[4],
+                  role: argv[5]
+                }
+              };
+              break;
+            case 2:
+              answer = {
+                2: {
+                  contact_type: argv[6],
+                  role: argv[7]
+                }
+              };
+              break;
+          }
+          Object.assign(answers, answer);
+          return false;
+        },
       },
       {
         type: 'list',
         name: `${levelNumber}.role`,
         message: `Select level ${levelNumber}${messagePrecision} user role`,
-        choices: appUserRoles
+        choices: appUserRoles,
+        when: function (answers) {
+          const argv = process.argv;
+          let answer = {};
+          if (!argv[5] || !argv[7]){
+            return true;
+          }
+
+          switch(levelNumber){
+            case 1:
+              answer = {
+                1: {
+                  contact_type: argv[4],
+                  role: argv[5]
+                }
+              };
+              break;
+            case 2:
+              answer = {
+                2: {
+                  contact_type: argv[6],
+                  role: argv[7]
+                }
+              };
+              break;
+          }
+
+          Object.assign(answers, answer);
+          
+          return false;
+        },
       }
     ]);
+
     const contactType = level[`${levelNumber}`].contact_type;
     // Get parent
     const contactTypeDetails = appSettings.contact_types.find((ct) => ct.id === contactType);
@@ -77,6 +144,41 @@ async function getInitConfigs() {
           name: 'parent',
           message: `Select level ${levelNumber}${messagePrecision} parent`,
           choices: contactTypeDetails.parents,
+          when:function(answers){
+            const argv = process.argv;
+            let answer = {};
+            if (!argv[10]){
+              return true;
+            }
+
+            switch(levelNumber){
+              case 1:
+                answer = {
+                  1: {
+                    parent: argv[10],
+                  }
+                };
+                break;
+              case 2:
+                answer = {
+                  2: {
+                    parent: argv[10],
+                  }
+                };
+                break;
+              case 3:
+                answer = {
+                  3: {
+                    parent: argv[10],
+                  }
+                };
+                break;
+            }
+
+            Object.assign(answers, answer);
+            
+            return false;
+          }
         }
       ]);
       level[`${levelNumber}`].place_type = parent.parent;

@@ -1,0 +1,15 @@
+{
+  "title": [
+    {
+      "locale": "en",
+      "content": "New person"
+    },
+    {
+      "locale": "fr",
+      "content": "Nouvelle personne"
+    }
+  ],
+  "context": {
+    "permission": "can_create_users"
+  }
+}
