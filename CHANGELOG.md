@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/medic/cht-stock-monitoring-workflow/compare/v1.1.2...v1.1.3) (2024-09-20)
+
+
+### Bug Fixes
+
+* update docs ([#62](https://github.com/medic/cht-stock-monitoring-workflow/issues/62)) ([55f3b21](https://github.com/medic/cht-stock-monitoring-workflow/commit/55f3b21345bf4b778f0383a2b685e3393e0cd664))
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
