@@ -105,36 +105,6 @@ npx cht-stock-monitoring-workflow add feature
 > [!NOTE]
 > For more details about available features please check features documentation here: [docs/features](docs/features)
 
-## Stock Logs
-
-Create a stock form for level 3
-
-### Questions parameters
-
-| Name            | Type       | Description                 | Required |
-| --------------- | ---------- | --------------------------- | -------- |
-| `form_name`   | `string` | The stock logs form name/ID | true     |
-| `title[lang]` | `string` | The stock logs form title   | true     |
-
-# Development
-
-### Commit format
-The commit format should follow this [conventional-changelog angular preset](https://github.com/conventional-changelog/conventional-changelog/tree/master/packages/conventional-changelog-angular).
-
-# Copyright
-
-Copyright 2013-2024 Medic Mobile, Inc. <hello@medic.org>
-
-# License
-
-The software is provided under AGPL-3.0. Contributions to this project are accepted under the same license.
-=======
-
-| Name            | Type                                  | Description                                                                                                                                      | Required |
-| --------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
-| `form_name`   | `string`                            | The stock out form name/ID                                                                                                                       | true     |
-| `title[lang]` | `string`                            | The stock order form title                                                                                                                       | true     |
-| `formular`    | `item_danger_qty` or `weekly_qty` | if weekly_qty, there is low stock if stock count < 2 * estimated weekly consumption. Else, there is low stock if stock count < item.danger_total | true     |
 
 # Task configuration
 
@@ -189,3 +159,40 @@ To include stock monitoring configurations in the `contact-summary.template.js` 
    ```shell
    npx cht-stock-monitoring-workflow build
    ```
+
+# Development
+
+## Commit format
+The commit format should follow this [conventional-changelog angular preset](https://github.com/conventional-changelog/conventional-changelog/tree/master/packages/conventional-changelog-angular). Examples are provided below.
+
+Type | Example commit message | Release type
+-- | -- | --
+Bug fixes | fix(#123): infinite loop when materialized views doesn't exist | patch
+Performance | perf(#789): Refresh materialized views faster | patch
+Features | feat(#456): Support real-time sync | minor
+Non-code | chore(#123): update README | none
+Breaking| perf(#2): remove support for pg 7 <br/> BREAKING CHANGE: postgres 7 no longer supported | major
+
+## Releasing
+1. Create a pull request with prep for the new release (see [above](#submitting-code)). 
+2. Get the pull request reviewed and approved.
+3. When doing the squash and merge, make sure that your commit message is clear and readable and follows the strict format described in the commit format section [bellow](#commit-format). If the commit message does not comply, automatic release will fail.
+4. In case you are planning to merge the pull request with a merge commit, make sure that every commit in your branch respects the [format](#commit-format).
+
+## Releasing betas
+
+1. Checkout the default branch, for example `main`
+1. Run `npm version --no-git-tag-version <major>.<minor>.<patch>-beta.1`. This will only update the versions in `package.json` and `package-lock.json`. It will not create a git tag and not create an associated commit.
+1. Run `npm publish --tag beta`. This will publish your beta tag to npm's beta channel.
+
+To install from the beta channel, run `npm install @medic/cht-stock-monitoring-workflow@beta`.
+
+
+# Copyright
+
+Copyright 2013-2024 Medic Mobile, Inc. <hello@medic.org>
+
+# License
+
+The software is provided under AGPL-3.0. Contributions to this project are accepted under the same license.
+=======
