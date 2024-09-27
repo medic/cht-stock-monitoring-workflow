@@ -33,6 +33,14 @@ async function getItemConfig(configs) {
           return `Form ${input} not found`;
         }
         return true;
+      },
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[14]){
+          return true;
+        }
+        answers.form = argv[14];          
+        return false;
       }
     }
   ]);
@@ -49,7 +57,15 @@ async function getItemConfig(configs) {
         type: 'confirm',
         name: 'isAlwaysCurrent',
         message: `Is ${form} report reported date always the current date?`,
-        default: true
+        default: true,
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[15]){
+            return true;
+          }
+          answers.isAlwaysCurrent = argv[15];          
+          return false;
+        }
       }
     ]);
     if (!reportedDateSameAsCurrent.isAlwaysCurrent) {
@@ -58,7 +74,15 @@ async function getItemConfig(configs) {
           type: 'input',
           name: 'reportedDate',
           message: 'Enter a xlsform calculation formular to calculate the reported date',
-          default: 'now()'
+          default: 'now()',
+          when: function(answers){
+            const argv = process.argv;
+            if (!argv[16]){
+              return true;
+            }
+            answers.reportedDate = argv[16];          
+            return false;
+          }
         }
       ]);
       formConfig.reportedDate = `${reportDateFormular.reportedDate}`;
@@ -80,6 +104,7 @@ async function getItemConfig(configs) {
         value: it,
       };
     });
+
     choices.push({
       name: 'Create new item',
       value: '___new_item___'
@@ -89,6 +114,14 @@ async function getItemConfig(configs) {
       name: 'item',
       message: 'Select item',
       choices,
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[17]){
+          return true;
+        }
+        answers.item = argv[17];                      
+        return false;
+      }
     }]);
     if (itemSelect.item !== '___new_item___') {
       itemConfig = configs.items[itemSelect.item];
@@ -127,16 +160,78 @@ async function getItemConfig(configs) {
             type: 'input',
             name: 'name',
             message: 'Enter category name',
+            when: function(answers){
+              const argv = process.argv;
+              if (!argv[17]){
+                return true;
+              }
+              answers.name = argv[17];                      
+              return false;
+            }
           },
           ...configs.languages.map((language) => ({
             type: 'input',
             name: `label.${language}`,
-            message: `Enter category label in ${language}`
+            message: `Enter category label in ${language}`,
+            when: function(answers) {
+              const argv = process.argv;
+              if (!argv[18]){
+                return true;
+              }
+              let answer = {};
+              argv[18].split(',').forEach(el => {
+                switch(language){
+                  case 'en':
+                    answer = {
+                      label: {
+                        'en': el
+                      }
+                    };
+                    break;
+                  case 'fr':
+                    answer = {
+                      label: {
+                        'fr': el
+                      }
+                    };
+                    break;
+                }
+              });
+              
+              Object.assign(answers, answer);
+              return false;
+            }
           })),
           ...configs.languages.map((language) => ({
             type: 'input',
             name: `description.${language}`,
-            message: `Enter category description in ${language}`
+            message: `Enter category description in ${language}`,
+            when: function(answers){
+              const argv = process.argv;
+              if (!argv[19]){
+                return true;
+              }
+              let answer = {};
+              switch(language){
+                case 'en':
+                  answer = {
+                    description: {
+                      'en': argv[19].split(',')[0]
+                    }
+                  };
+                  break;
+                case 'fr':
+                  answer = {
+                    description: {
+                      'fr': argv[19].split(',')[1]
+                    }
+                  };
+                  break;
+              }
+          
+              Object.assign(answers, answer);
+              return false;
+            }
           }))
         ]);
       }
@@ -146,17 +241,47 @@ async function getItemConfig(configs) {
         type: 'input',
         name: 'name',
         message: 'Enter item name',
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[20]){
+            return true;
+          }
+          answers.name = argv[20];
+          return false;
+        }
       },
       ...configs.languages.map((language) => ({
         type: 'input',
         name: `label.${language}`,
-        message: `Enter item label in ${language}`
+        message: `Enter item label in ${language}`,
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[21]){
+            return true;
+          }            
+          const answer = {
+            label: {
+              'en': argv[21].split(',')[0],
+              'fr': argv[21].split(',')[1]
+            }
+          };
+          Object.assign(answers, answer);
+          return false;
+        }
       })),
       {
         type: 'confirm',
         name: 'isInSet',
         message: 'Can this item be organized in set like box/blister?',
         default: true,
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[22]){
+            return true;
+          }
+          answers.isInSet = argv[22];
+          return false;
+        }
       },
     ]);
 
@@ -165,12 +290,38 @@ async function getItemConfig(configs) {
         ...configs.languages.map((language) => ({
           type: 'input',
           name: `set.label.${language}`,
-          message: `What is the name of the set? Ex: box of 8 in ${language} ?`
+          message: `What is the name of the set? Ex: box of 8 in ${language} ?`,
+          when: function(answers){
+            const argv = process.argv;
+            if (!argv[23]){
+              return true;
+            }            
+            const answer = {
+              set:{
+                label: {
+                  'en': argv[23].split(',')[0],
+                  'fr': argv[23].split(',')[1]
+                }
+              }                
+            }; 
+            Object.assign(answers, answer);
+            
+            return false;
+          }
         })),
         {
           type: 'number',
           name: 'set.count',
-          message: 'How many units are there in the set ? '
+          message: 'How many units are there in the set ? ',
+          when: function(answers){
+            const argv = process.argv;
+            if (!argv[24]){
+              return true;
+            }
+
+            answers.set.count = argv[24];            
+            return false;
+          }
         },
       ]);
       Object.assign(itemConfig, setConfigs);
@@ -179,23 +330,64 @@ async function getItemConfig(configs) {
       ...configs.languages.map((language) => ({
         type: 'input',
         name: `unit.label.${language}`,
-        message: `What is the name of the unit? Ex: Tablet in ${language} ?`
+        message: `What is the name of the unit? Ex: Tablet in ${language} ?`,
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[25]){
+            return true;
+          }            
+          const answer = {
+            unit:{
+              label: {
+                'en': argv[25].split(',')[0],
+                'fr': argv[25].split(',')[1]
+              }
+            }
+          };
+            
+          Object.assign(answers, answer);
+          return false;
+        }
       })),
       {
         type: 'number',
         name: 'warning_total',
         message: 'What is the threshold (quantity) that requires attention ? ',
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[26]){
+            return true;
+          }
+          answers.warning_total = argv[26]; 
+          return false;
+        }
       },
       {
         type: 'number',
         name: 'danger_total',
         message: 'What is the threshold (quantity) that triggers a stock out ? ',
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[27]){
+            return true;
+          }
+          answers.danger_total = argv[27]; 
+          return false;
+        }
       },
       {
         type: 'number',
         name: 'max_total',
         message: 'What is the maximum quantity to have for this item ? ',
         default: -1,
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[28]){
+            return true;
+          }
+          answers.max_total = argv[28]; 
+          return false;
+        }
       }
     ]);
     Object.assign(itemConfig, itemGeneralConfigs);
@@ -218,7 +410,15 @@ async function getItemConfig(configs) {
           name: 'Custom automatic formula',
           value: 'formula'
         }
-      ]
+      ],
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[29]){
+          return true;
+        }
+        answers.deduction_type = argv[29];
+        return false;
+      }
     }
   ]);
 
@@ -226,7 +426,15 @@ async function getItemConfig(configs) {
     {
       type: 'input',
       name: 'formular',
-      message: itemDeduction.deduction_type === 'formula' ? 'Enter formular' : 'In what condition ask the quantity?'
+      message: itemDeduction.deduction_type === 'formula' ? 'Enter formular' : 'In what condition ask the quantity?',
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[30]){
+          return true;
+        }
+        answers.formular = argv[30];
+        return false;
+      }
     }
   ]);
   itemDeduction.formular = formularRequest.formular;

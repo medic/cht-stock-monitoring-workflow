@@ -1,0 +1,18 @@
+{
+    "title": [
+      {
+        "locale": "en",
+        "content": "Care of Adult and pregnant women"
+      },
+      {
+        "locale": "fr",
+        "content": "PEC adulte et femme enceinte"
+      }
+    ],
+    "context": {
+      "place": false,
+      "person": true,
+      "expression": "contact.contact_type === 'c92_household' && summary.alive && ageInYears(contact) >= 5 && user.role === 'chw'"
+    },
+    "icon": "icon-healthcare-assessment"
+  }

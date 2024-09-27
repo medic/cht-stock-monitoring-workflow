@@ -1,0 +1,107 @@
+{
+  "app_url": "https://moh-mali-chw.dev.medicmobile.org",
+  "token_login": {
+    "enabled": true,
+    "translation_key": "sms.token.login.help"
+  },
+  "sms": {
+    "outgoing_service": "rapidpro",
+    "rapidpro": {
+      "url": "https://rapidpro.app.medicmobile.org/"
+    }
+  },
+  "locales": [
+    {
+      "code": "en",
+      "name": "English"
+    },
+    {
+      "code": "fr",
+      "name": "French"
+    }
+  ],
+  "locale": "fr",
+  "locale_outgoing": "fr",
+  "date_format": "ddd, Do MMM, YYYY",
+  "reported_date_format": "ddd, MMM Do, YYYY [at] h:mm A",
+  "forms_only_mode": false,
+  "task_days_overdue": true,
+  "roles": {
+    "dtc": {
+      "name": "usertype.dtc",
+      "offline": true
+    },
+    "supervisor": {
+      "name": "usertype.supervisor",
+      "offline": true
+    },
+    "chw": {
+      "name": "usertype.chw",
+      "offline": true
+    }
+  },
+  "permissions": {
+    "can_access_gateway_api": [],
+    "can_aggregate_targets": [],
+    "can_view_messages": [],
+    "can_view_messages_tab": []
+  },
+  "place_hierarchy_types": [
+    "c50_supervision_area",
+    "c60_chw_site",
+    "c70_village"
+  ],
+  "contact_types": [
+    {
+      "id": "c50_supervision_area",
+      "name_key": "contact.type.c50_supervision_area",
+      "group_key": "contact.type.c50_supervision_area.plural",
+      "create_key": "contact.type.c50_supervision_area.new",
+      "edit_key": "contact.type.c50_supervision_area.edit",
+      "icon": "icon-manager",
+      "create_form": "form:contact:c50_supervision_area:create",
+      "edit_form": "form:contact:c50_supervision_area:edit"
+    },
+    {
+      "id": "c60_chw_site",
+      "name_key": "contact.type.c60_chw_site",
+      "group_key": "contact.type.c60_chw_site.plural",
+      "create_key": "contact.type.c60_chw_site.new",
+      "edit_key": "contact.type.c60_chw_site.edit",
+      "parents": [
+        "c50_supervision_area"
+      ],
+      "icon": "icon-chw-area",
+      "create_form": "form:contact:c60_chw_site:create",
+      "edit_form": "form:contact:c60_chw_site:edit"
+    },
+    {
+      "id": "c52_supervisor",
+      "name_key": "contact.type.c52_supervisor",
+      "group_key": "contact.type.c52_supervisor.plural",
+      "create_key": "contact.type.c52_supervisor.new",
+      "edit_key": "contact.type.c52_supervisor.edit",
+      "parents": [
+        "c50_supervision_area"
+      ],
+      "icon": "icon-manager",
+      "create_form": "form:contact:c52_supervisor:create",
+      "edit_form": "form:contact:c52_supervisor:edit",
+      "person": true
+    },
+    {
+      "id": "c62_chw",
+      "name_key": "contact.type.c62_chw",
+      "group_key": "contact.type.c62_chw.plural",
+      "create_key": "contact.type.c62_chw.new",
+      "edit_key": "contact.type.c62_chw.edit",
+      "parents": [
+        "c60_chw_site"
+      ],
+      "icon": "icon-chw",
+      "create_form": "form:contact:c62_chw:create",
+      "edit_form": "form:contact:c62_chw:edit",
+      "person": true
+    }
+  ]
+}
