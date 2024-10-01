@@ -44,7 +44,15 @@ async function selectFeature(configs) {
       choices: remainingFeatures.map((ft) => ({
         name: FEATURES[ft],
         value: ft,
-      }))
+      })),
+      when: function (answers){
+        const argv = process.argv;
+        if (!argv[4]){
+          return true;
+        } 
+        answers.name = argv[4];
+        return false;
+      }
     }
   ]);
 
