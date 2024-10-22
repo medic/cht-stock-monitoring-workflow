@@ -5,6 +5,7 @@ const { mockConfigs } = require('./mocks/mocks');
 const { updateStockOut } = require('../src/features/stock-out'); 
 const {
   setDirToprojectConfig,
+  revertBackToProjectHome
 } = require('./test-utils');
 
 describe('updateStockOut', () => {
@@ -16,8 +17,9 @@ describe('updateStockOut', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    process.chdir(workingDir);
+    revertBackToProjectHome(workingDir);
   });
+
 
   it('should update the stock out form with correct values', async () => {
     const createdAppFormFiles = ['stock_out.properties.json', 'stock_out.xlsx'];

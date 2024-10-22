@@ -16,7 +16,7 @@
   },
   "scripts": {
     "cz": "cz",
-    "test": "jest --testTimeout=25000",
+    "test": "jest --testTimeout=25000 --runInBand",
     "semantic-release": "semantic-release",
     "prepare": "husky"
   },

@@ -30,21 +30,6 @@ const cleanUp = (workingDir) => {
     }
   });
 
-  const translationFiles = fs.readdirSync(path.join(processDir, 'translations'));
-  for(const translationFile of translationFiles){
-        
-    const messageFileContent = fs.readFileSync(path.join(processDir, 'translations', translationFile), {encoding: 'utf-8'});
-    if(messageFileContent !== ''){
-      const newMessageContent = messageFileContent.split('\n').map(message => {
-        if(!message.toString().includes('cht-stock-monitoring-workflow.stock_count') && message.toString()!==''){
-          return `${message.toString()}\n`;
-        }
-      });
-
-      fs.truncate(path.join(processDir, 'translations', translationFile), 0, function () {});
-      fs.writeFile(path.join(processDir, 'translations', translationFile),newMessageContent.toString().replaceAll(',', ''));
-    }
-  }
 };
 
 module.exports = {

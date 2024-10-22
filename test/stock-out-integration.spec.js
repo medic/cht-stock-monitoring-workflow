@@ -11,23 +11,21 @@ const {
 } = require('./test-utils');
 
 
-describe('Stock out', () => {
+describe('Stock out integration test', () => {
   const workingDir = process.cwd();
 
   beforeEach(() => {
-    revertBackToProjectHome(workingDir);
     setDirToprojectConfig();
   });
 
   afterEach(async() => {
-    cleanUp(workingDir);
     revertBackToProjectHome(workingDir);
   });
 
-  it('Add stock out summaries test', async() => {
+  it('Add stock out integration test', async() => {
     const processDir = process.cwd();
     const workbook = new ExcelJS.Workbook();
-    const childProcess = spawnSync('../../main.js',  stockOutScenario.initScenario);
+    const childProcess = await spawnSync('../../main.js',  stockOutScenario.initScenario);
 
     if (childProcess.error) {
       throw childProcess.error;
@@ -79,8 +77,8 @@ describe('Stock out', () => {
         throw stockOutChildProcess.error;
       }
       else {
-        const createdAppFormFiles = ['stock_out.properties.json', 'stock_out.xlsx'];
-        for(const createdAppFormFile of createdAppFormFiles){
+        const createdStockOutAppFormFiles = ['stock_out.properties.json', 'stock_out.xlsx'];
+        for(const createdAppFormFile of createdStockOutAppFormFiles){
           expect(fs.existsSync(path.join(processDir, 'forms', 'app', createdAppFormFile))).toBe(true);
         }
         
@@ -101,6 +99,8 @@ describe('Stock out', () => {
         expect(stockOutProductsList.length).toBe(stockOutCellProductsList.length);
         expect(stockOutProductsList.entries).toStrictEqual(stockOutCellProductsList.entries);
       }
+
+      cleanUp(workingDir);
     }
 
   });
