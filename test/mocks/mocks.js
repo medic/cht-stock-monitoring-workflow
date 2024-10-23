@@ -1,5 +1,79 @@
 module.exports = {
-
+  mockConfigs: {
+    features: {
+      stock_order: {
+        actors: [
+          {
+            contact_type: 'c62_chw',
+            role: 'chw',
+            place_type: 'c60_chw_site'
+          }
+        ],
+        form_name: 'stock_order',
+        title: {
+          en: 'Stock Order',
+          fr: 'Commande de Stock'
+        },
+        stock_supply: {
+          form_name: 'stock_order_supply',
+          title: {
+            en: 'Stock Order Supply',
+            fr: 'Livraison de Commande de Stock'
+          }
+        }
+      }
+    },
+    languages: ['en', 'fr'],
+    items: {
+      product: {
+        name: 'product',
+        label: {
+          en: 'Product',
+          fr: 'Produit'
+        },
+        isInSet: 'Y',
+        set: {
+          label: {
+            en: 'Box of 8',
+            fr: 'Boite de 8'
+          },
+          count: '8'
+        },
+        unit: {
+          label: {
+            en: 'Tablet',
+            fr: 'Comprimes'
+          }
+        },
+        warning_total: '20',
+        danger_total: '15',
+        max_total: '15',
+        category: 'malaria'
+      }
+    },
+    categories: {
+      category: {
+        name: 'category',
+        label: {
+          fr: 'Categorie',
+          en: 'Category'
+        },
+        description: {
+          fr: 'Categorie',
+          en: 'Category'
+        }
+      }
+    },
+    defaultLanguage: 'fr',
+    last_update_date: '2024-10-21T11:09:33.013Z'
+  },
+  mockConfigsWithNoFeauture: {
+    features: {
+      no_feauture: {
+        form_name: 'no_feature',
+      }
+    },
+  },
   stockCountScenario: {
     initScenario: [
       'init', 
@@ -105,7 +179,7 @@ module.exports = {
       'paracetamol___count'
     ],
 
-    stockOrderScenario: [
+    stockOrderProductScenario: [
       '___paracetamol',
       'paracetamol_before',
       'paracetamol___current___set',
@@ -129,11 +203,4 @@ module.exports = {
     ]
 
   },
-
 };
-
-
-
-
-
-
