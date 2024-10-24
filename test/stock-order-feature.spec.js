@@ -13,7 +13,6 @@ const {
 } = require('./test-utils');
 
 describe('Stock Order feature', () => {
-  //let projectDataDir;
   const workingDir = process.cwd();
   const createdAppFormFiles = ['stock_order.xlsx', 'stock_order.properties.json'];
 
