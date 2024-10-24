@@ -448,19 +448,59 @@ async function getStockSupplyConfigs({
       type: 'input',
       name: 'form_name',
       message: 'Enter stock supply form ID',
-      default: 'stock_supply'
+      default: 'stock_supply',
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[11]){
+          return true;
+        }
+
+        answers.form_name = argv[11];
+        return false;
+      }
     },
     ...languages.map((language) => ({
       type: 'input',
       name: `title.${language}`,
       message: `Enter stock supply form title in ${language}`,
-      default: 'Stock Supply'
+      default: 'Stock Supply',
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[12]){
+          return true;
+        }
+
+        const answer = {
+          title: {
+            'en': argv[12].split(',')[0],
+            'fr': argv[12].split(',')[1]
+          }
+        };
+
+        Object.assign(answers, answer);
+        return false;
+      }
     })),
     {
       type: 'confirm',
       name: 'confirm_supply.active',
       message: 'Activate supply confirmation',
       default: false,
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[13]){
+          return true;
+        }
+
+        const answer = {
+          confirm_supply:{
+            active: argv[13]
+          }
+        };
+      
+        Object.assign(answers, answer);
+        return false;
+      }
     }
   ]);
 
@@ -470,25 +510,91 @@ async function getStockSupplyConfigs({
         type: 'input',
         name: 'confirm_supply.form_name',
         message: 'Enter supply confirmation ID',
-        default: 'stock_received'
+        default: 'stock_received',
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[14]){
+            return true;
+          }
+
+          const answer = {
+            confirm_supply:{
+              form_name: argv[14]
+            }
+          };
+          
+          Object.assign(answers, answer);
+          return false;
+        }
       },
       ...languages.map((language) => ({
         type: 'input',
         name: `confirm_supply.title.${language}`,
         message: `Enter supply confirmation form title in ${language}`,
-        default: 'Stock Received'
+        default: 'Stock Received',
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[15]){
+            return true;
+          }
+
+          const answer = {
+            confirm_supply:{
+              title: {
+                'en': argv[15].split(',')[0],
+                'fr': argv[15].split(',')[1]
+              }
+            }
+          };
+          
+          Object.assign(answers, answer);
+          return false;
+        }
       })),
       {
         type: 'input',
         name: 'discrepancy.form_name',
         message: 'Enter discrepancy resolution form ID',
         default: 'stock_discrepancy_resolution',
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[16]){
+            return true;
+          }
+
+          const answer = {
+            discrepancy:{
+              form_name: argv[16]
+            }
+          };
+          
+          Object.assign(answers, answer);
+          return false;
+        }
       },
       ...languages.map((language) => ({
         type: 'input',
         name: `discrepancy.title.${language}`,
         message: `Enter discrepancy resolution form title in ${language}`,
-        default: 'Stock Discrepancy Resolution'
+        default: 'Stock Discrepancy Resolution',
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[17]){
+            return true;
+          }
+
+          const answer = {
+            discrepancy: {
+              title: {
+                'en': argv[17].split(',')[0],
+                'fr': argv[17].split(',')[1]
+              }
+            }
+          };
+          
+          Object.assign(answers, answer);
+          return false;
+        }
       }))
     ]);
     confirmationConfigs['confirm_supply'].active = true;

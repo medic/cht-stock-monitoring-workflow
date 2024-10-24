@@ -395,6 +395,16 @@ const getStockOrderConfigs = async ({
           value: actor,
         };
       }),
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[5]){
+          return true;
+        }
+
+        answers.actors = eval(argv[5]);
+
+        return false;
+      }
     },
     {
       type: 'input',
@@ -406,6 +416,16 @@ const getStockOrderConfigs = async ({
           return 'Please enter a valid form ID';
         }
         return true;
+      },
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[6]){
+          return true;
+        }
+
+        answers.form_name = argv[6];
+        
+        return false;
       }
     },
     ...languages.map((language) => ({
@@ -418,6 +438,22 @@ const getStockOrderConfigs = async ({
           return `Please enter a valid form title in ${language}`;
         }
         return true;
+      },
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[7]){
+          return true;
+        }
+
+        const answer = {
+          title:{
+            'en': argv[7].split(',')[0],
+            'fr': argv[7].split(',')[1]
+          }
+        };
+
+        Object.assign(answers, answer);
+        return false;
       }
     })),
     {
@@ -430,6 +466,21 @@ const getStockOrderConfigs = async ({
           return 'Please enter a valid form ID';
         }
         return true;
+      },
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[10]){
+          return true;
+        }
+
+        const answer = {
+          stock_supply:{
+            form_name: argv[10]
+          }
+        };
+
+        Object.assign(answers, answer);
+        return false;
       }
     },
     ...languages.map((language) => ({
@@ -442,6 +493,24 @@ const getStockOrderConfigs = async ({
           return `Please enter a valid form title in ${language}`;
         }
         return true;
+      },
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[9]){
+          return true;
+        }
+
+        const answer = {
+          stock_supply:{
+            title: {
+              'en': argv[9].split(',')[0],
+              'fr': argv[9].split(',')[1]
+            }
+          }
+        };
+
+        Object.assign(answers, answer);
+        return false;
       }
     }))
   ]);

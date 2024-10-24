@@ -32,5 +32,8 @@
         "SwitchCase": 1
       }
     ]
+  },
+  "globals": {
+    "jest": true
   }
 }
