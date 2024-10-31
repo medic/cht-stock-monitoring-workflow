@@ -377,25 +377,78 @@ async function getStockReturnConfigs({
       type: 'input',
       name: 'form_name',
       message: 'Enter stock return form ID',
-      default: 'stock_return'
+      default: 'stock_return',
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[4]){
+          return true;
+        }
+        answers.form_name = argv[4];
+        return false;
+      }
     },
     ...languages.map((language) => ({
       type: 'input',
       name: `title.${language}`,
       message: `Enter stock return form title in ${language}`,
-      default: 'Stock Return'
+      default: 'Stock Return',
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[5]){
+          return true;
+        }
+        const answer ={
+          title: {
+            'en': argv[5].split(',')[0],
+            'fr': argv[5].split(',')[1],
+          }
+        };
+        Object.assign(answers, answer);
+        return false;
+      }
     })),
     {
       type: 'input',
       name: 'confirmation.form_name',
       message: 'Enter stock returned confirmation form ID',
-      default: 'stock_returned'
+      default: 'stock_returned',
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[6]){
+          return true;
+        }
+        const answer = {
+          confirmation: {
+            form_name: argv[6]
+          }
+        };
+        Object.assign(answers, answer);
+        return false;
+      }
     },
     ...languages.map((language) => ({
       type: 'input',
       name: `confirmation.title.${language}`,
       message: `Enter stock returned confirmation form title in ${language}`,
-      default: 'Stock Returned'
+      default: 'Stock Returned',
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[7]){
+          return true;
+        }
+        const answer = {
+          confirmation: {
+            title:{
+              'en': argv[7].split(',')[0],
+              'fr': argv[7].split(',')[1]
+            },
+            form_name: argv[6]
+          }
+        };
+
+        Object.assign(answers, answer);
+        return false;
+      }
     })),
   ]);
 }
