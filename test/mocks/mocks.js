@@ -86,6 +86,7 @@ module.exports = {
     version: '1.1.3',
     last_update_date: '2024-10-21T11:09:33.013Z'
   },
+  
   stockCountScenario: {
     initScenario: [
       'init', 
