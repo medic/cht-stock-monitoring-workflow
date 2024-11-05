@@ -19,7 +19,12 @@ const revertBackToProjectHome = (projectHome) =>{
 const cleanUp = (workingDir, fileNames) => {
   const processDir = path.join(workingDir,'test/project-config/');
   for(const formFile of fileNames){
-    fs.unlinkSync(path.join(processDir, 'forms', 'app', formFile));
+    const filePath = path.join(processDir, 'forms', 'app', formFile);
+    fs.stat(filePath, (error) => {
+      if (!error) {
+        fs.unlinkSync(filePath);
+      }
+    });
   }
 
   // Removing the stock monitoring init file and stock count file

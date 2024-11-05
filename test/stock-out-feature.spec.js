@@ -5,24 +5,27 @@ const { mockConfigs } = require('./mocks/mocks');
 const { updateStockOut } = require('../src/features/stock-out'); 
 const {
   setDirToprojectConfig,
-  revertBackToProjectHome
+  revertBackToProjectHome,
+  cleanUp
 } = require('./test-utils');
 
 describe('updateStockOut', () => {
   const workingDir = process.cwd();
+  const createdAppFormFiles = ['stock_out.properties.json', 'stock_out.xlsx'];
+
 
   beforeEach(() => {
     setDirToprojectConfig();
   });
 
   afterEach(() => {
+    cleanUp(workingDir, createdAppFormFiles);
     jest.clearAllMocks();
     revertBackToProjectHome(workingDir);
   });
 
 
   it('should update the stock out form with correct values', async () => {
-    const createdAppFormFiles = ['stock_out.properties.json', 'stock_out.xlsx'];
     const processDir = process.cwd();
     
     // Check that stock out xlsx and properties files exist.
@@ -72,15 +75,6 @@ describe('updateStockOut', () => {
         }
       ]
     });
-
-    // Delete generated stock out files
-    for(const createdAppFormFile of createdAppFormFiles){
-      fs.stat(path.join(processDir, 'forms', 'app', createdAppFormFile), (error) => {
-        if (!error) {
-          expect(fs.unlinkSync(path.join(processDir, 'forms', 'app', createdAppFormFile))).toBe(undefined);
-        }
-      });
-    }
 
   });
 });
