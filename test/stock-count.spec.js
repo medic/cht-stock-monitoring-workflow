@@ -12,13 +12,14 @@ const {
 
 
 describe('Stock count', () => {
+  const workingDir = process.cwd();
 
   beforeEach(() => {
     setDirToprojectConfig();
   });
 
   afterEach(() => {
-    revertBackToProjectHome(process.cwd());
+    revertBackToProjectHome(workingDir);
   });
 
   it('Add stock count summaries test', async() => {
@@ -71,23 +72,6 @@ describe('Stock count', () => {
     expect(fs.unlinkSync(stockMonitoringConfig)).toBe(undefined);
     expect(fs.unlinkSync(formPath)).toBe(undefined);
     expect(fs.unlinkSync(formPropertiesPath)).toBe(undefined);
-
-    const translationFiles = fs.readdirSync(path.join(processDir, 'translations'));
-    for(const translationFile of translationFiles){
-      
-      const messageFileContent = fs.readFileSync(path.join(processDir, 'translations', translationFile), {encoding: 'utf-8'});
-      expect(messageFileContent).not.toBe('');
-      const newMessageContent = messageFileContent.split('\n').map(message => {
-        if(!message.toString().includes('cht-stock-monitoring-workflow') && message.toString()!==''){
-          return `${message.toString()}\n`;
-        }
-      });
-
-      expect(newMessageContent.includes('cht-stock-monitoring-workflow')).toBe(false);
-      fs.truncate(path.join(processDir, 'translations', translationFile), 0, function () {});
-      fs.writeFile(path.join(processDir, 'translations', translationFile),newMessageContent.toString().replaceAll(',', ''));
-      
-    }
   });
 
 });

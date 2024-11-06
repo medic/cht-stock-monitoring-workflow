@@ -448,19 +448,54 @@ async function getStockSupplyConfigs({
       type: 'input',
       name: 'form_name',
       message: 'Enter stock supply form ID',
-      default: 'stock_supply'
+      default: 'stock_supply',
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[4]){
+          return true;
+        }
+        answers.form_name = argv[4];
+        return false;
+      }
     },
     ...languages.map((language) => ({
       type: 'input',
       name: `title.${language}`,
       message: `Enter stock supply form title in ${language}`,
-      default: 'Stock Supply'
+      default: 'Stock Supply',
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[5]){
+          return true;
+        }
+        const answer = {
+          title: {
+            'en':argv[5].split(',')[0],  
+            'fr':argv[5].split(',')[1],
+          }
+        };
+        Object.assign(answers, answer);
+        return false;
+      }
     })),
     {
       type: 'confirm',
       name: 'confirm_supply.active',
       message: 'Activate supply confirmation',
       default: false,
+      when: function(answers){
+        const argv = process.argv;
+        if (!argv[6]){
+          return true;
+        }
+        const answer = {
+          confirm_supply: {
+            active: argv[6] 
+          }
+        };
+        Object.assign(answers, answer);
+        return false;
+      }
     }
   ]);
 
@@ -470,25 +505,101 @@ async function getStockSupplyConfigs({
         type: 'input',
         name: 'confirm_supply.form_name',
         message: 'Enter supply confirmation ID',
-        default: 'stock_received'
+        default: 'stock_received',
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[7]){
+            return true;
+          }
+          const answer = {
+            confirm_supply: {
+              form_name: argv[7]
+            }
+          };
+
+          Object.assign(answers, answer);
+          return false;
+        }
       },
       ...languages.map((language) => ({
         type: 'input',
         name: `confirm_supply.title.${language}`,
         message: `Enter supply confirmation form title in ${language}`,
-        default: 'Stock Received'
+        default: 'Stock Received',
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[8]){
+            return true;
+          }
+          const answer = {
+            confirm_supply: {
+              title: {
+                'en':argv[8].split(',')[0],  
+                'fr':argv[8].split(',')[1],
+              }
+            }
+          };
+
+          Object.assign(answers, answer);
+          return false;
+        }
       })),
       {
         type: 'input',
         name: 'discrepancy.form_name',
         message: 'Enter discrepancy resolution form ID',
         default: 'stock_discrepancy_resolution',
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[9]){
+            return true;
+          }
+          const answer = {
+            discrepancy: {
+              form_name: argv[9]
+            }
+          };
+
+          Object.assign(answers, answer);
+          return false;
+        }
       },
       ...languages.map((language) => ({
         type: 'input',
         name: `discrepancy.title.${language}`,
         message: `Enter discrepancy resolution form title in ${language}`,
-        default: 'Stock Discrepancy Resolution'
+        default: 'Stock Discrepancy Resolution',
+        when: function(answers){
+          const argv = process.argv;
+          if (!argv[10]){
+            return true;
+          }
+
+          const answer = {
+            form_name: argv[4],
+            title: { 
+              'en': argv[5].split(',')[0],  
+              'fr': argv[5].split(',')[1],
+            },
+            discrepancy: {
+              form_name: argv[9],
+              title: {
+                'en':argv[10].split(',')[0],  
+                'fr':argv[10].split(',')[1], 
+              },
+            },
+            confirm_supply: {
+              form_name: argv[7],
+              title: {
+                'en':argv[8].split(',')[0],  
+                'fr':argv[8].split(',')[1],
+              },
+              active: argv[6] 
+            }
+          };  
+          Object.assign(answers, answer);     
+          return false;
+        }
       }))
     ]);
     confirmationConfigs['confirm_supply'].active = true;
