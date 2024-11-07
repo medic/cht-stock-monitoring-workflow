@@ -1,7 +1,7 @@
 const ExcelJS = require('exceljs');
 const fs = require('fs');
 const path = require('path');
-const { stockOutMockConfigs } = require('./mocks/mocks');
+const { stockOutMockConfigs, mockConfigsWithNoFeauture } = require('./mocks/mocks');
 const { updateStockOut } = require('../src/features/stock-out'); 
 const {
   setDirToprojectConfig,
@@ -10,6 +10,7 @@ const {
 
 describe('updateStockOut', () => {
   const workingDir = process.cwd();
+  const createdAppFormFiles = ['stock_out.properties.json', 'stock_out.xlsx'];
 
   beforeEach(() => {
     setDirToprojectConfig();
@@ -20,9 +21,19 @@ describe('updateStockOut', () => {
     revertBackToProjectHome(workingDir);
   });
 
+  it('should  not generate and update stock out form', async () => {
+    const projectDataDir = process.cwd();
+    // Check that stock out xlsx and properties files does not exist.
+    for(const createdAppFormFile of createdAppFormFiles){
+      expect(fs.existsSync(path.join(projectDataDir, 'forms', 'app', createdAppFormFile))).toBe(false);
+    }
+    
+    // Call the function updateStockOut and check it throws an exception when there is no match config
+    await expect( updateStockOut(mockConfigsWithNoFeauture)).rejects.toThrow(Error);
+    
+  });
 
   it('should update the stock out form with correct values', async () => {
-    const createdAppFormFiles = ['stock_out.properties.json', 'stock_out.xlsx'];
     const processDir = process.cwd();
     
     // Check that stock out xlsx and properties files exist.

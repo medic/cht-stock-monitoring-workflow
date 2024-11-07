@@ -1,4 +1,11 @@
 module.exports = {
+  mockConfigsWithNoFeauture: {
+    features: {
+      no_feature: {
+        form_name: 'no_form'
+      },
+    },
+  },
   stockOutMockConfigs: {
     features: {
       stock_out: {
