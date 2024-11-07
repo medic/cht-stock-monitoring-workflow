@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { stockSupplyConfig } = require('./mocks/mocks');
+const { stockSupplyConfig, mockConfigsWithNoFeauture } = require('./mocks/mocks');
 const { updateStockSupply } = require('../src/features/stock-supply'); 
 const {
   setDirToprojectConfig,
@@ -24,8 +24,19 @@ describe('update Stock Supply', () => {
     jest.clearAllMocks();
   });
 
+  it('should  not generate and update stock supply form', async () => {
+    const projectDataDir = process.cwd();
+    // Check that stock discrepancy xlsx and properties files does not exist.
+    for(const createdAppFormFile of createdAppFormFiles){
+      expect(fs.existsSync(path.join(projectDataDir, 'forms', 'app', createdAppFormFile))).toBe(false);
+    }
+    
+    // Call the function updateStockDiscrepancy and check it throws an exception when there is no match config
+    await expect( updateStockSupply(mockConfigsWithNoFeauture)).rejects.toThrow(Error);
+    
+  });
 
-  it('should update the stock supply form with correct values', async () => {
+  it('should generate and update the stock supply form with correct values', async () => {
     const processDir = process.cwd();
     
     // Check that stock supply xlsx and properties files exist.

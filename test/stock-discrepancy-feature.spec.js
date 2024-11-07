@@ -9,7 +9,7 @@ const {
   cleanUp
 } = require('./test-utils');
 
-describe('update Stock Supply', () => {
+describe('update Stock Discrepancy', () => {
   const workingDir = process.cwd();
   const createdAppFormFiles = ['stock_discrepancy_resolution.xlsx', 'stock_discrepancy_resolution.properties.json'];
 
@@ -24,7 +24,7 @@ describe('update Stock Supply', () => {
     jest.clearAllMocks();
   });
 
-  it('stock return form should should not be generated and updated', async () => {
+  it('should  not be generated and updated stock discrepancy form', async () => {
     const projectDataDir = process.cwd();
     // Check that stock discrepancy xlsx and properties files does not exist.
     for(const createdAppFormFile of createdAppFormFiles){
@@ -37,7 +37,7 @@ describe('update Stock Supply', () => {
   });
 
 
-  it('should update the stock supply form with correct values', async () => {
+  it('should update the stock discrepancy form with correct values', async () => {
     const processDir = process.cwd();
     
     // Check that stock confirmation xlsx and properties files exist.
