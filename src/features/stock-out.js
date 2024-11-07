@@ -263,7 +263,15 @@ async function getStockOutConfigs({
       type: 'input',
       name: 'form_name',
       message: 'Enter stock out form ID',
-      default: 'stock_out'
+      default: 'stock_out',
+      when: function (answers){
+        const argv = process.argv;
+        if (!argv[5]){
+          return true;
+        } 
+        answers.form_name = argv[5];
+        return false;
+      }
     },
     {
       type: 'list',
@@ -279,12 +287,34 @@ async function getStockOutConfigs({
           value: 'weekly_qty'
         }
       ],
+      when: function (answers){
+        const argv = process.argv;
+        if (!argv[6]){
+          return true;
+        } 
+        answers.formular = argv[6];
+        return false;
+      }
     },
     ...languages.map((language) => ({
       type: 'input',
       name: `title.${language}`,
       message: `Enter stock out form title in ${language}`,
-      default: 'Stock Out'
+      default: 'Stock Out',
+      when: function (answers){
+        const argv = process.argv;
+        if (!argv[7]){
+          return true;
+        }  
+        const answer = {
+          title:{
+            'en': argv[7].split(',')[0],
+            'fr': argv[7].split(',')[1]
+          }
+        };
+        Object.assign(answers, answer);
+        return false;
+      }
     }))
   ]);
   return configs;
