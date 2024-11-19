@@ -323,4 +323,5 @@ async function getStockOutConfigs({
 module.exports = {
   getStockOutConfigs,
   updateStockOut,
+  getItemRows
 };

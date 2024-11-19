@@ -69,13 +69,33 @@ const readDataFromXforms = async (productCategoryScenario, productsScenario, fil
 
 };
 
+const writeTranslationMessages = async (frMessages, enMessages, workingDir) => {
+  const translationFiles = fs.readdirSync(path.join(workingDir, 'translations'));
+  for(const translationFile of translationFiles){
+    if(translationFile.includes('messages-en')) {
+      await fs.writeFile(path.join(workingDir, 'translations', translationFile), enMessages.toString().replaceAll(',', ''));
+    }else{
+      await fs.writeFile(path.join(workingDir, 'translations', translationFile), frMessages.toString().replaceAll(',', ''));
+    }
+  }
+};
+
+const resetTranslationMessages = async (workingDir) => {
+  const translationFiles = fs.readdirSync(path.join(workingDir, 'translations'));
+  for(const translationFile of translationFiles){
+    await fs.truncate(path.join(workingDir, 'translations', translationFile), 0, function () {});
+  }
+};
+
 
 module.exports = {
   setDirToprojectConfig,
   currentWorkingDirectory,
   revertBackToProjectHome,
   cleanUp,
-  readDataFromXforms
+  readDataFromXforms,
+  writeTranslationMessages,
+  resetTranslationMessages
 };
 
 

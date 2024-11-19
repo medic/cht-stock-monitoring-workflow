@@ -5,23 +5,29 @@ const { stockOutMockConfigs, mockConfigsWithNoFeauture } = require('./mocks/mock
 const { updateStockOut } = require('../src/features/stock-out'); 
 const {
   setDirToprojectConfig,
-  revertBackToProjectHome
+  revertBackToProjectHome,
+  writeTranslationMessages,
+  resetTranslationMessages
 } = require('./test-utils');
 
-describe('updateStockOut', () => {
+describe('Create and update stock_out.xlsx and properties files ', () => {
   const workingDir = process.cwd();
   const createdAppFormFiles = ['stock_out.properties.json', 'stock_out.xlsx'];
+  const enMessage = 'cht-stock-monitoring-workflow.stock_out.tasks.stock_out = Stock out\ncht-stock-monitoring-workflow.stock_out.message.stock_at_hand = Stock at hand: {{qty}}\ncht-stock-monitoring-workflow.stock_out.message.stock_required = Stock required: {{qty}}\ncht-stock-monitoring-workflow.stock_out.message.summary_header = Summary\ncht-stock-monitoring-workflow.stock_out.message.submit_note = {{name}} has low stock  of the following items\ncht-stock-monitoring-workflow.stock_out.message.summary_note = Stock out\ncht-stock-monitoring-workflow.items.paracetamol.label = Paracetamol\n';
+  const frMessage = 'cht-stock-monitoring-workflow.stock_out.tasks.stock_out = Stock épuisé\ncht-stock-monitoring-workflow.stock_out.message.stock_at_hand = Stock actuel: {{qty}}\ncht-stock-monitoring-workflow.stock_out.message.stock_required = Stock nécessaire: {{qty}}\ncht-stock-monitoring-workflow.stock_out.message.summary_header = Résumé\ncht-stock-monitoring-workflow.stock_out.message.submit_note = {{name}} a épuisé son stock des éléments suivants:\ncht-stock-monitoring-workflow.stock_out.message.summary_note = Stock épuisé\ncht-stock-monitoring-workflow.items.paracetamol.label = Paracetamole\n';
 
-  beforeEach(() => {
+  beforeEach(async () => {
     setDirToprojectConfig();
+    await writeTranslationMessages(frMessage, enMessage, process.cwd());
   });
 
-  afterEach(() => {
+  afterEach(async() => {
     jest.clearAllMocks();
+    await resetTranslationMessages(process.cwd());
     revertBackToProjectHome(workingDir);
   });
 
-  it('should  not generate and update stock out form', async () => {
+  it('should not generate and update stock_out.xlsx form when no feature provider in the config', async () => {
     const projectDataDir = process.cwd();
     // Check that stock out xlsx and properties files does not exist.
     for(const createdAppFormFile of createdAppFormFiles){
@@ -33,7 +39,7 @@ describe('updateStockOut', () => {
     
   });
 
-  it('should update the stock out form with correct values', async () => {
+  it('should generate and update the stock_out.xlsx form with correct values when a config provided with the stock_out feature', async () => {
     const processDir = process.cwd();
     
     // Check that stock out xlsx and properties files exist.
@@ -94,4 +100,5 @@ describe('updateStockOut', () => {
     }
 
   });
+
 });
