@@ -2,6 +2,7 @@ const chalk = require('chalk');
 const utils = require('./common');
 const inquirer = require('inquirer');
 const { getStockCountConfigs } = require('./features/stock-count');
+const validator = require('validator');
 
 async function getInitConfigs() {
   const appSettings = utils.getAppSettings();
@@ -30,7 +31,7 @@ async function getInitConfigs() {
       when: function (answers) {
         const argv = process.argv;
         if (argv[3] === '2_levels') {
-          answers.monitoring_type = argv[3];
+          answers.monitoring_type = validator.escape(argv[3]);
           return false;
         }
         return true;
@@ -78,16 +79,16 @@ async function getInitConfigs() {
             case 1:
               answer = {
                 1: {
-                  contact_type: argv[4],
-                  role: argv[5]
+                  contact_type: validator.escape(argv[4]),
+                  role: validator.escape(argv[5])
                 }
               };
               break;
             case 2:
               answer = {
                 2: {
-                  contact_type: argv[6],
-                  role: argv[7]
+                  contact_type: validator.escape(argv[6]),
+                  role: validator.escape(argv[7])
                 }
               };
               break;
@@ -112,16 +113,16 @@ async function getInitConfigs() {
             case 1:
               answer = {
                 1: {
-                  contact_type: argv[4],
-                  role: argv[5]
+                  contact_type: validator.escape(argv[4]),
+                  role: validator.escape(argv[5])
                 }
               };
               break;
             case 2:
               answer = {
                 2: {
-                  contact_type: argv[6],
-                  role: argv[7]
+                  contact_type: validator.escape(argv[6]),
+                  role: validator.escape(argv[7])
                 }
               };
               break;
@@ -155,21 +156,21 @@ async function getInitConfigs() {
               case 1:
                 answer = {
                   1: {
-                    parent: argv[10],
+                    parent: validator.escape(argv[10]),
                   }
                 };
                 break;
               case 2:
                 answer = {
                   2: {
-                    parent: argv[10],
+                    parent: validator.escape(argv[10]),
                   }
                 };
                 break;
               case 3:
                 answer = {
                   3: {
-                    parent: argv[10],
+                    parent: validator.escape(argv[10]),
                   }
                 };
                 break;

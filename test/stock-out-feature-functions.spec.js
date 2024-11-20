@@ -73,16 +73,16 @@ describe('Testing functions in Stock out feature file', () => {
     expect(row).not.toEqual([]);
     expect(row.length).toBe(items.length);
     expect(row[0].length).toBe(7);
-    const rowData = row[0][0];
-    expect(rowData.length).toBe(13);
-    expect(rowData[0]).toEqual('note');
-    expect(rowData[1]).toContain(items[0].name);
+    const oneRow = row[0][0];
+    expect(oneRow.length).toBe(13);
+    expect(oneRow[0]).toEqual('note');
+    expect(oneRow[1]).toContain(items[0].name);
     
   });
 
   /** Testing getStockOutConfigs function */
   // Testing stock out config generation with correct item config
-  it('This should return stock out configurations based the item config provided ', async () => {
+  it('This should generate stock out configurations based the item config provided ', async () => {
     process.argv = ['node', '', '','', '' ,'stock_out', 'item_danger_qty', 'Stock Out, Rupture de Stock'];
     const configs = {
       form_name: 'stock_out',

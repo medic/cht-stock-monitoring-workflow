@@ -35,7 +35,7 @@ describe('Create and update stock_out.xlsx and properties files', () => {
     revertBackToProjectHome(workingDir);
   });
 
-  it('Add stock out integration test', async() => {
+  it('should generate and update the stock_count.xlsx, stock_out.xlsx and their properties files whit the feature config provided', async() => {
     const processDir = process.cwd();
 
     // Check that stock count and stock out xform and properties files does not exist

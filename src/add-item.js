@@ -2,6 +2,7 @@ const inquirer = require('inquirer');
 const utils = require('./common');
 const path = require('path');
 const fs = require('fs-extra');
+const validator = require('validator');
 
 /**
  * Config
@@ -39,7 +40,7 @@ async function getItemConfig(configs) {
         if (!argv[14]){
           return true;
         }
-        answers.form = argv[14];          
+        answers.form = validator.escape(argv[14]);          
         return false;
       }
     }
@@ -63,7 +64,7 @@ async function getItemConfig(configs) {
           if (!argv[15]){
             return true;
           }
-          answers.isAlwaysCurrent = argv[15];          
+          answers.isAlwaysCurrent = validator.escape(argv[15]);          
           return false;
         }
       }
@@ -80,7 +81,7 @@ async function getItemConfig(configs) {
             if (!argv[16]){
               return true;
             }
-            answers.reportedDate = argv[16];          
+            answers.reportedDate = validator.escape(argv[16]);          
             return false;
           }
         }
@@ -119,7 +120,7 @@ async function getItemConfig(configs) {
         if (!argv[17]){
           return true;
         }
-        answers.item = argv[17];                      
+        answers.item = validator.escape(argv[17]);                      
         return false;
       }
     }]);
@@ -165,7 +166,7 @@ async function getItemConfig(configs) {
               if (!argv[17]){
                 return true;
               }
-              answers.name = argv[17];                      
+              answers.name = validator.escape(argv[17]);                      
               return false;
             }
           },
@@ -178,26 +179,13 @@ async function getItemConfig(configs) {
               if (!argv[18]){
                 return true;
               }
-              let answer = {};
-              argv[18].split(',').forEach(el => {
-                switch(language){
-                  case 'en':
-                    answer = {
-                      label: {
-                        'en': el
-                      }
-                    };
-                    break;
-                  case 'fr':
-                    answer = {
-                      label: {
-                        'fr': el
-                      }
-                    };
-                    break;
+              const answer = {
+                label: {
+                  'en': validator.escape(argv[18].split(',')[0]),
+                  'fr': validator.escape(argv[18].split(',')[1]),
                 }
-              });
-              
+              };
+
               Object.assign(answers, answer);
               return false;
             }
@@ -211,23 +199,12 @@ async function getItemConfig(configs) {
               if (!argv[19]){
                 return true;
               }
-              let answer = {};
-              switch(language){
-                case 'en':
-                  answer = {
-                    description: {
-                      'en': argv[19].split(',')[0]
-                    }
-                  };
-                  break;
-                case 'fr':
-                  answer = {
-                    description: {
-                      'fr': argv[19].split(',')[1]
-                    }
-                  };
-                  break;
-              }
+              const answer = {
+                description: {
+                  'en': validator.escape(argv[19].split(',')[0]),
+                  'fr': validator.escape(argv[19].split(',')[1])
+                }
+              };
           
               Object.assign(answers, answer);
               return false;
@@ -246,7 +223,7 @@ async function getItemConfig(configs) {
           if (!argv[20]){
             return true;
           }
-          answers.name = argv[20];
+          answers.name = validator.escape(argv[20]);
           return false;
         }
       },
@@ -261,8 +238,8 @@ async function getItemConfig(configs) {
           }            
           const answer = {
             label: {
-              'en': argv[21].split(',')[0],
-              'fr': argv[21].split(',')[1]
+              'en': validator.escape(argv[21].split(',')[0]),
+              'fr': validator.escape(argv[21].split(',')[1])
             }
           };
           Object.assign(answers, answer);
@@ -279,7 +256,7 @@ async function getItemConfig(configs) {
           if (!argv[22]){
             return true;
           }
-          answers.isInSet = argv[22];
+          answers.isInSet = validator.escape(argv[22]);
           return false;
         }
       },
@@ -299,8 +276,8 @@ async function getItemConfig(configs) {
             const answer = {
               set:{
                 label: {
-                  'en': argv[23].split(',')[0],
-                  'fr': argv[23].split(',')[1]
+                  'en': validator.escape(argv[23].split(',')[0]),
+                  'fr': validator.escape(argv[23].split(',')[1])
                 }
               }                
             }; 
@@ -319,7 +296,7 @@ async function getItemConfig(configs) {
               return true;
             }
 
-            answers.set.count = argv[24];            
+            answers.set.count = validator.escape(argv[24]);            
             return false;
           }
         },
@@ -339,8 +316,8 @@ async function getItemConfig(configs) {
           const answer = {
             unit:{
               label: {
-                'en': argv[25].split(',')[0],
-                'fr': argv[25].split(',')[1]
+                'en': validator.escape(argv[25].split(',')[0]),
+                'fr': validator.escape(argv[25].split(',')[1])
               }
             }
           };
@@ -358,7 +335,7 @@ async function getItemConfig(configs) {
           if (!argv[26]){
             return true;
           }
-          answers.warning_total = argv[26]; 
+          answers.warning_total = validator.escape(argv[26]); 
           return false;
         }
       },
@@ -371,7 +348,7 @@ async function getItemConfig(configs) {
           if (!argv[27]){
             return true;
           }
-          answers.danger_total = argv[27]; 
+          answers.danger_total = validator.escape(argv[27]); 
           return false;
         }
       },
@@ -385,7 +362,7 @@ async function getItemConfig(configs) {
           if (!argv[28]){
             return true;
           }
-          answers.max_total = argv[28]; 
+          answers.max_total = validator.escape(argv[28]); 
           return false;
         }
       }
@@ -416,7 +393,7 @@ async function getItemConfig(configs) {
         if (!argv[29]){
           return true;
         }
-        answers.deduction_type = argv[29];
+        answers.deduction_type = validator.escape(argv[29]);
         return false;
       }
     }
@@ -432,7 +409,7 @@ async function getItemConfig(configs) {
         if (!argv[30]){
           return true;
         }
-        answers.formular = argv[30];
+        answers.formular = validator.escape(argv[30]);
         return false;
       }
     }

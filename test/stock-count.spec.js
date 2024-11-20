@@ -2,7 +2,7 @@ const { spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs-extra');
 
-const { stockCountScenario } = require('./mocks/mocks');
+const { stockCountScenario, stockOutScenario } = require('./mocks/mocks');
 const { 
   setDirToprojectConfig,
   revertBackToProjectHome,
@@ -48,7 +48,37 @@ describe('Create and update stock_count.xlsx and properties files', () => {
     revertBackToProjectHome(workingDir);
   });
 
-  it('Add stock count integration test', async() => {
+  it('should not generate stock_count.xlsx and should return an error message', async() => {
+    const processDir = process.cwd();
+    
+    // Check that stock count xform and properties files does not exist
+    for(const createdAppFormFile of createdAppFormFiles){
+      expect(fs.existsSync(path.join(processDir, 'forms', 'app', createdAppFormFile))).toBe(false);
+    }
+    const invalidInputScenario = stockOutScenario.invalidCommandInitScenario;
+    const stockCountChildProcess = spawnSync('../../main.js',  invalidInputScenario);
+    if(stockCountChildProcess.error) {
+      expect(stockCountChildProcess.stdout.toString()).toThrow(Error);
+    }
+    let message  = stockCountChildProcess.stdout.toString().replace('\n','');
+    expect(message).toEqual(`ERROR Unknown command ${invalidInputScenario[0]}`);
+
+    const invalidStockOutScenario = stockOutScenario.invalidAddStockOutFeatureScenario;
+    const stockOutChildProcess = spawnSync('../../main.js', invalidStockOutScenario );
+    if(stockOutChildProcess.error) {
+      expect(stockOutChildProcess.stdout.toString()).toThrow(Error);
+    }
+    message  = stockOutChildProcess.stdout.toString().replace('\n','');
+    expect(message).toEqual(`ERROR Unknown command ${invalidStockOutScenario[0]}`);
+
+    // Check that stock count xform and properties files are not created
+    for(const createdAppFormFile of createdAppFormFiles){
+      expect(fs.existsSync(path.join(processDir, 'forms', 'app', createdAppFormFile))).toBe(false);
+    }
+
+  });
+
+  it('should generate and update the stock_count.xlsx with the init scenario', async() => {
     const processDir = process.cwd();
     // Check that stock count xform and properties files does not exist
     for(const createdAppFormFile of createdAppFormFiles){

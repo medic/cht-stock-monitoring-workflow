@@ -3,6 +3,8 @@ const path = require('path');
 const fs = require('fs-extra');
 const ExcelJS = require('exceljs');
 const inquirer = require('inquirer');
+const validator = require('validator');
+
 const { getNoLabelsColums, getTranslations, getRowWithValueAtPosition, getNumberOfSteps, buildRowValues, getSheetGroupBeginEnd,
   getItemCount
 } = require('../common');
@@ -269,7 +271,7 @@ async function getStockOutConfigs({
         if (!argv[5]){
           return true;
         } 
-        answers.form_name = argv[5];
+        answers.form_name = validator.escape(argv[5]);
         return false;
       }
     },
@@ -292,7 +294,7 @@ async function getStockOutConfigs({
         if (!argv[6]){
           return true;
         } 
-        answers.formular = argv[6];
+        answers.formular = validator.escape(argv[6]);
         return false;
       }
     },
@@ -308,8 +310,8 @@ async function getStockOutConfigs({
         }  
         const answer = {
           title:{
-            'en': argv[7].split(',')[0],
-            'fr': argv[7].split(',')[1]
+            'en': validator.escape(argv[7].split(',')[0]),
+            'fr': validator.escape(argv[7].split(',')[1])
           }
         };
         Object.assign(answers, answer);
