@@ -3,6 +3,7 @@ const { copyFileSync, writeFileSync } = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const { Workbook } = require('exceljs');
+const validator = require('validator');
 const { getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd, getDefaultSurveyLabels,
   addCategoryItemsToChoice
 } = require('../common');
@@ -383,7 +384,7 @@ async function getStockReturnConfigs({
         if (!argv[4]){
           return true;
         }
-        answers.form_name = argv[4];
+        answers.form_name = validator.escape(argv[4]);
         return false;
       }
     },
@@ -399,8 +400,8 @@ async function getStockReturnConfigs({
         }
         const answer ={
           title: {
-            'en': argv[5].split(',')[0],
-            'fr': argv[5].split(',')[1],
+            'en': validator.escape(argv[5].split(',')[0]),
+            'fr': validator.escape(argv[5].split(',')[1]),
           }
         };
         Object.assign(answers, answer);
@@ -419,7 +420,7 @@ async function getStockReturnConfigs({
         }
         const answer = {
           confirmation: {
-            form_name: argv[6]
+            form_name: validator.escape(argv[6])
           }
         };
         Object.assign(answers, answer);
@@ -439,10 +440,10 @@ async function getStockReturnConfigs({
         const answer = {
           confirmation: {
             title:{
-              'en': argv[7].split(',')[0],
-              'fr': argv[7].split(',')[1]
+              'en': validator.escape(argv[7].split(',')[0]),
+              'fr': validator.escape(argv[7].split(',')[1])
             },
-            form_name: argv[6]
+            form_name: validator.escape(argv[6])
           }
         };
 
@@ -456,4 +457,8 @@ async function getStockReturnConfigs({
 module.exports = {
   updateStockReturn,
   getStockReturnConfigs,
+  addExportCalculation,
+  addReturnedSummaries,
+  getItemRows,
+  getChoicesFromMessage
 };
