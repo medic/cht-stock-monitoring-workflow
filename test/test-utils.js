@@ -78,9 +78,9 @@ const writeTranslationMessages = async (frMessages, enMessages, workingDir) => {
   const translationFiles = fs.readdirSync(path.join(workingDir, 'translations'));
   for(const translationFile of translationFiles){
     if(translationFile.includes('messages-en')) {
-      await fs.writeFile(path.join(workingDir, 'translations', translationFile), enMessages.toString().replaceAll(',', ''));
+      await fs.writeFile(path.join(workingDir, 'translations', translationFile), enMessages.split('\n').map(line => line.trimStart()).join('\n'));
     }else{
-      await fs.writeFile(path.join(workingDir, 'translations', translationFile), frMessages.toString().replaceAll(',', ''));
+      await fs.writeFile(path.join(workingDir, 'translations', translationFile), frMessages.split('\n').map(line => line.trimStart()).join('\n'));
     }
   }
 };

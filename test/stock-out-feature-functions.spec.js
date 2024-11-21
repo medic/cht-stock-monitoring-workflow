@@ -1,5 +1,5 @@
 const { 
-  stockOutMockConfigs, 
+  stockMonitoringConfigs, 
   mockConfigsWithNoFeauture 
 } = require('./mocks/mocks');
 
@@ -17,7 +17,7 @@ const {
 
 const { getTranslations } = require('../src/common');
 
-describe('Testing functions in Stock out feature file', () => {
+describe('Testing functions in Stock return feature file', () => {
   const processInitialArgv = process.argv; // Save the original argv
   const workingDir = process.cwd();
   const enMessage = 'cht-stock-monitoring-workflow.stock_out.tasks.stock_out = Stock out\ncht-stock-monitoring-workflow.stock_out.message.stock_at_hand = Stock at hand: {{qty}}\ncht-stock-monitoring-workflow.stock_out.message.stock_required = Stock required: {{qty}}\ncht-stock-monitoring-workflow.stock_out.message.summary_header = Summary\ncht-stock-monitoring-workflow.stock_out.message.submit_note = {{name}} has low stock  of the following items\ncht-stock-monitoring-workflow.stock_out.message.summary_note = Stock out\ncht-stock-monitoring-workflow.items.paracetamol.label = Paracetamol\n';
@@ -43,7 +43,7 @@ describe('Testing functions in Stock out feature file', () => {
     const messages  = {};
     const items = [{}];
 
-    expect(() => getItemRows(header, stockOutMockConfigs.languages, messages,  items)).toThrow(TypeError);
+    expect(() => getItemRows(header, stockMonitoringConfigs.languages, messages,  items)).toThrow(TypeError);
     
   });
 
@@ -67,9 +67,9 @@ describe('Testing functions in Stock out feature file', () => {
     ];
 
     const messages  = getTranslations();
-    const items = Object.values(stockOutMockConfigs.items);
+    const items = Object.values(stockMonitoringConfigs.items);
 
-    const row =  getItemRows(header, stockOutMockConfigs.languages, messages,  items);
+    const row =  getItemRows(header, stockMonitoringConfigs.languages, messages,  items);
     expect(row).not.toEqual([]);
     expect(row.length).toBe(items.length);
     expect(row[0].length).toBe(7);
@@ -89,7 +89,7 @@ describe('Testing functions in Stock out feature file', () => {
       formular: 'item_danger_qty',
       title: { en: 'Stock Out', fr: ' Rupture de Stock' }
     };
-    const featureConfigs = await  getStockOutConfigs(stockOutMockConfigs);
+    const featureConfigs = await  getStockOutConfigs(stockMonitoringConfigs);
     expect(featureConfigs).toEqual(configs);
     
   });
