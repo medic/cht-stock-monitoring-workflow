@@ -36,10 +36,6 @@ This tool enables you to add comprehensive stock monitoring workflows to your ex
 > [!NOTE]
 > For more details please check features documentation here: [docs/features](docs/features)
 
-# Known issues
-
-After adding an item, or any other action that update the existing forms, this form may be broken. To fix it, you need to try to repair manually by opening it with excel.
-
 # Initialization
 
 To initialize the stock monitoring workflow in your CHT application project, run:
