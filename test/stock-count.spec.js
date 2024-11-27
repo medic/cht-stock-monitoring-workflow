@@ -2,7 +2,7 @@ const { spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs-extra');
 
-const { stockCountScenario, stockOutScenario } = require('./mocks/mocks');
+const {stockMonitoringScenario, stockCountScenario } = require('./mocks/mocks');
 const { 
   setDirToprojectConfig,
   revertBackToProjectHome,
@@ -55,7 +55,7 @@ describe('Create and update stock_count.xlsx and properties files', () => {
     for(const createdAppFormFile of createdAppFormFiles){
       expect(fs.existsSync(path.join(processDir, 'forms', 'app', createdAppFormFile))).toBe(false);
     }
-    const invalidInputScenario = stockOutScenario.invalidCommandInitScenario;
+    const invalidInputScenario = stockMonitoringScenario.invalidCommandInitScenario;
     const stockCountChildProcess = spawnSync('../../main.js',  invalidInputScenario);
     if(stockCountChildProcess.error) {
       expect(stockCountChildProcess.stdout.toString()).toThrow(Error);
@@ -63,7 +63,7 @@ describe('Create and update stock_count.xlsx and properties files', () => {
     let message  = stockCountChildProcess.stdout.toString().replace('\n','');
     expect(message).toEqual(`ERROR Unknown command ${invalidInputScenario[0]}`);
 
-    const invalidStockOutScenario = stockOutScenario.invalidAddStockOutFeatureScenario;
+    const invalidStockOutScenario = stockMonitoringScenario.invalidFeatureCommandScenario;
     const stockOutChildProcess = spawnSync('../../main.js', invalidStockOutScenario );
     if(stockOutChildProcess.error) {
       expect(stockOutChildProcess.stdout.toString()).toThrow(Error);
@@ -85,7 +85,7 @@ describe('Create and update stock_count.xlsx and properties files', () => {
       expect(fs.existsSync(path.join(processDir, 'forms', 'app', createdAppFormFile))).toBe(false);
     }
 
-    const childProcess = spawnSync('../../main.js',  stockCountScenario.initScenario);
+    const childProcess = spawnSync('../../main.js',  stockMonitoringScenario.initScenario);
 
     if (childProcess.error) {
       throw childProcess.error;
