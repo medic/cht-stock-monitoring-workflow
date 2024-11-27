@@ -4,12 +4,12 @@ const {
 const path = require('path');
 const fs = require('fs-extra');
 
-const { stockOrderScenario, stockCountScenario } = require('./mocks/mocks');
+const { stockMonitoringScenario, stockOrderScenario, stockCountScenario } = require('./mocks/mocks');
 const { 
   setDirToprojectConfig,
   revertBackToProjectHome,
   readDataFromXforms,
-  deleteGeneratedFiles
+  cleanUp
 } = require('./test-utils');
 
 
@@ -22,16 +22,13 @@ describe('Stock order', () => {
   });
 
   afterEach(() => {
-    revertBackToProjectHome(workingDir);
-  });
-
-  afterAll(() => {
+    cleanUp(workingDir, createdAppFormFiles);
     revertBackToProjectHome(workingDir);
   });
 
   it('Add stock order summaries test', async() => {
     const processDir = process.cwd();
-    const childProcess = await spawnSync('../../main.js',  stockOrderScenario.initScenario);
+    const childProcess = await spawnSync('../../main.js',  stockMonitoringScenario.initScenario);
     
     if(childProcess.status === 0) {
 
@@ -64,17 +61,6 @@ describe('Stock order', () => {
         expect(stockSupplyData.productsList.entries).toStrictEqual(stockOrderScenario.stockSupplyProductsScenario.entries);
         
       }
-      
-      // Remove the generated files
-      await deleteGeneratedFiles(createdAppFormFiles);
-
-      // Removing the stock monitoring init file and stock count file
-      const stockMonitoringInitPath = path.join(processDir, 'stock-monitoring.config.json');
-      fs.stat(stockMonitoringInitPath, (error) => {
-        if (!error) {
-          expect(fs.unlinkSync(stockMonitoringInitPath)).toBe(undefined);
-        }
-      });
     }
     
   });

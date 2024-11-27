@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const { mockConfigs, mockConfigsWithNoFeauture } = require('./mocks/mocks');
+const ExcelJS = require('exceljs');
+const { stockMonitoringConfigs, mockConfigsWithNoFeauture } = require('./mocks/mocks');
 const { 
   updateStockOrder, 
 } = require('../src/features/stock-order'); 
@@ -8,8 +9,7 @@ const {
 const {
   setDirToprojectConfig,
   revertBackToProjectHome,
-  readOutputFiles,
-  deleteGeneratedFiles
+  cleanUp
 } = require('./test-utils');
 
 describe('Stock Order feature', () => {
@@ -22,6 +22,7 @@ describe('Stock Order feature', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    cleanUp(workingDir, createdAppFormFiles);
     revertBackToProjectHome(workingDir);
   });
 
@@ -50,14 +51,16 @@ describe('Stock Order feature', () => {
       expect(fs.existsSync(path.join(projectDataDir, 'forms', 'app', createdAppFormFile)), `Expected not to find ${createdAppFormFile}, but does exist`).toBeFalsy();
     }
     // Call the function updateStockOut and check that the stock_out files are generated
-    await updateStockOrder(mockConfigs);
+    await updateStockOrder(stockMonitoringConfigs);
 
     for(const createdAppFormFile of createdAppFormFiles){
       expect(fs.existsSync(path.join(projectDataDir, 'forms', 'app', createdAppFormFile)), `Expect to find ${createdAppFormFile}, but does not exist`).toBeTruthy();
     }
 
     // Check that stock out files content are correctly written.
-    const {workbook, propertiesFileContent} = await readOutputFiles(createdAppFormFiles);
+    const formPath = path.join(projectDataDir, 'forms', 'app', 'stock_order.xlsx');
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(formPath);
     const spy = jest.spyOn(workbook, 'getWorksheet');
     const surveyWorkSheet = workbook.getWorksheet('survey');
     expect(spy).toHaveBeenCalledTimes(1);
@@ -65,6 +68,11 @@ describe('Stock Order feature', () => {
     expect(spy).toHaveBeenCalledTimes(2);
     expect(surveyWorkSheet._name).toEqual('survey');
     expect(settingWorkSheet._name).toEqual('settings');
+
+    const propertiesFileContent = fs.readFileSync(
+      path.join(projectDataDir, 'forms', 'app', 'stock_order.properties.json'), 
+      {encoding: 'utf-8'}
+    );
 
     expect(JSON.parse(propertiesFileContent)).toEqual({
       'context': {
@@ -84,9 +92,6 @@ describe('Stock Order feature', () => {
         }
       ]
     });
-
-    // Remove the generated files
-    await deleteGeneratedFiles(createdAppFormFiles);
   });
 
 });

@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const { Workbook } = require('exceljs');
+const validator = require('validator');
 const { getTranslations, getRowWithValueAtPosition, getDefaultSurveyLabels, buildRowValues, addCategoryItemsToChoice, getSheetGroupBeginEnd,
   getItemCount
 } = require('../common');
@@ -423,7 +424,7 @@ const getStockOrderConfigs = async ({
           return true;
         }
 
-        answers.form_name = argv[6];
+        answers.form_name = validator.escape(argv[6]);
         
         return false;
       }
@@ -447,8 +448,8 @@ const getStockOrderConfigs = async ({
 
         const answer = {
           title:{
-            'en': argv[7].split(',')[0],
-            'fr': argv[7].split(',')[1]
+            'en': validator.escape(argv[7].split(',')[0]),
+            'fr': validator.escape(argv[7].split(',')[1])
           }
         };
 
@@ -475,7 +476,7 @@ const getStockOrderConfigs = async ({
 
         const answer = {
           stock_supply:{
-            form_name: argv[10]
+            form_name: validator.escape(argv[10])
           }
         };
 
@@ -503,8 +504,8 @@ const getStockOrderConfigs = async ({
         const answer = {
           stock_supply:{
             title: {
-              'en': argv[9].split(',')[0],
-              'fr': argv[9].split(',')[1]
+              'en': validator.escape(argv[9].split(',')[0]),
+              'fr': validator.escape(argv[9].split(',')[1])
             }
           }
         };
@@ -521,4 +522,7 @@ const getStockOrderConfigs = async ({
 module.exports = {
   getStockOrderConfigs,
   updateStockOrder,
+  addOrderSummaries,
+  addExportCalculation,
+  getItemRows
 };

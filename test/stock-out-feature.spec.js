@@ -1,13 +1,14 @@
 const ExcelJS = require('exceljs');
 const fs = require('fs');
 const path = require('path');
-const { stockOutMockConfigs, mockConfigsWithNoFeauture } = require('./mocks/mocks');
+const { stockMonitoringConfigs, mockConfigsWithNoFeauture } = require('./mocks/mocks');
 const { updateStockOut } = require('../src/features/stock-out'); 
 const {
   setDirToprojectConfig,
   revertBackToProjectHome,
   writeTranslationMessages,
-  resetTranslationMessages
+  resetTranslationMessages,
+  cleanUp
 } = require('./test-utils');
 
 describe('Create and update stock_out.xlsx and properties files ', () => {
@@ -24,6 +25,7 @@ describe('Create and update stock_out.xlsx and properties files ', () => {
   afterEach(async() => {
     jest.clearAllMocks();
     await resetTranslationMessages(process.cwd());
+    cleanUp(workingDir, createdAppFormFiles);
     revertBackToProjectHome(workingDir);
   });
 
@@ -47,7 +49,7 @@ describe('Create and update stock_out.xlsx and properties files ', () => {
       expect(fs.existsSync(path.join(processDir, 'forms', 'app', createdAppFormFile))).toBe(false);
     }
     // Call the function updateStockOut and check that the stock_out files are generated
-    await updateStockOut(stockOutMockConfigs);
+    await updateStockOut(stockMonitoringConfigs);
 
     for(const createdAppFormFile of createdAppFormFiles){
       expect(fs.existsSync(path.join(processDir, 'forms', 'app', createdAppFormFile))).toBe(true);
@@ -89,15 +91,6 @@ describe('Create and update stock_out.xlsx and properties files ', () => {
         }
       ]
     });
-
-    // Delete generated stock out files
-    for(const createdAppFormFile of createdAppFormFiles){
-      fs.stat(path.join(processDir, 'forms', 'app', createdAppFormFile), (error) => {
-        if (!error) {
-          expect(fs.unlinkSync(path.join(processDir, 'forms', 'app', createdAppFormFile))).toBe(undefined);
-        }
-      });
-    }
 
   });
 
