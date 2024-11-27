@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/medic/cht-stock-monitoring-workflow/compare/v1.1.3...v1.2.0) (2024-11-20)
+
+
+### Features
+
+* stock out unit test and integration test ([#69](https://github.com/medic/cht-stock-monitoring-workflow/issues/69)) ([bbc2375](https://github.com/medic/cht-stock-monitoring-workflow/commit/bbc2375e3e7ca64aebd2dc900fa3c8f3767a05f2))
+
 ## [1.1.3](https://github.com/medic/cht-stock-monitoring-workflow/compare/v1.1.2...v1.1.3) (2024-09-20)
 
 
