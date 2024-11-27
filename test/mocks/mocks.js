@@ -6,29 +6,15 @@ module.exports = {
       },
     },
   },
-  stockSupplyConfig: {
+  stockOutMockConfigs: {
     features: {
-      stock_supply: {
-        form_name: 'stock_supply',
-        title: {
-          en: 'Stock Supply',
-          fr: 'Livraison de Stock'
+      stock_out: {
+        form_name: 'stock_out',
+        formular: 'item_danger_qty',
+        title: { 
+          en: 'Stock Out Title', 
+          fr: 'Titre du Stock' 
         },
-        confirm_supply: {
-          form_name: 'stock_received',
-          title: {
-            en: 'Stock Received',
-            fr: 'Réception de Stock'
-          },
-          active: true
-        },
-        discrepancy: {
-          form_name: 'stock_discrepancy_resolution',
-          title: {
-            en: 'Stock Discrepancy Resolution',
-            fr: 'Résolution de conflits'
-          }
-        }
       },
     },
     levels: {
@@ -51,13 +37,13 @@ module.exports = {
           en: 'Paracetamol',
           fr: 'Paracetamole'
         },
-        isInSet: true,
+        isInSet: 'Y',
         set: {
           label: {
             en: 'Box of 8',
             fr: 'Boite de 8'
           },
-          count: 8
+          count: '8'
         },
         unit: {
           label: {
@@ -67,7 +53,7 @@ module.exports = {
         },
         warning_total: '20',
         danger_total: '15',
-        max_total: '50',
+        max_total: '15',
         category: 'malaria'
       }
     },
@@ -75,17 +61,18 @@ module.exports = {
       malaria: {
         name: 'malaria',
         label: {
-          fr: 'Malaria'
+          fr: 'Categorie'
         },
         description: {
-          fr: 'Malaria'
+          fr: 'Categorie'
         }
       }
     },
     useItemCategory: true,
     defaultLanguage: 'fr',
   },
-  stockSupplyScenario: {
+
+  stockOutScenario: {
     initScenario: [
       'init', 
       '2_levels', 
@@ -115,30 +102,54 @@ module.exports = {
       15,
       15,
       'by_user',
-      0
+      0,
     ],
-    addStockSupplyFeature: [
-      'add', 
-      'feature', 
-      'stock_supply',
-      ['Stock Supply', 'Livraison de Stock'],
-      true,
-      'stock_received',
-      ['Stock Received', 'Réception de Stock'],
-      'stock_discrepancy_resolution',
-      ['Stock Discrepancy Resolution', 'Résolution de conflits']
-    ],
-    productCategoryScenario: [
-      'malaria'
+    addStockOutFeatureScenario: [
+      'add', 'feature', 'stock_out', 'stock_out', 'item_danger_qty', ['Stock Out', 'Stock Out']
     ],
     productsScenario: [
-      'paracetamol___set',
-      'paracetamol___unit',
+      'paracetamol_at_hand___set',
+      'paracetamol_at_hand___unit',
+      'paracetamol_required___set',
+      'paracetamol_required___unit'
+    ],
+    invalidCommandInitScenario: [
+      'test', 
+      '2_levels', 
+      'c62_chw', 
+      'chw', 
+      'c52_supervisor', 
+      'supervisor', 
+      'Y', 
+      'stock_count', 
+      '[{contact_type: \'c62_chw\', role: \'chw\', place_type: \'c60_chw_site\' },{contact_type: \'c52_supervisor\',role: \'supervisor\',place_type: \'c50_supervision_area\'}]',
+      'action', 
+      'end_of_week', 
+      ['Stock count', 'Stock count'],
+      'patient_assessment_under_5',
+      'Y',
+      'now()',
+      'malaria',
+      ['Category', 'Categorie'],
+      ['Category', 'Categorie'],
       'paracetamol',
-      'paracetamol___count'
-    ]
+      ['Paracetamol', 'Paracetamole'],
+      'Y',
+      ['Box of 8', 'Boite de 8'],
+      8,
+      ['Tablet', 'Comprimes'],
+      20,
+      15,
+      15,
+      'by_user',
+      0,
+    ],
+    invalidAddStockOutFeatureScenario: [
+      'minus', 'data', 'stock_out', 'stock_out', 'item_danger_qty', ['Stock Out', 'Stock Out']
+    ],
 
   },
+
   stockCountScenario: {
     initScenario: [
       'init', 
@@ -183,9 +194,3 @@ module.exports = {
 
   }
 };
-
-
-
-
-
-

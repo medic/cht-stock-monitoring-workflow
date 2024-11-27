@@ -1,7 +1,7 @@
 const process = require('process');
 const path = require('path');
+const fs = require('fs-extra');
 const ExcelJS = require('exceljs');
-const fs = require('fs');
 
 const currentWorkingDirectory = () =>{
   return process.cwd();
@@ -14,6 +14,27 @@ function setDirToprojectConfig(){
 
 const revertBackToProjectHome = (projectHome) =>{
   process.chdir(projectHome);
+};
+
+const cleanUp = (workingDir, fileNames) => {
+  const processDir = path.join(workingDir,'test/project-config/');
+  for(const formFile of fileNames){
+    const filePath = path.join(processDir, 'forms', 'app', formFile);
+    fs.stat(filePath, (error) => {
+      if (!error) {
+        fs.unlinkSync(filePath);
+      }
+    });
+  }
+
+  // Removing the stock monitoring init file and stock count file
+  const stockMonitoringInitPath = path.join(processDir, 'stock-monitoring.config.json');
+  fs.stat(stockMonitoringInitPath, (error) => {
+    if (!error) {
+      fs.unlinkSync(stockMonitoringInitPath);
+    }
+  });
+
 };
 
 const readDataFromXforms = async (productCategoryScenario, productsScenario, fileName) => {
@@ -53,51 +74,33 @@ const readDataFromXforms = async (productCategoryScenario, productsScenario, fil
 
 };
 
-const cleanUp = async (workingDir, createdAppFormFiles) => {
-  const processDir = path.join(workingDir,'test/project-config/');
-  for(const createdAppFormFile of createdAppFormFiles){
-    const filePath = path.join(processDir, 'forms', 'app', createdAppFormFile);
-    fs.stat(filePath, (error) => {
-      if (!error) {
-        fs.unlinkSync(filePath);
-      }
-    });
-  }
-
-  // Removing the stock monitoring init file and stock count file
-  const stockMonitoringInitPath = path.join(processDir, 'stock-monitoring.config.json');
-  fs.stat(stockMonitoringInitPath, (error) => {
-    if (!error) {
-      fs.unlinkSync(stockMonitoringInitPath);
+const writeTranslationMessages = async (frMessages, enMessages, workingDir) => {
+  const translationFiles = fs.readdirSync(path.join(workingDir, 'translations'));
+  for(const translationFile of translationFiles){
+    if(translationFile.includes('messages-en')) {
+      await fs.writeFile(path.join(workingDir, 'translations', translationFile), enMessages.toString().replaceAll(',', ''));
+    }else{
+      await fs.writeFile(path.join(workingDir, 'translations', translationFile), frMessages.toString().replaceAll(',', ''));
     }
-  });
-
+  }
 };
 
-const readOutputFiles = async (filesNames) => {
-  const projectPath = process.cwd(); 
-  const formPath = path.join(projectPath, 'forms', 'app', filesNames[0]);
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(formPath);
-  const propertiesFileContent = fs.readFileSync(
-    path.join(projectPath, 'forms', 'app', filesNames[1]), 
-    {encoding: 'utf-8'}
-  );
-
-  return {
-    workbook,
-    propertiesFileContent
-  };
-
+const resetTranslationMessages = async (workingDir) => {
+  const translationFiles = fs.readdirSync(path.join(workingDir, 'translations'));
+  for(const translationFile of translationFiles){
+    await fs.truncate(path.join(workingDir, 'translations', translationFile), 0, function () {});
+  }
 };
+
 
 module.exports = {
   setDirToprojectConfig,
   currentWorkingDirectory,
   revertBackToProjectHome,
   cleanUp,
-  readOutputFiles,
-  readDataFromXforms
+  readDataFromXforms,
+  writeTranslationMessages,
+  resetTranslationMessages
 };
 
 
