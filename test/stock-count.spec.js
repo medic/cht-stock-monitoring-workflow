@@ -2,7 +2,7 @@ const { spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs-extra');
 
-const { stockCountScenario, stockOutScenario } = require('./mocks/mocks');
+const { stockMonitoringScenario, stockCountScenario, stockOutScenario } = require('./mocks/mocks');
 const { 
   setDirToprojectConfig,
   revertBackToProjectHome,
@@ -44,7 +44,7 @@ describe('Create and update stock_count.xlsx and properties files', () => {
 
   afterEach(async() => {
     await resetTranslationMessages(process.cwd());
-    cleanUp(workingDir, createdAppFormFiles);
+    await cleanUp(workingDir, createdAppFormFiles);
     revertBackToProjectHome(workingDir);
   });
 
@@ -85,7 +85,7 @@ describe('Create and update stock_count.xlsx and properties files', () => {
       expect(fs.existsSync(path.join(processDir, 'forms', 'app', createdAppFormFile))).toBe(false);
     }
 
-    const childProcess = spawnSync('../../main.js',  stockCountScenario.initScenario);
+    const childProcess = spawnSync('../../main.js',  stockMonitoringScenario.initScenario);
 
     if (childProcess.error) {
       throw childProcess.error;
