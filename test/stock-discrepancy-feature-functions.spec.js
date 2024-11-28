@@ -1,20 +1,26 @@
-const fs = require('fs');
-const path = require('path');
-const ExcelJS = require('exceljs');
-const { stockMonitoringConfigs, mockConfigsWithNoFeauture } = require('./mocks/mocks');
-const { updateStockConfirmation } = require('../src/features/stock-received'); 
-const { getTranslations } = require('../src/common');
+const { 
+  stockMonitoringConfigs 
+} = require('./mocks/mocks');
+
+const { 
+  getItemRows,
+  getExportCalculations,
+  getAdditionalDoc,
+  getSummaries,
+} = require('../src/features/stock-discrepancy'); 
+
 const {
   setDirToprojectConfig,
   revertBackToProjectHome,
   writeTranslationMessages,
   resetTranslationMessages,
-  cleanUp
 } = require('./test-utils');
 
-describe('update Stock Received', () => {
+const { getTranslations } = require('../src/common');
+
+describe('Testing functions in Stock out feature file', () => {
+  const processInitialArgv = process.argv; // Save the original argv
   const workingDir = process.cwd();
-  const createdAppFormFiles = ['stock_received.xlsx', 'stock_received.properties.json'];
   const enMessage = 'cht-stock-monitoring-workflow.stock_supply.page_1.header = Select item to supply\ncht-stock-monitoring-workflow.stock_supply.forms.select_category = Select the category of what you want to return\n'
   +'cht-stock-monitoring-workflow.stock_supply.page_1.select_input = Select\ncht-stock-monitoring-workflow.stock_supply.page_1.select_input_hint = Select all items to supply\ncht-stock-monitoring-workflow.stock_supply.item.stock_on_hand = Stock on hand\ncht-stock-monitoring-workflow.stock_supply.item.quantity_of = Quantity of\n'
   +'cht-stock-monitoring-workflow.stock_supply.summary_header = Results/Summary page\ncht-stock-monitoring-workflow.stock_supply.submit_note = <h4 style="text-align:center;">Be sure you Submit to complete this action.</h4>\n' 
@@ -57,86 +63,190 @@ describe('update Stock Received', () => {
   'cht-stock-monitoring-workflow.stock_supply.message.set_unit_constraint_message = Should be in the form x/y for x {{set_label}} and y {{unit_label}}\n'+
   'cht-stock-monitoring-workflow.stock_supply.message.unit_quantity_hint = Add the quantity: {{quantity}} {{unit_label}}';
 
-
   beforeEach(async () => {
     setDirToprojectConfig();
     await writeTranslationMessages(frMessage, enMessage, process.cwd());
   });
 
-  afterEach(async () => {
-    // Remove the generated files
-    await cleanUp(workingDir, createdAppFormFiles);
+  afterEach(async() => {
+    jest.clearAllMocks();
     await resetTranslationMessages(process.cwd());
     revertBackToProjectHome(workingDir);
-    jest.clearAllMocks();
+    process.argv = processInitialArgv; // Restore the original argv after each test
   });
 
+  /** Testing getItemRows function */
+  // Testing get item row function out config generation with no or wrong item config and params
+  it('This should throw error and should not generate rows with empty header, messages, languages(fr, en) and items to be added  ', async () => {
 
-  it('should  not be generated and updated stock received form', async () => {
-    const projectDataDir = process.cwd();
-    // Check that stock discrepancy xlsx and properties files does not exist.
-    for(const createdAppFormFile of createdAppFormFiles){
-      expect(fs.existsSync(path.join(projectDataDir, 'forms', 'app', createdAppFormFile))).toBe(false);
-    }
-    
-    // Call the function updateStockDiscrepancy and check it throws an exception when there is no match config
-    await expect( updateStockConfirmation(mockConfigsWithNoFeauture)).rejects.toThrow(Error);
+    const header = [];
+    const messages  = {};
+    const items = [{}];
+
+    expect(() => getItemRows(header, stockMonitoringConfigs.languages, messages,  items)).toThrow(TypeError);
     
   });
 
-  it('should update the stock received form with correct values', async () => {
-    const processDir = process.cwd();
+  // Testing get item row function with correct item config and params
+  it('This should return rows with header, messages, languages(fr, en) and items to be added  ', async () => {
+
+    const header = [
+      'type',
+      'name',
+      'required',
+      'relevant',
+      'appearance',
+      'constraint',
+      'constraint_message',
+      'calculation',
+      'default',
+      'label::en',
+      'label::fr',
+      'hint:en',
+      'hint:fr'
+    ];
+
+    const messages  = getTranslations();
+    const items = Object.values(stockMonitoringConfigs.items);
+
+    const row =  getItemRows(header, stockMonitoringConfigs.languages, messages,  items);
+    expect(row).not.toEqual([]);
+    expect(row.length).toBe(items.length);
+    const oneRow = row[0][0];
+    expect(oneRow.length).toBe(13);
+    expect(oneRow[0]).toEqual('begin group');
+    expect(oneRow[1]).toContain(items[0].name);
     
-    // Check that stock confirmation xlsx and properties files exist.
-    for(const createdAppFormFile of createdAppFormFiles){
-      expect(fs.existsSync(path.join(processDir, 'forms', 'app', createdAppFormFile))).toBe(false);
-    }
-    // Call the function updateStockConfirmation and check that the stock_received files are generated
-    const messages = getTranslations();
-    expect(messages.length).not.toEqual(0);
-    await updateStockConfirmation(stockMonitoringConfigs, messages);
+  });
 
-    for(const createdAppFormFile of createdAppFormFiles){
-      expect(fs.existsSync(path.join(processDir, 'forms', 'app', createdAppFormFile))).toBe(true);
-    }
+  /** Testing getSummaries function */
+  it('This should return summaries based the item config provided ', async () => {
+    
+    const header = [
+      'type',
+      'name',
+      'required',
+      'relevant',
+      'appearance',
+      'constraint',
+      'constraint_message',
+      'calculation',
+      'default',
+      'label::en',
+      'label::fr',
+      'hint:en',
+      'hint:fr'
+    ];
+    const items = Object.values(stockMonitoringConfigs.items);
+    const categories = Object.values(stockMonitoringConfigs.categories);
+    const languages = Object.values(stockMonitoringConfigs.languages);
+    const itemCategoryNoteSummury = [
+      'note',
+      'malaria_summary',
+      '',
+      '${paracetamol_qty} > 0',
+      'h1 blue',
+      '',
+      '',
+      '',
+      '',
+      '',
+      'Categorie',
+      '',
+      ''
+    ];
 
-    // Check that stock received files content are correctly written.
-    const formPath = path.join(processDir, 'forms', 'app', 'stock_received.xlsx');
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(formPath);
-    const spy = jest.spyOn(workbook, 'getWorksheet');
-    const surveyWorkSheet = workbook.getWorksheet('survey');
-    expect(spy).toHaveBeenCalledTimes(1);
-    const settingWorkSheet = workbook.getWorksheet('settings');
-    expect(spy).toHaveBeenCalledTimes(2);
-    expect(surveyWorkSheet._name).toEqual('survey');
-    expect(settingWorkSheet._name).toEqual('settings');
-    expect(surveyWorkSheet).not.toEqual([]);
-    expect(settingWorkSheet).not.toEqual([]);
+    const summaries = await  getSummaries(languages, header, items, categories);
+    expect(summaries).toContainEqual(itemCategoryNoteSummury);
+    
+  });
 
-    const propertiesFileContent = fs.readFileSync(
-      path.join(processDir, 'forms', 'app', 'stock_received.properties.json'), 
-      {encoding: 'utf-8'}
-    );
+  // Testing get additional doc
+  it('This should return additional doc for stock discrepancy', async () => {
+    const header = [
+      'type',
+      'name',
+      'required',
+      'relevant',
+      'appearance',
+      'constraint',
+      'constraint_message',
+      'calculation',
+      'default',
+      'label::en',
+      'label::fr',
+      'hint:en',
+      'hint:fr'
+    ];
 
-    expect(JSON.parse(propertiesFileContent)).toEqual({
-      'context': {
-        'expression': 'user.parent.contact_type === \'c62_chw_site\'', 
-        'person': false, 
-        'place': false
-      }, 
-      'icon': 'icon-healthcare-medicine', 
-      'title': [
-        {
-          'content': 'Stock Received',
-          'locale': 'en'
-        }, 
-        {
-          'content': 'Réception de Stock',
-          'locale': 'fr'
-        }
+    const items = Object.values(stockMonitoringConfigs.items);
+    const languages = Object.values(stockMonitoringConfigs.languages);
+    const form_name = stockMonitoringConfigs.features.stock_supply.discrepancy.form_name;
+
+    const itemCalculation = [
+      'calculate',
+      'paracetamol_out',
+      '',
+      '',
+      '',
+      '',
+      '',
+      "if(${paracetamol_qty} != '' and ${paracetamol___count} > 0,${paracetamol___count}-${paracetamol_confirmed},0)",
+      '',
+      '',
+      '',
+      '',
+      ''
+    ];
+
+    const additionalDoc = getAdditionalDoc(form_name, 'descrepancy_doc', languages, header, items);
+    expect(additionalDoc).toContainEqual(itemCalculation);
+
+  });
+
+  /** Testing add export calculation to stock_order */
+  it('should add export calculation correctly with items provided', async () => {
+    const items = Object.values(stockMonitoringConfigs.items);
+    const header = [
+      'type',
+      'name',
+      'required',
+      'relevant',
+      'appearance',
+      'constraint',
+      'constraint_message',
+      'calculation',
+      'default',
+      'label::en',
+      'label::fr',
+      'hint:en',
+      'hint:fr'
+    ];
+  
+    const exprotCalculation =getExportCalculations(header, items);
+
+    // Check that items are inserted in stock_return xform 
+    const itemData = [
+      [
+        'calculate',
+        'paracetamol_in',
+        '',
+        '',
+        '',
+        '',
+        '',
+        "if(${paracetamol_qty} != '' and ${paracetamol___count} > 0,${paracetamol_received}-${paracetamol___count},0)",
+        '',
+        '',
+        '',
+        '',
+        ''
       ]
-    });
+    ];
+
+    expect(exprotCalculation).toEqual(itemData);
 
   });
+
+
 });

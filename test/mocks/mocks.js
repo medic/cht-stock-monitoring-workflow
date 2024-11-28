@@ -6,7 +6,7 @@ module.exports = {
       },
     },
   },
-  stockOutMockConfigs: {
+  stockMonitoringConfigs: {
     features: {
       stock_out: {
         form_name: 'stock_out',
@@ -15,6 +15,63 @@ module.exports = {
           en: 'Stock Out Title', 
           fr: 'Titre du Stock' 
         },
+      },
+      stock_return: {
+        form_name: 'stock_return',
+        title: {
+          en: 'Stock Return',
+          fr: 'Retour de Stock'
+        },
+        confirmation: {
+          form_name: 'stock_returned',
+          title: {
+            en: 'Stock Returned',
+            fr: 'Stock Retourné'
+          },
+        }
+      },
+      stock_order: {
+        actors: [
+          {
+            contact_type: 'c62_chw',
+            role: 'chw',
+            place_type: 'c60_chw_site'
+          }
+        ],
+        form_name: 'stock_order',
+        title: {
+          en: 'Stock Order',
+          fr: 'Commande de Stock'
+        },
+        stock_supply: {
+          form_name: 'stock_order_supply',
+          title: {
+            en: 'Stock Order Supply',
+            fr: 'Livraison de Commande de Stock'
+          }
+        }
+      },
+      stock_supply: {
+        form_name: 'stock_supply',
+        title: {
+          en: 'Stock Supply',
+          fr: 'Livraison de Stock'
+        },
+        confirm_supply: {
+          form_name: 'stock_received',
+          title: {
+            en: 'Stock Received',
+            fr: 'Réception de Stock'
+          },
+          active: true
+        },
+        discrepancy: {
+          form_name: 'stock_discrepancy_resolution',
+          title: {
+            en: 'Stock Discrepancy Resolution',
+            fr: 'Résolution de conflits'
+          }
+        }
       },
     },
     levels: {
@@ -71,8 +128,7 @@ module.exports = {
     useItemCategory: true,
     defaultLanguage: 'fr',
   },
-
-  stockOutScenario: {
+  stockMonitoringScenario: {
     initScenario: [
       'init', 
       '2_levels', 
@@ -104,6 +160,66 @@ module.exports = {
       'by_user',
       0,
     ],
+    invalidCommandInitScenario: [
+      'test', 
+      '2_levels', 
+      'c62_chw', 
+      'chw', 
+      'c52_supervisor', 
+      'supervisor', 
+      'Y', 
+      'stock_count', 
+      '[{contact_type: \'c62_chw\', role: \'chw\', place_type: \'c60_chw_site\' },{contact_type: \'c52_supervisor\',role: \'supervisor\',place_type: \'c50_supervision_area\'}]',
+      'action', 
+      'end_of_week', 
+      ['Stock count', 'Stock count'],
+      'patient_assessment_under_5',
+      'Y',
+      'now()',
+      'malaria',
+      ['Category', 'Categorie'],
+      ['Category', 'Categorie'],
+      'paracetamol',
+      ['Paracetamol', 'Paracetamole'],
+      'Y',
+      ['Box of 8', 'Boite de 8'],
+      8,
+      ['Tablet', 'Comprimes'],
+      20,
+      15,
+      15,
+      'by_user',
+      0,
+    ],
+    invalidFeatureCommandScenario: [
+      'minus', 'data', 'stock_out', 'stock_out', 'item_danger_qty', ['Stock Out', 'Stock Out']
+    ],
+  },
+
+  stockSupplyScenario: {
+    addStockSupplyFeature: [
+      'add', 
+      'feature', 
+      'stock_supply',
+      ['Stock Supply', 'Livraison de Stock'],
+      true,
+      'stock_received',
+      ['Stock Received', 'Réception de Stock'],
+      'stock_discrepancy_resolution',
+      ['Stock Discrepancy Resolution', 'Résolution de conflits']
+    ],
+    productCategoryScenario: [
+      'malaria'
+    ],
+    productsScenario: [
+      'paracetamol___set',
+      'paracetamol___unit',
+      'paracetamol',
+      'paracetamol___count'
+    ]
+  },
+
+  stockOutScenario: {
     addStockOutFeatureScenario: [
       'add', 'feature', 'stock_out', 'stock_out', 'item_danger_qty', ['Stock Out', 'Stock Out']
     ],
@@ -151,37 +267,6 @@ module.exports = {
   },
 
   stockCountScenario: {
-    initScenario: [
-      'init', 
-      '2_levels', 
-      'c62_chw', 
-      'chw', 
-      'c52_supervisor', 
-      'supervisor', 
-      'Y', 
-      'stock_count', 
-      '[{contact_type: \'c62_chw\', role: \'chw\', place_type: \'c60_chw_site\' },{contact_type: \'c52_supervisor\',role: \'supervisor\',place_type: \'c50_supervision_area\'}]',
-      'action', 
-      'end_of_week', 
-      ['Stock count', 'Stock count'],
-      'patient_assessment_under_5',
-      'Y',
-      'now()',
-      'malaria',
-      ['Category', 'Categorie'],
-      ['Category', 'Categorie'],
-      'paracetamol',
-      ['Paracetamol', 'Paracetamole'],
-      'Y',
-      ['Box of 8', 'Boite de 8'],
-      8,
-      ['Tablet', 'Comprimes'],
-      20,
-      15,
-      15,
-      'by_user',
-      0
-    ],
     productCategoryScenario: [
       'malaria'
     ],

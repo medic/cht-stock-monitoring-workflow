@@ -615,4 +615,8 @@ async function getStockSupplyConfigs({
 module.exports = {
   updateStockSupply,
   getStockSupplyConfigs,
+  addStockSupplyCalculation,
+  getItemRows,
+  getAdditionalDoc,
+  addStockSupplySummaries
 };
