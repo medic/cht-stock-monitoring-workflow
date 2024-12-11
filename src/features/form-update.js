@@ -294,4 +294,5 @@ async function handleSettingsSheet(workbook) {
 
 module.exports = {
   updateForm,
+  handleSettingsSheet
 };

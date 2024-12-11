@@ -1,7 +1,7 @@
 const ExcelJS = require('exceljs');
 const fs = require('fs');
 const path = require('path');
-const { stockOutMockConfigs, mockConfigsWithNoFeauture } = require('./mocks/mocks');
+const { stockMonitoringConfigs, mockConfigsWithNoFeauture } = require('./mocks/mocks');
 const { updateStockOut } = require('../src/features/stock-out'); 
 const {
   setDirToprojectConfig,
@@ -47,7 +47,7 @@ describe('Create and update stock_out.xlsx and properties files ', () => {
       expect(fs.existsSync(path.join(processDir, 'forms', 'app', createdAppFormFile))).toBe(false);
     }
     // Call the function updateStockOut and check that the stock_out files are generated
-    await updateStockOut(stockOutMockConfigs);
+    await updateStockOut(stockMonitoringConfigs);
 
     for(const createdAppFormFile of createdAppFormFiles){
       expect(fs.existsSync(path.join(processDir, 'forms', 'app', createdAppFormFile))).toBe(true);
