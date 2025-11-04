@@ -16,7 +16,7 @@ const revertBackToProjectHome = (projectHome) =>{
   process.chdir(projectHome);
 };
 
-const cleanUp = (workingDir, fileNames) => {
+const cleanUp = async(workingDir, fileNames) => {
   const processDir = path.join(workingDir,'test/project-config/');
   for(const formFile of fileNames){
     const filePath = path.join(processDir, 'forms', 'app', formFile);

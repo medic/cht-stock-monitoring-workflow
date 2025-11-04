@@ -393,4 +393,8 @@ async function updateStockConfirmation(configs, messages) {
 
 module.exports = {
   updateStockConfirmation,
+  getItemRows,
+  addStockConfirmCalculation,
+  addStockConfirmSummaries,
+  getLabelColumns
 };

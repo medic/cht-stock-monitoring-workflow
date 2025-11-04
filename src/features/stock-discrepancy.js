@@ -478,5 +478,9 @@ async function updateStockDiscrepancy(configs) {
 }
 
 module.exports = {
-  updateStockDiscrepancy
+  updateStockDiscrepancy,
+  getSummaries,
+  getItemRows,
+  getExportCalculations,
+  getAdditionalDoc
 };
