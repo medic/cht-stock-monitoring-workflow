@@ -462,4 +462,9 @@ async function updateStockReturned(configs) {
 
 module.exports = {
   updateStockReturned,
+  getItemRows,
+  getAdditionalDoc,
+  addExportCalculation,
+  addReturnedSummaries,
+  getLabelColumns
 };

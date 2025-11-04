@@ -1,5 +1,6 @@
 const { 
-  stockOutMockConfigs, 
+  stockOutMockConfigs,
+  stockMonitoringConfigs, 
   mockConfigsWithNoFeauture 
 } = require('./mocks/mocks');
 
@@ -67,9 +68,9 @@ describe('Testing functions in Stock out feature file', () => {
     ];
 
     const messages  = getTranslations();
-    const items = Object.values(stockOutMockConfigs.items);
+    const items = Object.values(stockMonitoringConfigs.items);
 
-    const row =  getItemRows(header, stockOutMockConfigs.languages, messages,  items);
+    const row =  getItemRows(header, stockMonitoringConfigs.languages, messages,  items);
     expect(row).not.toEqual([]);
     expect(row.length).toBe(items.length);
     expect(row[0].length).toBe(7);
@@ -89,7 +90,7 @@ describe('Testing functions in Stock out feature file', () => {
       formular: 'item_danger_qty',
       title: { en: 'Stock Out', fr: ' Rupture de Stock' }
     };
-    const featureConfigs = await  getStockOutConfigs(stockOutMockConfigs);
+    const featureConfigs = await  getStockOutConfigs(stockMonitoringConfigs);
     expect(featureConfigs).toEqual(configs);
     
   });
