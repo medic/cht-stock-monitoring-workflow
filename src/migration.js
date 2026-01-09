@@ -1,4 +1,6 @@
-const {getConfig, writeConfig} = require('./common');
+const fs = require('fs');
+const path = require('path');
+const {getConfig, writeConfig} = require('./config-manager');
 const inquirer = require('inquirer');
 const chalk = require('chalk');
 const configNeedMigration = () => {
@@ -85,13 +87,25 @@ const migrate = async (fromVersion, toVersion) => {
   const allVersions = ['0', '0.5.0'];
   const fromVersionIndex = allVersions.indexOf(fromVersion);
   const toVersionIndex = allVersions.indexOf(toVersion);
-  if (fromVersionIndex === -1 || toVersionIndex === -1) {
-    return;
+  if (fromVersionIndex === -1) {
+    throw new Error(`Unknown source version: ${fromVersion}. Supported versions: ${allVersions.join(', ')}`);
+  }
+  if (toVersionIndex === -1) {
+    throw new Error(`Unknown target version: ${toVersion}. Supported versions: ${allVersions.join(', ')}`);
   }
   const versionsToMigrate = allVersions.slice(fromVersionIndex + 1, toVersionIndex + 1);
   let config = getConfig();
+  // Create backup before migration
+  const backupPath = path.join(process.cwd(), `stock-monitoring.config.backup.${Date.now()}.json`);
+  fs.writeFileSync(backupPath, JSON.stringify(config, null, 4));
+  console.log(chalk.yellow(`Backup created: ${backupPath}`));
   for (const version of versionsToMigrate) {
-    config = await migrationFunctions[version](config);
+    const migrationFn = migrationFunctions[version];
+    if (!migrationFn) {
+      console.log(chalk.red.bold(`Missing migration function for version ${version}`));
+      throw new Error(`Missing migration function for version ${version}`);
+    }
+    config = await migrationFn(config);
     config.version = version;
     config.created_date = new Date();
   }

@@ -1,5 +1,5 @@
 module.exports = {
-  mockConfigsWithNoFeauture: {
+  mockConfigsWithNoFeature: {
     features: {
       no_feature: {
         form_name: 'no_form'

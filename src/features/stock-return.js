@@ -3,9 +3,10 @@ const { copyFileSync, writeFileSync } = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const { Workbook } = require('exceljs');
-const { getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd, getDefaultSurveyLabels,
+const { getRowWithValueAtPosition, buildRowValues, getSheetGroupBeginEnd, getDefaultSurveyLabels,
   addCategoryItemsToChoice
-} = require('../common');
+} = require('../excel-utils');
+const { getTranslations } = require('../translation-manager');
 
 function getChoicesFromMessage(messages, languages, choiceName, key = 'stock_return.forms.select_items.reason') {
   const choices = Object.keys(messages[languages[0]])
@@ -219,134 +220,141 @@ async function updateStockReturn(configs) {
   const returnFormPath = path.join(processDir, 'forms', 'app', `${returnConfigs.form_name}.xlsx`);
   copyFileSync(path.join(__dirname, '../../templates/stock_supply.xlsx'), returnFormPath);
   const workbook = new Workbook();
-  await workbook.xlsx.readFile(returnFormPath);
-  const surveyWorkSheet = workbook.getWorksheet('survey');
-  const choiceWorkSheet = workbook.getWorksheet('choices');
-  const settingWorkSheet = workbook.getWorksheet('settings');
 
-  //SURVEY
-  const [labelColumns, hintColumns] = getDefaultSurveyLabels(
-    'stock_return',
-    messages,
-    configs.languages,
-  );
-  // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
-  let lastColumnIndex = Object.keys(firstRowData).length;
-  for (const labelColumn of labelColumns) {
-    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
-    lastColumnIndex++;
-  }
-  for (const hintColumn of hintColumns) {
-    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
-    lastColumnIndex++;
-  }
-  // Add choice filter column
-  surveyWorkSheet.getColumn(lastColumnIndex + 1).values = ['choice_filter'];
+  try {
+    await workbook.xlsx.readFile(returnFormPath);
+    const surveyWorkSheet = workbook.getWorksheet('survey');
+    const choiceWorkSheet = workbook.getWorksheet('choices');
+    const settingWorkSheet = workbook.getWorksheet('settings');
 
-  const header = surveyWorkSheet.getRow(1).values;
-  header.shift();
-  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
+    //SURVEY
+    const [labelColumns, hintColumns] = getDefaultSurveyLabels(
+      'stock_return',
+      messages,
+      configs.languages,
+    );
+    // Add languages and hints columns
+    const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
+    let lastColumnIndex = Object.keys(firstRowData).length;
+    for (const labelColumn of labelColumns) {
+      surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
+      lastColumnIndex++;
+    }
+    for (const hintColumn of hintColumns) {
+      surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
+      lastColumnIndex++;
+    }
+    // Add choice filter column
+    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = ['choice_filter'];
 
-  const rows = items.map((item) => {
-    return buildRowValues(header, {
-      type: 'calculate',
-      name: `${item.name}_current`,
-      default: 0,
-      calculation: `instance('contact-summary')/context/stock_monitoring_${item.name}_qty`
+    const header = surveyWorkSheet.getRow(1).values;
+    header.shift();
+    const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
+
+    const rows = items.map((item) => {
+      return buildRowValues(header, {
+        type: 'calculate',
+        name: `${item.name}_current`,
+        default: 0,
+        calculation: `instance('contact-summary')/context/stock_monitoring_${item.name}_qty`
+      });
     });
-  });
-  if (configs.useItemCategory) {
-    rows.push(
-      buildRowValues(header, {
-        type: 'begin group',
-        name: `select_categories`,
-        appearance: 'field-list',
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.select_category_label'] }), {})
-      }),
-      buildRowValues(header, {
-        type: 'select_multiple categories',
-        name: 'categories',
-        required: 'yes',
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.select_category'] }), {})
-      }),
-      buildRowValues(header, {
-        type: 'end group',
-      }),
-      ...categories.map((category) => {
-        return [
-          buildRowValues(header, {
-            type: 'begin group',
-            name: category.name,
-            appearance: 'field-list',
-            relevant: 'selected(${categories}, ' + `'${category.name}')`,
-            ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
-          }),
-          buildRowValues(header, {
-            type: 'select_multiple items',
-            required: 'yes',
-            name: `${category.name}_items_selected`,
-            choice_filter: `category_filter = '${category.name}'`,
-            ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.select_items'] }), {})
-          }),
-          ...getItemRows(
-            header,
-            languages,
-            messages,
-            `${category.name}_items_selected`,
-            items.filter((item) => item.category === category.name),
-          ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
-          buildRowValues(header, {
-            type: 'end group',
-          }),
-        ];
-      }).reduce((prev, categoryRows) => ([...prev, ...categoryRows]), []),
+    if (configs.useItemCategory) {
+      rows.push(
+        buildRowValues(header, {
+          type: 'begin group',
+          name: `select_categories`,
+          appearance: 'field-list',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.select_category_label'] }), {})
+        }),
+        buildRowValues(header, {
+          type: 'select_multiple categories',
+          name: 'categories',
+          required: 'yes',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.select_category'] }), {})
+        }),
+        buildRowValues(header, {
+          type: 'end group',
+        }),
+        ...categories.map((category) => {
+          return [
+            buildRowValues(header, {
+              type: 'begin group',
+              name: category.name,
+              appearance: 'field-list',
+              relevant: 'selected(${categories}, ' + `'${category.name}')`,
+              ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
+            }),
+            buildRowValues(header, {
+              type: 'select_multiple items',
+              required: 'yes',
+              name: `${category.name}_items_selected`,
+              choice_filter: `category_filter = '${category.name}'`,
+              ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.select_items'] }), {})
+            }),
+            ...getItemRows(
+              header,
+              languages,
+              messages,
+              `${category.name}_items_selected`,
+              items.filter((item) => item.category === category.name),
+            ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
+            buildRowValues(header, {
+              type: 'end group',
+            }),
+          ];
+        }).reduce((prev, categoryRows) => ([...prev, ...categoryRows]), []),
+      );
+    } else {
+      rows.push(
+        buildRowValues(header, {
+          type: 'begin group',
+          name: 'items_selection',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.items_selection'] }), {})
+        }),
+        buildRowValues(header, {
+          type: 'select_multiple items',
+          required: 'yes',
+          name: 'list_items_selected',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.select_items'] }), {})
+        }),
+        ...getItemRows(
+          header,
+          languages,
+          messages,
+          'list_items_selected',
+          items
+        ),
+        buildRowValues(header, {
+          type: 'end group',
+        }),
+      );
+    }
+    surveyWorkSheet.insertRows(
+      placeIdPosition + 1,
+      rows,
+      'i+'
     );
-  } else {
-    rows.push(
-      buildRowValues(header, {
-        type: 'begin group',
-        name: 'items_selection',
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.items_selection'] }), {})
-      }),
-      buildRowValues(header, {
-        type: 'select_multiple items',
-        required: 'yes',
-        name: 'list_items_selected',
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_return.forms.select_items'] }), {})
-      }),
-      ...getItemRows(
-        header,
-        languages,
-        messages,
-        'list_items_selected',
-        items
-      ),
-      buildRowValues(header, {
-        type: 'end group',
-      }),
-    );
+    addReturnedSummaries(surveyWorkSheet, languages, items, configs.useItemCategory ? categories : []);
+    addExportCalculation(surveyWorkSheet, items);
+
+    //CHOICES
+    addCategoryItemsToChoice(categories, items, choiceWorkSheet, languages);
+    const choiceHeader = choiceWorkSheet.getRow(1).values;
+    choiceHeader.shift();
+    const returnReasonChoiceRows = getChoicesFromMessage(messages, languages, 'return_reason').map((choice) => buildRowValues(choiceHeader, choice));
+    choiceWorkSheet.addRows(returnReasonChoiceRows, 'i+');
+
+    // SETTINGS
+    settingWorkSheet.getRow(2).getCell(1).value = returnConfigs.title[configs.defaultLanguage];
+    settingWorkSheet.getRow(2).getCell(2).value = returnConfigs.form_name;
+
+    await workbook.xlsx.writeFile(returnFormPath);
+    console.log(chalk.green(`INFO ${returnConfigs.form_name} updated successfully`));
+  } catch (err) {
+    console.log(chalk.red(`ERROR Failed to process ${returnFormPath}: ${err.message}`));
+    throw err;
   }
-  surveyWorkSheet.insertRows(
-    placeIdPosition + 1,
-    rows,
-    'i+'
-  );
-  addReturnedSummaries(surveyWorkSheet, languages, items, configs.useItemCategory ? categories : []);
-  addExportCalculation(surveyWorkSheet, items);
-
-  //CHOICES
-  addCategoryItemsToChoice(categories, items, choiceWorkSheet, languages);
-  const choiceHeader = choiceWorkSheet.getRow(1).values;
-  choiceHeader.shift();
-  const returnReasonChoiceRows = getChoicesFromMessage(messages, languages, 'return_reason').map((choice) => buildRowValues(choiceHeader, choice));
-  choiceWorkSheet.addRows(returnReasonChoiceRows, 'i+');
-
-  // SETTINGS
-  settingWorkSheet.getRow(2).getCell(1).value = returnConfigs.title[configs.defaultLanguage];
-  settingWorkSheet.getRow(2).getCell(2).value = returnConfigs.form_name;
-
-  await workbook.xlsx.writeFile(returnFormPath);
 
   // Add stock count form properties
   const expression = `user.parent.contact_type === '${configs.levels[1].place_type}' && contact.contact_type === '${configs.levels[1].place_type}'`;
@@ -366,7 +374,6 @@ async function updateStockReturn(configs) {
   };
   const propertyPath = path.join(processDir, 'forms', 'app', `${returnConfigs.form_name}.properties.json`);
   writeFileSync(propertyPath, JSON.stringify(formProperties, null, 4));
-  console.log(chalk.green(`INFO ${returnConfigs.form_name} updated successfully`));
 }
 
 async function getStockReturnConfigs({

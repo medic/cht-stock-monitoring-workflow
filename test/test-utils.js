@@ -16,25 +16,20 @@ const revertBackToProjectHome = (projectHome) =>{
   process.chdir(projectHome);
 };
 
-const cleanUp = (workingDir, fileNames) => {
-  const processDir = path.join(workingDir,'test/project-config/');
-  for(const formFile of fileNames){
+const cleanUp = async (workingDir, fileNames) => {
+  const processDir = path.join(workingDir, 'test/project-config/');
+
+  for (const formFile of fileNames) {
     const filePath = path.join(processDir, 'forms', 'app', formFile);
-    fs.stat(filePath, (error) => {
-      if (!error) {
-        fs.unlinkSync(filePath);
-      }
-    });
+    if (fs.existsSync(filePath)) {
+      fs.removeSync(filePath);
+    }
   }
 
-  // Removing the stock monitoring init file and stock count file
   const stockMonitoringInitPath = path.join(processDir, 'stock-monitoring.config.json');
-  fs.stat(stockMonitoringInitPath, (error) => {
-    if (!error) {
-      fs.unlinkSync(stockMonitoringInitPath);
-    }
-  });
-
+  if (fs.existsSync(stockMonitoringInitPath)) {
+    fs.removeSync(stockMonitoringInitPath);
+  }
 };
 
 const readDataFromXforms = async (productCategoryScenario, productsScenario, fileName) => {

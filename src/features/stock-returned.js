@@ -2,9 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const ExcelJS = require('exceljs');
-const { getNoLabelsColums, getRowWithValueAtPosition, getTranslations, buildRowValues, getSheetGroupBeginEnd, getNumberOfSteps,
+const { getNoLabelsColums, getRowWithValueAtPosition, buildRowValues, getSheetGroupBeginEnd,
   getContactParentHierarchy, getItemCount
-} = require('../common');
+} = require('../excel-utils');
+const { getTranslations } = require('../translation-manager');
+const { getNumberOfSteps } = require('../config-manager');
 const { RETURNED_ADD_DOC } = require('../constants');
 
 function getLabelColumns(languages, messages) {
@@ -288,156 +290,163 @@ async function updateStockReturned(configs) {
   const returnedFormPath = path.join(processDir, 'forms', 'app', `${returnedConfigs.form_name}.xlsx`);
   fs.copyFileSync(path.join(__dirname, '../../templates/stock_supply.xlsx'), returnedFormPath);
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(returnedFormPath);
-  const surveyWorkSheet = workbook.getWorksheet('survey');
-  const choiceWorkSheet = workbook.getWorksheet('choices');
-  const settingWorkSheet = workbook.getWorksheet('settings');
 
-  //SURVEY
-  const [labelColumns, hintColumns] = getLabelColumns(configs.languages, messages);
-  // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
-  let lastColumnIndex = Object.keys(firstRowData).length;
-  for (const labelColumn of labelColumns) {
-    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
-    lastColumnIndex++;
-  }
-  for (const hintColumn of hintColumns) {
-    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
-    lastColumnIndex++;
-  }
-  surveyWorkSheet.getColumn(lastColumnIndex + 1).values = [
-    `instance::db-doc`,
-  ];
-  surveyWorkSheet.getColumn(lastColumnIndex + 2).values = [
-    `instance::db-doc-ref`,
-  ];
-  const header = surveyWorkSheet.getRow(1).values;
-  header.shift();
+  try {
+    await workbook.xlsx.readFile(returnedFormPath);
+    const surveyWorkSheet = workbook.getWorksheet('survey');
+    const choiceWorkSheet = workbook.getWorksheet('choices');
+    const settingWorkSheet = workbook.getWorksheet('settings');
 
-  // Add parents
-  const nbParents = getNumberOfSteps(configs.levels[1].place_type, configs.levels[2].place_type);
-  const contactParentRows = getContactParentHierarchy(nbParents, header, languages);
-  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 1);
-  surveyWorkSheet.insertRows(
-    contactPosition + 3,
-    contactParentRows,
-    'i+'
-  );
-  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
-  surveyWorkSheet.getRow(placeIdPosition).getCell(8).value = `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`;
-
-  const inputs = [
-    ...items.map((item) => {
-      return buildRowValues(header, {
-        type: 'hidden',
-        name: `${item.name}_return`,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: 'NO_LABEL' }), {})
-      });
-    }),
-    buildRowValues(header, {
-      type: 'hidden',
-      name: 'level_1_place_id',
-      ...getNoLabelsColums(languages)
-    }),
-    buildRowValues(header, {
-      type: 'hidden',
-      name: 'stock_return_id',
-      ...getNoLabelsColums(languages)
-    })
-  ];
-  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
-  surveyWorkSheet.insertRows(
-    inputPosition + 1,
-    inputs,
-    'i+'
-  );
-
-  const rows = [
-    buildRowValues(header, {
-      type: 'calculate',
-      name: `user_contact_id`,
-      calculation: `../inputs/user/contact_id`
-    })
-  ];
-  if (configs.useItemCategory) {
-    rows.push(
-      ...categories.map((category) => {
-        return [
-          buildRowValues(header, {
-            type: 'begin group',
-            name: category.name,
-            appearance: 'field-list',
-            relevant: items.filter(it => it.category === category.name).map((item) => '${' + `${item.name}_return} > 0`).join(' or '),
-            ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
-          }),
-          ...getItemRows(
-            header,
-            languages,
-            messages,
-            items.filter((item) => item.category === category.name),
-          ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
-          buildRowValues(header, {
-            type: 'end group',
-          }),
-        ];
-      }).reduce((prev, categoryRows) => ([...prev, ...categoryRows]), []),
-    );
-  } else {
-    rows.push(
-      ...getItemRows(
-        header,
-        languages,
-        messages,
-      ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
-    );
-  }
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
-  surveyWorkSheet.insertRows(
-    position + 1,
-    rows,
-    'i+'
-  );
-  addReturnedSummaries(surveyWorkSheet, languages, items, configs.useItemCategory ? categories : []);
-  addExportCalculation(surveyWorkSheet, items);
-  const [, end] = getSheetGroupBeginEnd(surveyWorkSheet, 'out');
-  const additionalDocRows = getAdditionalDoc(returnedConfigs.form_name, languages, header, items);
-  surveyWorkSheet.insertRows(
-    end + 2,
-    additionalDocRows,
-    'i+'
-  );
-
-  //CHOICES
-  const choiceLabelColumns = languages.map((l) => [
-    `label::${l}`
-  ]);
-  let choiceLastColumn = 2;
-  for (const choiceLabelColumn of choiceLabelColumns) {
-    choiceWorkSheet.getColumn(choiceLastColumn + 1).values = choiceLabelColumn;
-    choiceLastColumn++;
-  }
-  const choiceHeader = choiceWorkSheet.getRow(1).values;
-  choiceHeader.shift();
-
-  const choices = ['yes', 'no'].map((ch) => buildRowValues(choiceHeader,
-    {
-      list_name: 'yes_no',
-      name: ch,
-      ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language][`stock_supply.choices.yes_no.${ch}`] }), {})
+    //SURVEY
+    const [labelColumns, hintColumns] = getLabelColumns(configs.languages, messages);
+    // Add languages and hints columns
+    const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
+    let lastColumnIndex = Object.keys(firstRowData).length;
+    for (const labelColumn of labelColumns) {
+      surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
+      lastColumnIndex++;
     }
-  ));
-  choiceWorkSheet.insertRows(
-    2,
-    choices,
-    'i+'
-  );
+    for (const hintColumn of hintColumns) {
+      surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
+      lastColumnIndex++;
+    }
+    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = [
+      `instance::db-doc`,
+    ];
+    surveyWorkSheet.getColumn(lastColumnIndex + 2).values = [
+      `instance::db-doc-ref`,
+    ];
+    const header = surveyWorkSheet.getRow(1).values;
+    header.shift();
 
-  // SETTINGS
-  settingWorkSheet.getRow(2).getCell(1).value = returnedConfigs.title[configs.defaultLanguage];
-  settingWorkSheet.getRow(2).getCell(2).value = returnedConfigs.form_name;
+    // Add parents
+    const nbParents = getNumberOfSteps(configs.levels[1].place_type, configs.levels[2].place_type);
+    const contactParentRows = getContactParentHierarchy(nbParents, header, languages);
+    const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 1);
+    surveyWorkSheet.insertRows(
+      contactPosition + 3,
+      contactParentRows,
+      'i+'
+    );
+    const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
+    surveyWorkSheet.getRow(placeIdPosition).getCell(8).value = `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`;
 
-  await workbook.xlsx.writeFile(returnedFormPath);
+    const inputs = [
+      ...items.map((item) => {
+        return buildRowValues(header, {
+          type: 'hidden',
+          name: `${item.name}_return`,
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: 'NO_LABEL' }), {})
+        });
+      }),
+      buildRowValues(header, {
+        type: 'hidden',
+        name: 'level_1_place_id',
+        ...getNoLabelsColums(languages)
+      }),
+      buildRowValues(header, {
+        type: 'hidden',
+        name: 'stock_return_id',
+        ...getNoLabelsColums(languages)
+      })
+    ];
+    const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
+    surveyWorkSheet.insertRows(
+      inputPosition + 1,
+      inputs,
+      'i+'
+    );
+
+    const rows = [
+      buildRowValues(header, {
+        type: 'calculate',
+        name: `user_contact_id`,
+        calculation: `../inputs/user/contact_id`
+      })
+    ];
+    if (configs.useItemCategory) {
+      rows.push(
+        ...categories.map((category) => {
+          return [
+            buildRowValues(header, {
+              type: 'begin group',
+              name: category.name,
+              appearance: 'field-list',
+              relevant: items.filter(it => it.category === category.name).map((item) => '${' + `${item.name}_return} > 0`).join(' or '),
+              ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
+            }),
+            ...getItemRows(
+              header,
+              languages,
+              messages,
+              items.filter((item) => item.category === category.name),
+            ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
+            buildRowValues(header, {
+              type: 'end group',
+            }),
+          ];
+        }).reduce((prev, categoryRows) => ([...prev, ...categoryRows]), []),
+      );
+    } else {
+      rows.push(
+        ...getItemRows(
+          header,
+          languages,
+          messages,
+        ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
+      );
+    }
+    const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
+    surveyWorkSheet.insertRows(
+      position + 1,
+      rows,
+      'i+'
+    );
+    addReturnedSummaries(surveyWorkSheet, languages, items, configs.useItemCategory ? categories : []);
+    addExportCalculation(surveyWorkSheet, items);
+    const [, end] = getSheetGroupBeginEnd(surveyWorkSheet, 'out');
+    const additionalDocRows = getAdditionalDoc(returnedConfigs.form_name, languages, header, items);
+    surveyWorkSheet.insertRows(
+      end + 2,
+      additionalDocRows,
+      'i+'
+    );
+
+    //CHOICES
+    const choiceLabelColumns = languages.map((l) => [
+      `label::${l}`
+    ]);
+    let choiceLastColumn = 2;
+    for (const choiceLabelColumn of choiceLabelColumns) {
+      choiceWorkSheet.getColumn(choiceLastColumn + 1).values = choiceLabelColumn;
+      choiceLastColumn++;
+    }
+    const choiceHeader = choiceWorkSheet.getRow(1).values;
+    choiceHeader.shift();
+
+    const choices = ['yes', 'no'].map((ch) => buildRowValues(choiceHeader,
+      {
+        list_name: 'yes_no',
+        name: ch,
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language][`stock_supply.choices.yes_no.${ch}`] }), {})
+      }
+    ));
+    choiceWorkSheet.insertRows(
+      2,
+      choices,
+      'i+'
+    );
+
+    // SETTINGS
+    settingWorkSheet.getRow(2).getCell(1).value = returnedConfigs.title[configs.defaultLanguage];
+    settingWorkSheet.getRow(2).getCell(2).value = returnedConfigs.form_name;
+
+    await workbook.xlsx.writeFile(returnedFormPath);
+    console.log(chalk.green(`INFO ${returnedConfigs.form_name} updated successfully`));
+  } catch (err) {
+    console.log(chalk.red(`ERROR Failed to process ${returnedFormPath}: ${err.message}`));
+    throw err;
+  }
 
   // Add stock count form properties
   const expression = `user.role === '${configs.levels[2].role}'`;
@@ -457,7 +466,6 @@ async function updateStockReturned(configs) {
   };
   const propertyPath = path.join(processDir, 'forms', 'app', `${returnedConfigs.form_name}.properties.json`);
   fs.writeFileSync(propertyPath, JSON.stringify(formProperties, null, 4));
-  console.log(chalk.green(`INFO ${returnedConfigs.form_name} updated successfully`));
 }
 
 module.exports = {
