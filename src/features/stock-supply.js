@@ -389,7 +389,7 @@ async function updateStockSupply(configs) {
         };
         for (const language of configs.languages) {
           noteRow[`label::${language}`] = messages[language]['stock_supply.item.stock_on_hand'];
-          noteRow[`hint:${language}`] = '${' + `${item.name}_current` + '}';
+          noteRow[`hint::${language}`] = '${' + `${item.name}_current` + '}';
         }
         rows.push(buildRowValues(header, noteRow));
 
