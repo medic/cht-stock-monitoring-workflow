@@ -16,7 +16,7 @@ function getSummaries(languages, header, items, categories = []) {
           type: 'note',
           name: `${category.name}_summary`,
           appearance: 'h1 blue',
-          relevant: items.filter(it => it.category === category.name).map((item) => '${' + `${item.name}_qty} > 0`).join(' or '),
+          relevant: items.filter(it => it.category === category.name).map((item) => '${' + `sm_${item.name}_resolved_qty} > 0`).join(' or '),
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
         }),
         ...items.filter(it => it.category === category.name).map((item) => [
@@ -24,10 +24,10 @@ function getSummaries(languages, header, items, categories = []) {
             type: 'note',
             name: `${item.name}_summary`,
             appearance: 'li',
-            relevant: '${' + `${item.name}___count} > 0`,
+            relevant: '${' + `sm_${item.name}_qty} > 0`,
             ...languages.reduce((prev, language) => ({
               ...prev,
-              [`label::${language}`]: `${item.label[language]}: ` + (item.isInSet ? '**${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase()+'**' : '**${'+`${item.name}___count`+'} '+item.unit.label[language].toLowerCase()+'**')
+              [`label::${language}`]: `${item.label[language]}: ` + (item.isInSet ? '**${'+`sm_${item.name}_sets`+'} '+item.set.label[language].toLowerCase()+' ${'+`sm_${item.name}_units`+'} '+item.unit.label[language].toLowerCase()+'**' : '**${'+`sm_${item.name}_qty`+'} '+item.unit.label[language].toLowerCase()+'**')
             }), {})
           }),
         ]).reduce((prev, next) => ([...prev, ...next]), []),
@@ -40,10 +40,10 @@ function getSummaries(languages, header, items, categories = []) {
           type: 'note',
           name: `${item.name}_summary`,
           appearance: 'li',
-          relevant: '${' + `${item.name}_qty} > 0`,
+          relevant: '${' + `sm_${item.name}_resolved_qty} > 0`,
           ...languages.reduce((prev, language) => ({
             ...prev,
-            [`label::${language}`]: `${item.label[language]}: '<b><span style="color:green">` + '${' + `${item.name}_qty}</span></b>`
+            [`label::${language}`]: `${item.label[language]}: '<b><span style="color:green">` + '${' + `sm_${item.name}_resolved_qty}</span></b>`
           }), {})
         }),
       ]).reduce((prev, next) => ([...prev, ...next]), []),
@@ -56,8 +56,8 @@ function getExportCalculations(header, items) {
   return [
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
-      name: `${item.name}_in`, // Row name
-      calculation: 'if(${' + `${item.name}_qty} != '' and ` + '${' + `${item.name}___count} > 0,` + '${' + `${item.name}_received}-` + '${' + `${item.name}___count},0)`
+      name: `sm_${item.name}_qty_in`, // Row name
+      calculation: 'if(${' + `sm_${item.name}_resolved_qty} != '' and ` + '${' + `sm_${item.name}_qty} > 0,` + '${' + `sm_${item.name}_received}-` + '${' + `sm_${item.name}_qty},0)`
     }))
   ];
 }
@@ -118,8 +118,8 @@ function getAdditionalDoc(formName, docFormName, languages, header, items) {
     }),
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
-      name: `${item.name}_out`, // Row name
-      calculation: 'if(${' + `${item.name}_qty} != '' and ` + '${' + `${item.name}___count} > 0,` + '${' + `${item.name}___count}-`+'${' + `${item.name}_confirmed},0)`
+      name: `sm_${item.name}_qty_out`, // Row name
+      calculation: 'if(${' + `sm_${item.name}_resolved_qty} != '' and ` + '${' + `sm_${item.name}_qty} > 0,` + '${' + `sm_${item.name}_qty}-`+'${' + `sm_${item.name}_confirmed},0)`
     })),
     buildRowValues(header, {
       type: 'calculate',
@@ -141,8 +141,8 @@ function getItemRows(header, languages, messages, items) {
     const rows = [
       buildRowValues(header, {
         type: 'begin group',
-        name: `___${item.name}`,
-        relevant: '${' + `${item.name}_received} !=` + '${' + `${item.name}_confirmed}`,
+        name: `sm_${item.name}`,
+        relevant: '${' + `sm_${item.name}_received} !=` + '${' + `sm_${item.name}_confirmed}`,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
       }),
     ];
@@ -150,53 +150,53 @@ function getItemRows(header, languages, messages, items) {
       rows.push(
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}__issued___set`,
-          calculation: 'int(${'+item.name+'_received} div '+item.set.count+')',
+          name: `sm_${item.name}_issued_sets`,
+          calculation: 'int(${sm_'+item.name+'_received} div '+item.set.count+')',
         }),
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}__issued___unit`,
-          calculation: '${'+item.name+'_received} mod '+item.set.count,
+          name: `sm_${item.name}_issued_units`,
+          calculation: '${sm_'+item.name+'_received} mod '+item.set.count,
         }),
         buildRowValues(header, {
           type: 'note',
           name: `${item.name}_note_issued`,
           ...languages.reduce((prev, language) => ({
             ...prev,
-            [`label::${language}`]: messages[language]['stock_supply.discrepancy.quantity_issued'].replace('{{qty}}', '${'+`${item.name}__issued___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}__issued___unit`+'} '+item.unit.label[language].toLowerCase())
+            [`label::${language}`]: messages[language]['stock_supply.discrepancy.quantity_issued'].replace('{{qty}}', '${'+`sm_${item.name}_issued_sets`+'} '+item.set.label[language].toLowerCase()+' ${'+`sm_${item.name}_issued_units`+'} '+item.unit.label[language].toLowerCase())
           }), {})
         }),
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}__confirmed___set`,
-          calculation: 'int(${'+item.name+'_confirmed} div '+item.set.count+')',
+          name: `sm_${item.name}_confirmed_sets`,
+          calculation: 'int(${sm_'+item.name+'_confirmed} div '+item.set.count+')',
         }),
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}__confirmed___unit`,
-          calculation: '${'+item.name+'_confirmed} mod '+item.set.count,
+          name: `sm_${item.name}_confirmed_units`,
+          calculation: '${sm_'+item.name+'_confirmed} mod '+item.set.count,
         }),
         buildRowValues(header, {
           type: 'note',
           name: `${item.name}_note_confirmed`,
           ...languages.reduce((prev, language) => ({
             ...prev,
-            [`label::${language}`]: messages[language]['stock_supply.discrepancy.quantity_confirmed'].replace('{{qty}}', '${'+`${item.name}__confirmed___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}__confirmed___unit`+'} '+item.unit.label[language].toLowerCase())
+            [`label::${language}`]: messages[language]['stock_supply.discrepancy.quantity_confirmed'].replace('{{qty}}', '${'+`sm_${item.name}_confirmed_sets`+'} '+item.set.label[language].toLowerCase()+' ${'+`sm_${item.name}_confirmed_units`+'} '+item.unit.label[language].toLowerCase())
           }), {})
         }),
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}___set`,
-          calculation: 'if(count-selected(${'+item.name+'_qty}) > 0 and count-selected(substring-before(${'+item.name+'_qty}, "/")) >= 0 and regex(substring-before(${'+item.name+"_qty}, \"/\"), '^[0-9]+$'),number(substring-before(${"+item.name+'_qty}, "/")),0)',
+          name: `sm_${item.name}_sets`,
+          calculation: 'if(count-selected(${sm_'+item.name+'_resolved_qty}) > 0 and count-selected(substring-before(${sm_'+item.name+'_resolved_qty}, "/")) >= 0 and regex(substring-before(${sm_'+item.name+"_resolved_qty}, \"/\"), '^[0-9]+$'),number(substring-before(${sm_"+item.name+'_resolved_qty}, "/")),0)',
         }),
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}___unit`,
-          calculation: 'if(count-selected(${'+item.name+'_qty}) > 0 and count-selected(substring-after(${'+item.name+'_qty}, "/")) >= 0 and regex(substring-after(${'+item.name+"_qty}, \"/\"), '^[0-9]+$'),number(substring-after(${"+item.name+'_qty}, "/")),0)',
+          name: `sm_${item.name}_units`,
+          calculation: 'if(count-selected(${sm_'+item.name+'_resolved_qty}) > 0 and count-selected(substring-after(${sm_'+item.name+'_resolved_qty}, "/")) >= 0 and regex(substring-after(${sm_'+item.name+"_resolved_qty}, \"/\"), '^[0-9]+$'),number(substring-after(${sm_"+item.name+'_resolved_qty}, "/")),0)',
         }),
         buildRowValues(header, {
           type: 'string',
-          name: `${item.name}_qty`,
+          name: `sm_${item.name}_resolved_qty`,
           required: 'yes',
           constraint: "regex(., '^\\d+\\/\\d+$')",
           default: '0/0',
@@ -206,7 +206,7 @@ function getItemRows(header, languages, messages, items) {
           }), {}),
           ...languages.reduce((prev, language) => ({
             ...prev,
-            [`hint::${language}`]: '${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase()
+            [`hint::${language}`]: '${'+`sm_${item.name}_sets`+'} '+item.set.label[language].toLowerCase()+' ${'+`sm_${item.name}_units`+'} '+item.unit.label[language].toLowerCase()
           }), {})
         })
       );
@@ -217,7 +217,7 @@ function getItemRows(header, languages, messages, items) {
           name: `${item.name}_note_issued`,
           ...languages.reduce((prev, language) => ({
             ...prev,
-            [`label::${language}`]: messages[language]['stock_supply.discrepancy.quantity_issued'].replace('{{qty}}', '${' + item.name + '_received}')
+            [`label::${language}`]: messages[language]['stock_supply.discrepancy.quantity_issued'].replace('{{qty}}', '${sm_' + item.name + '_received}')
           }), {})
         }),
         buildRowValues(header, {
@@ -225,12 +225,12 @@ function getItemRows(header, languages, messages, items) {
           name: `${item.name}_note_confirmed`,
           ...languages.reduce((prev, language) => ({
             ...prev,
-            [`label::${language}`]: messages[language]['stock_supply.discrepancy.quantity_confirmed'].replace('{{qty}}', '${' + item.name + '_confirmed}')
+            [`label::${language}`]: messages[language]['stock_supply.discrepancy.quantity_confirmed'].replace('{{qty}}', '${sm_' + item.name + '_confirmed}')
           }), {})
         }),
         buildRowValues(header, {
           type: 'decimal',
-          name: `${item.name}_qty`,
+          name: `sm_${item.name}_resolved_qty`,
           required: 'yes',
           constraint: '. > 0',
           default: 0,
@@ -241,8 +241,8 @@ function getItemRows(header, languages, messages, items) {
     rows.push(
       buildRowValues(header, {
         type: 'calculate',
-        name: `${item.name}___count`,
-        calculation: item.isInSet ? '${'+item.name+'___set} * ' + item.set.count + ' + ${'+item.name+'___unit}' : '${'+item.name+'_qty}',
+        name: `sm_${item.name}_qty`,
+        calculation: item.isInSet ? '${sm_'+item.name+'_sets} * ' + item.set.count + ' + ${sm_'+item.name+'_units}' : '${sm_'+item.name+'_resolved_qty}',
       }),
       buildRowValues(header, {
         type: 'end group',
@@ -354,12 +354,12 @@ async function updateStockDiscrepancy(configs) {
       ...items.map((item) => [
         buildRowValues(header, {
           type: 'hidden',
-          name: `${item.name}_received`,
+          name: `sm_${item.name}_received`,
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: 'NO_LABEL' }), {})
         }),
         buildRowValues(header, {
           type: 'hidden',
-          name: `${item.name}_confirmed`,
+          name: `sm_${item.name}_confirmed`,
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: 'NO_LABEL' }), {})
         })
       ]).reduce((prev, next) => [...prev, ...next], []),
@@ -400,7 +400,7 @@ async function updateStockDiscrepancy(configs) {
               type: 'begin group',
               name: category.name,
               appearance: 'field-list',
-              relevant: items.filter(it => it.category === category.name).map((item) => '${' + `${item.name}_received} !=` + '${' + `${item.name}_confirmed}`).join(' or '),
+              relevant: items.filter(it => it.category === category.name).map((item) => '${' + `sm_${item.name}_received} !=` + '${' + `sm_${item.name}_confirmed}`).join(' or '),
               ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
             }),
             ...getItemRows(

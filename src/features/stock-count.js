@@ -16,11 +16,11 @@ function addStockCountSummaries(workSheet, items, languages) {
       type: 'note', // Row type
       name: `s_${item.name}`, // Row name
       required: '',
-      relevant: '${' + `${item.name}` + '___count} > 0',
+      relevant: '${' + `sm_${item.name}_qty` + '} > 0',
       appearance: 'li',
     };
     for (const language of languages) {
-      itemRow[`label::${language}`] = `${item.label[language]}: ` + (item.isInSet ? '**${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase()+'**' : '**${'+`${item.name}___count`+'} '+item.unit.label[language].toLowerCase()+'**'); // Row label
+      itemRow[`label::${language}`] = `${item.label[language]}: ` + (item.isInSet ? '**${'+`sm_${item.name}_sets`+'} '+item.set.label[language].toLowerCase()+' ${'+`sm_${item.name}_units`+'} '+item.unit.label[language].toLowerCase()+'**' : '**${'+`sm_${item.name}_qty`+'} '+item.unit.label[language].toLowerCase()+'**'); // Row label
     }
     itemRows.push(buildRowValues(header, itemRow));
   }
@@ -40,8 +40,8 @@ function addStockCountCalculation(workSheet, items) {
   const itemRows = [
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
-      name: `${item.name}_availables`, // Row name
-      calculation: '${' + item.name + '___count}'
+      name: `sm_${item.name}_available`, // Row name
+      calculation: '${sm_' + item.name + '_qty}'
     }))
   ];
 
@@ -60,14 +60,14 @@ function getItemRows(items, languages, header) {
     if (item.isInSet) {
       const calculateSetItemRow = {
         type: 'calculate',
-        name: `${item.name}___set`,
+        name: `sm_${item.name}_sets`,
         calculation: 'if(count-selected(${'+item.name+'}) > 0 and count-selected(substring-before(${'+item.name+'}, "/")) >= 0 and regex(substring-before(${'+item.name+"}, \"/\"), '^[0-9]+$'),number(substring-before(${"+item.name+'}, "/")),0)',
         default: '0/0'
       };
       itemRows.push(buildRowValues(header, calculateSetItemRow));
       const calculateUnitItemRow = {
         type: 'calculate',
-        name: `${item.name}___unit`,
+        name: `sm_${item.name}_units`,
         calculation: 'if(count-selected(${'+item.name+'}) > 0 and count-selected(substring-after(${'+item.name+'}, "/")) >= 0 and regex(substring-after(${'+item.name+"}, \"/\"), '^[0-9]+$'),number(substring-after(${"+item.name+'}, "/")),0)',
         default: '0/0'
       };
@@ -82,7 +82,7 @@ function getItemRows(items, languages, header) {
       for (const language of languages) {
         itemRow.constraint_message = messages[language]['stock_count.message.set_unit_constraint_message'].replace('{{unit_label}}', item.unit.label[language].toLowerCase()).replace('{{set_label}}', item.set.label[language].toLowerCase());
         itemRow[`label::${language}`] = `${item.label[language]}` || ''; // Row label
-        itemRow[`hint::${language}`] = '${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase(); // Row hint
+        itemRow[`hint::${language}`] = '${'+`sm_${item.name}_sets`+'} '+item.set.label[language].toLowerCase()+' ${'+`sm_${item.name}_units`+'} '+item.unit.label[language].toLowerCase(); // Row hint
       }
       itemRows.push(buildRowValues(header, itemRow));
     } else {
@@ -101,8 +101,8 @@ function getItemRows(items, languages, header) {
     }
     const calculateItemRowCount = {
       type: 'calculate',
-      name: `${item.name}___count`,
-      calculation: item.isInSet ? '${'+item.name+'___set} * ' + item.set.count + ' + ${'+item.name+'___unit}' : '${'+item.name+'}',
+      name: `sm_${item.name}_qty`,
+      calculation: item.isInSet ? '${sm_'+item.name+'_sets} * ' + item.set.count + ' + ${sm_'+item.name+'_units}' : '${'+item.name+'}',
     };
     itemRows.push(buildRowValues(header, calculateItemRowCount));
   }

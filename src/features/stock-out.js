@@ -16,9 +16,9 @@ function getItemRows(header, languages, messages, items) {
     const row = [
       buildRowValues(header, {
         type: 'note',
-        name: `${item.name}_name`,
+        name: `sm_${item.name}_name`,
         appearance: 'h2 lime',
-        relevant: '${' + `${item.name}_at_hand} <=` + '${' + `${item.name}_required}`,
+        relevant: '${' + `sm_${item.name}_at_hand} <=` + '${' + `sm_${item.name}_required}`,
         ...languages.reduce((prev, language) => ({
           ...prev,
           [`label::${language}`]: item.label[language],
@@ -26,22 +26,22 @@ function getItemRows(header, languages, messages, items) {
       }),
       buildRowValues(header, {
         type: 'note',
-        name: `${item.name}_note_at_hand`,
+        name: `sm_${item.name}_note_at_hand`,
         appearance: 'li',
-        relevant: '${' + `${item.name}_at_hand} <=` + '${' + `${item.name}_required}`,
+        relevant: '${' + `sm_${item.name}_at_hand} <=` + '${' + `sm_${item.name}_required}`,
         ...languages.reduce((prev, language) => ({
           ...prev,
-          [`label::${language}`]: messages[language]['stock_out.message.stock_at_hand'].replace('{{qty}}', getItemCount(item, language, '_at_hand', '_at_hand'))
+          [`label::${language}`]: messages[language]['stock_out.message.stock_at_hand'].replace('{{qty}}', getItemCount(item, language, 'sm_', '_at_hand', '_at_hand'))
         }), {})
       }),
       buildRowValues(header, {
         type: 'note',
-        name: `${item.name}_note_required`,
+        name: `sm_${item.name}_note_required`,
         appearance: 'li',
-        relevant: '${' + `${item.name}_at_hand} <=` + '${' + `${item.name}_required}`,
+        relevant: '${' + `sm_${item.name}_at_hand} <=` + '${' + `sm_${item.name}_required}`,
         ...languages.reduce((prev, language) => ({
           ...prev,
-          [`label::${language}`]: messages[language]['stock_out.message.stock_required'].replace('{{qty}}', getItemCount(item, language, '_required', '_required'))
+          [`label::${language}`]: messages[language]['stock_out.message.stock_required'].replace('{{qty}}', getItemCount(item, language, 'sm_', '_required', '_required'))
         }), {})
       }),
     ];
@@ -49,23 +49,23 @@ function getItemRows(header, languages, messages, items) {
       row.push(
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}_at_hand___set`,
-          calculation: 'int(${'+item.name+'_at_hand} div '+item.set.count+')'
+          name: `sm_${item.name}_at_hand_sets`,
+          calculation: 'int(${sm_'+item.name+'_at_hand} div '+item.set.count+')'
         }),
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}_at_hand___unit`,
-          calculation: '${'+item.name+'_at_hand} mod '+item.set.count
+          name: `sm_${item.name}_at_hand_units`,
+          calculation: '${sm_'+item.name+'_at_hand} mod '+item.set.count
         }),
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}_required___set`,
-          calculation: 'int(${'+item.name+'_required} div '+item.set.count+')'
+          name: `sm_${item.name}_required_sets`,
+          calculation: 'int(${sm_'+item.name+'_required} div '+item.set.count+')'
         }),
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}_required___unit`,
-          calculation: '${'+item.name+'_required} mod '+item.set.count
+          name: `sm_${item.name}_required_units`,
+          calculation: '${sm_'+item.name+'_required} mod '+item.set.count
         }),
       );
     }
@@ -179,12 +179,12 @@ async function updateStockOut(configs) {
       ...items.map((item) => [
         buildRowValues(header, {
           type: 'hidden',
-          name: `${item.name}_required`,
+          name: `sm_${item.name}_required`,
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: 'NO_LABEL' }), {})
         }),
         buildRowValues(header, {
           type: 'hidden',
-          name: `${item.name}_at_hand`,
+          name: `sm_${item.name}_at_hand`,
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: 'NO_LABEL' }), {})
         })
       ]).reduce((prev, next) => [...prev, ...next], []),
@@ -205,7 +205,7 @@ async function updateStockOut(configs) {
               type: 'note',
               name: category.name,
               appearance: 'h1 green',
-              relevant: items.filter(it => it.category === category.name).map((item) => '${' + `${item.name}_at_hand} <` + '${' + `${item.name}_required}`).join(' or '),
+              relevant: items.filter(it => it.category === category.name).map((item) => '${' + `sm_${item.name}_at_hand} <` + '${' + `sm_${item.name}_required}`).join(' or '),
               ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
             }),
             ...getItemRows(

@@ -125,7 +125,7 @@ function getTasks(configs) {
             modifyContent: function (content, contact, report) {
               for (var i = 0; i < items.length; i++) {
                 var item = items[i];
-                content[item.name+'_received'] = Utils.getField(report, item.name+'_in');
+                content['sm_'+item.name+'_received'] = Utils.getField(report, 'sm_'+item.name+'_qty_in');
               }
               content['supply_doc_id'] = report._id;
               content['supplier_id'] = Utils.getField(report, 'supplier_id');
@@ -141,8 +141,8 @@ function getTasks(configs) {
         appliesToType: [configs.features.stock_supply.confirm_supply.form_name],
         appliesIf: function (contact, report) {
           var itemDescrepancy = items.find(function(item) {
-            var itemReceived = Utils.getField(report, 'inputs.'+item.name+'_received');
-            var itemConfirmed = Utils.getField(report, 'out.'+item.name+'_confirmed');
+            var itemReceived = Utils.getField(report, 'inputs.sm_'+item.name+'_received');
+            var itemConfirmed = Utils.getField(report, 'out.sm_'+item.name+'_confirmed');
             itemReceived = itemReceived === 'NaN' ? 0 : Number(itemReceived || 0);
             itemConfirmed = itemConfirmed === 'NaN' ? 0 : Number(itemConfirmed || 0);
             return itemReceived !== itemConfirmed;
@@ -180,16 +180,16 @@ function getTasks(configs) {
             form: configs.features.stock_supply.discrepancy.form_name,
             modifyContent: function (content, contact, report) {
               var itemDescrepancys = items.filter(function(item) {
-                var itemReceived = Utils.getField(report, 'inputs.'+item.name+'_received');
-                var itemConfirmed = Utils.getField(report, 'out.'+item.name+'_confirmed');
+                var itemReceived = Utils.getField(report, 'inputs.sm_'+item.name+'_received');
+                var itemConfirmed = Utils.getField(report, 'out.sm_'+item.name+'_confirmed');
                 itemReceived = itemReceived === 'NaN' ? 0 : Number(itemReceived || 0);
                 itemConfirmed = itemConfirmed === 'NaN' ? 0 : Number(itemConfirmed || 0);
                 return itemReceived !== itemConfirmed;
               });
               for (var i = 0; i < itemDescrepancys.length; i++) {
                 var item = itemDescrepancys[i];
-                content[item.name+'_received'] = Utils.getField(report, 'inputs.'+item.name+'_received');
-                content[item.name+'_confirmed'] = Utils.getField(report, 'out.'+item.name+'_confirmed');
+                content['sm_'+item.name+'_received'] = Utils.getField(report, 'inputs.sm_'+item.name+'_received');
+                content['sm_'+item.name+'_confirmed'] = Utils.getField(report, 'out.sm_'+item.name+'_confirmed');
               }
               content['level_1_place_id'] = Utils.getField(report, 'place_id');
               content['supply_confirm_id'] = report._id;
@@ -236,7 +236,7 @@ function getTasks(configs) {
             modifyContent: function (content, contact, report) {
               for (var i = 0; i < items.length; i++) {
                 var item = items[i];
-                content[item.name+'_return'] = Utils.getField(report, 'out.'+item.name+'_out');
+                content['sm_'+item.name+'_return'] = Utils.getField(report, 'out.sm_'+item.name+'_qty_out');
               }
               content['level_1_place_id'] = Utils.getField(report, 'place_id');
               content['stock_return_id'] = report._id;
@@ -309,8 +309,8 @@ function getTasks(configs) {
             modifyContent: function (content) {
               for (var i = 0; i < items.length; i++) {
                 var item = items[i];
-                content[item.name+'_required'] = Math.round(this.stockMonitoring_itemRequiredQty[item.name]);
-                content[item.name+'_at_hand'] = Math.round(this.stockMonitoring_itemCounts[item.name]);
+                content['sm_'+item.name+'_required'] = Math.round(this.stockMonitoring_itemRequiredQty[item.name]);
+                content['sm_'+item.name+'_at_hand'] = Math.round(this.stockMonitoring_itemCounts[item.name]);
               }
             }
           }
@@ -369,7 +369,7 @@ function getTasks(configs) {
               content['order_id'] = report._id;
               for (var i = 0; i < items.length; i++) {
                 var item = items[i];
-                content[item.name + '_ordered'] = Utils.getField(report, 'out.'+item.name+'_ordered');
+                content['sm_'+item.name+'_ordered'] = Utils.getField(report, 'out.sm_'+item.name+'_ordered');
               }
             }
           }

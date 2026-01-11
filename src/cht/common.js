@@ -72,23 +72,23 @@ function getItemsConsumption(configs, reports, period) {
       switch (report.form) {
         case constants.FORM_ADDITIONAL_DOC_NAME:
           {
-            var qtyUsed = Number(Utils.getField(report, itemName + '_used_in_' + report.created_from_name) || 0);
+            var qtyUsed = Number(Utils.getField(report, 'sm_' + itemName + '_used_in_' + report.created_from_name) || 0);
             itemQuantities[itemName] += qtyUsed;
           }
           break;
         case STOCK_SUPPLY:
           {
-            itemQuantities[itemName] += Number(Utils.getField(report, 'out.' + itemName + '_supply') || 0);
+            itemQuantities[itemName] += Number(Utils.getField(report, 'out.sm_' + itemName + '_qty_out') || 0);
           }
           break;
         case SUPPLY_CORRECTION:
           {
-            itemQuantities[itemName] -= (Number(Utils.getField(report, 'out.' + itemName + '_in')) || 0);
+            itemQuantities[itemName] -= (Number(Utils.getField(report, 'out.sm_' + itemName + '_qty_in')) || 0);
           }
           break;
         case STOCK_RETURNED:
           {
-            itemQuantities[itemName] -= Number(Utils.getField(report, 'out.' + itemName + '_in') || 0);
+            itemQuantities[itemName] -= Number(Utils.getField(report, 'out.sm_' + itemName + '_qty_in') || 0);
           }
           break;
         default:
@@ -102,7 +102,7 @@ function getItemsConsumption(configs, reports, period) {
 
 function getItemCountInReports(itemName, reports, forms) {
   var lastStockCount = Utils.getMostRecentReport(reports, forms.stockCount);
-  var total = Number(Utils.getField(lastStockCount, 'out.' + itemName + '_availables')) || 0;
+  var total = Number(Utils.getField(lastStockCount, 'out.sm_' + itemName + '_available')) || 0;
 
   for (var index = 0; index < reports.length; index++) {
     var report = reports[index];
@@ -115,7 +115,7 @@ function getItemCountInReports(itemName, reports, forms) {
       case constants.SUPPLY_ADDITIONAL_DOC:
         {
           if (forms.supplyConfirm.length === 0) {
-            total += Number(Utils.getField(report, itemName + '_in') || 0);
+            total += Number(Utils.getField(report, 'sm_' + itemName + '_qty_in') || 0);
           }
         }
         break;
@@ -126,8 +126,8 @@ function getItemCountInReports(itemName, reports, forms) {
        */
       case forms.stockLogs:
         {
-          var received = Utils.getField(report, 'out.' + itemName + '_received');
-          var returned = Utils.getField(report, 'out.' + itemName + '_returned');
+          var received = Utils.getField(report, 'out.sm_' + itemName + '_received');
+          var returned = Utils.getField(report, 'out.sm_' + itemName + '_returned');
           total += (received - returned);
         }
         break;
@@ -139,7 +139,7 @@ function getItemCountInReports(itemName, reports, forms) {
       case forms.supplyForm:
       case forms.orderSupplyForm:
         {
-          total -= Number(Utils.getField(report, 'out.' + itemName + '_supply') || 0);
+          total -= Number(Utils.getField(report, 'out.sm_' + itemName + '_qty_out') || 0);
         }
         break;
       /**
@@ -149,7 +149,7 @@ function getItemCountInReports(itemName, reports, forms) {
        */
       case constants.FORM_ADDITIONAL_DOC_NAME:
         {
-          total -= Number(Utils.getField(report, itemName + '_used_in_' + report.created_from_name) || 0);
+          total -= Number(Utils.getField(report, 'sm_' + itemName + '_used_in_' + report.created_from_name) || 0);
         }
         break;
       /**
@@ -157,7 +157,7 @@ function getItemCountInReports(itemName, reports, forms) {
        * Chw form ajusted by supervisor discrepency
        */
       case constants.DISCREPANCY_ADD_DOC:
-        total += Number(Utils.getField(report, itemName + '_out')) || 0;
+        total += Number(Utils.getField(report, 'sm_' + itemName + '_qty_out')) || 0;
         break;
       /**
        * *supervisor - in/out*
@@ -165,7 +165,7 @@ function getItemCountInReports(itemName, reports, forms) {
        */
       case forms.supplyDiscrepancy:
         {
-          var qtyDiff = (Number(Utils.getField(report, 'out.' + itemName + '_in')) || 0);
+          var qtyDiff = (Number(Utils.getField(report, 'out.sm_' + itemName + '_qty_in')) || 0);
           total += qtyDiff;
         }
         break;
@@ -174,21 +174,21 @@ function getItemCountInReports(itemName, reports, forms) {
        * Chw form ajusted by supervisor return connfirmation
        */
       case constants.RETURNED_ADD_DOC:
-        total += Number(Utils.getField(report, itemName + '_return_difference')) || 0;
+        total += Number(Utils.getField(report, 'sm_' + itemName + '_return_diff')) || 0;
         break;
       /**
        * *chw - in*
        * Item supply confirmed by chw
        */
       case forms.supplyConfirm:
-        total += Number(Utils.getField(report, 'out.' + itemName + '_confirmed') || 0);
+        total += Number(Utils.getField(report, 'out.sm_' + itemName + '_confirmed') || 0);
         break;
       /**
        * *chw - out*
        * Chw return items to supervisor
        */
       case forms.stockReturn:
-        total -= Number(Utils.getField(report, 'out.' + itemName + '_out') || 0);
+        total -= Number(Utils.getField(report, 'out.sm_' + itemName + '_qty_out') || 0);
         break;
       /**
        * *supervisor - out*
@@ -196,7 +196,7 @@ function getItemCountInReports(itemName, reports, forms) {
        */
       case forms.stockReturned:
       {
-        total += Number(Utils.getField(report, 'out.' + itemName + '_in') || 0);
+        total += Number(Utils.getField(report, 'out.sm_' + itemName + '_qty_in') || 0);
         break;
       }
       default:

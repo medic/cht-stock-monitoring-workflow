@@ -21,19 +21,19 @@ const { getTranslations } = require('../translation-manager');
  * getItemRows(header, languages, messages, 'list_items_selected', items)
  * returns [
  *   [
- *     { type: 'begin group', name: '___item1', relevant: 'selected(${list_items_selected}, 'item1')', label::en: 'Item 1', label::sw: 'Bidhaa 1' },
- *     { type: 'note', name: 'item1_before', label::en: 'Quantity before: ${item1_current}', label::sw: 'Idadi kabla: ${item1_current}' },
- *     { type: 'decimal', name: 'item1_order_qty', required: 'yes', constraint: '. > 0', default: 0, label::en: 'Quantity ordered', label::sw: 'Idadi iliyotolewa' },
- *     { type: 'calculate', name: 'item1_after', calculation: '${item1_current} + if(${item1_order_qty} != '',${item1_order_qty},0)' },
- *     { type: 'note', name: 'item1_after_note', label::en: 'Quantity after: ${item1_after}', label::sw: 'Idadi baada: ${item1_after}' },
+ *     { type: 'begin group', name: 'sm_item1', relevant: 'selected(${list_items_selected}, 'item1')', label::en: 'Item 1', label::sw: 'Bidhaa 1' },
+ *     { type: 'note', name: 'sm_item1_before', label::en: 'Quantity before: ${sm_item1_current}', label::sw: 'Idadi kabla: ${sm_item1_current}' },
+ *     { type: 'decimal', name: 'sm_item1_order_qty', required: 'yes', constraint: '. > 0', default: 0, label::en: 'Quantity ordered', label::sw: 'Idadi iliyotolewa' },
+ *     { type: 'calculate', name: 'sm_item1_after', calculation: '${sm_item1_current} + if(${sm_item1_order_qty} != '',${sm_item1_order_qty},0)' },
+ *     { type: 'note', name: 'sm_item1_after_note', label::en: 'Quantity after: ${sm_item1_after}', label::sw: 'Idadi baada: ${sm_item1_after}' },
  *     { type: 'end group' },
  *   ],
  *   [
- *     { type: 'begin group', name: '___item2', relevant: 'selected(${list_items_selected}, 'item2')', label::en: 'Item 2', label::sw: 'Bidhaa 2' },
- *     { type: 'note', name: 'item2_before', label::en: 'Quantity before: ${item2_current}', label::sw: 'Idadi kabla: ${item2_current}' },
- *     { type: 'decimal', name: 'item2_order_qty', required: 'yes', constraint: '. > 0', default: 0, label::en: 'Quantity ordered', label::sw: 'Idadi iliyotolewa' },
- *     { type: 'calculate', name: 'item2_after', calculation: '${item2_current} + if(${item2_order_qty} != '',${item2_order_qty},0)' },
- *     { type: 'note', name: 'item2_after_note', label::en: 'Quantity after: ${item2_after}', label::sw: 'Idadi baada: ${item2_after}' },
+ *     { type: 'begin group', name: 'sm_item2', relevant: 'selected(${list_items_selected}, 'item2')', label::en: 'Item 2', label::sw: 'Bidhaa 2' },
+ *     { type: 'note', name: 'sm_item2_before', label::en: 'Quantity before: ${sm_item2_current}', label::sw: 'Idadi kabla: ${sm_item2_current}' },
+ *     { type: 'decimal', name: 'sm_item2_order_qty', required: 'yes', constraint: '. > 0', default: 0, label::en: 'Quantity ordered', label::sw: 'Idadi iliyotolewa' },
+ *     { type: 'calculate', name: 'sm_item2_after', calculation: '${sm_item2_current} + if(${sm_item2_order_qty} != '',${sm_item2_order_qty},0)' },
+ *     { type: 'note', name: 'sm_item2_after_note', label::en: 'Quantity after: ${sm_item2_after}', label::sw: 'Idadi baada: ${sm_item2_after}' },
  *     { type: 'end group' },
  *   ],
  * ]
@@ -43,66 +43,66 @@ function getItemRows(header, languages, messages, selectionFieldName, items) {
     const row = [
       buildRowValues(header, {
         type: 'begin group',
-        name: `___${item.name}`,
+        name: `sm_${item.name}`,
         relevant: 'selected(${' + selectionFieldName + `}, '${item.name}')`,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
       }),
       buildRowValues(header, {
         type: 'note',
-        name: `${item.name}_before`,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.qty_before'] + ': ' + getItemCount(item, language, '___current', '_current') }), {})
+        name: `sm_${item.name}_before`,
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.qty_before'] + ': ' + getItemCount(item, language, '_current_sets', '_current', '_current_units') }), {})
       }),
     ];
     if (item.isInSet) {
       row.push(
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}___current___set`,
-          calculation: 'int(${'+item.name+'_current} div '+item.set.count+')'
+          name: `sm_${item.name}_current_sets`,
+          calculation: 'int(${sm_'+item.name+'_current} div '+item.set.count+')'
         }),
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}___current___unit`,
-          calculation: '${'+item.name+'_current} mod '+item.set.count
+          name: `sm_${item.name}_current_units`,
+          calculation: '${sm_'+item.name+'_current} mod '+item.set.count
         }),
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}___set`,
-          calculation: 'if(count-selected(${'+item.name+'_order_qty}) > 0 and count-selected(substring-before(${'+item.name+'_order_qty}, "/")) >= 0 and regex(substring-before(${'+item.name+"_order_qty}, \"/\"), '^[0-9]+$'),number(substring-before(${"+item.name+'_order_qty}, "/")),0)',
+          name: `sm_${item.name}_sets`,
+          calculation: 'if(count-selected(${sm_'+item.name+'_order_qty}) > 0 and count-selected(substring-before(${sm_'+item.name+'_order_qty}, "/")) >= 0 and regex(substring-before(${sm_'+item.name+"_order_qty}, \"/\"), '^[0-9]+$'),number(substring-before(${sm_"+item.name+'_order_qty}, "/")),0)',
         }),
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}___unit`,
-          calculation: 'if(count-selected(${'+item.name+'_order_qty}) > 0 and count-selected(substring-after(${'+item.name+'_order_qty}, "/")) >= 0 and regex(substring-after(${'+item.name+"_order_qty}, \"/\"), '^[0-9]+$'),number(substring-after(${"+item.name+'_order_qty}, "/")),0)',
+          name: `sm_${item.name}_units`,
+          calculation: 'if(count-selected(${sm_'+item.name+'_order_qty}) > 0 and count-selected(substring-after(${sm_'+item.name+'_order_qty}, "/")) >= 0 and regex(substring-after(${sm_'+item.name+"_order_qty}, \"/\"), '^[0-9]+$'),number(substring-after(${sm_"+item.name+'_order_qty}, "/")),0)',
         }),
         buildRowValues(header, {
           type: 'string',
-          name: `${item.name}_order_qty`,
+          name: `sm_${item.name}_order_qty`,
           required: 'yes',
           constraint: "regex(., '^\\d+\\/\\d+$')",
           default: '0/0',
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.qty_ordered'] }), {}),
           ...languages.reduce((prev, language) => ({
             ...prev,
-            [`hint::${language}`]: '${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase()
+            [`hint::${language}`]: '${'+`sm_${item.name}_sets`+'} '+item.set.label[language].toLowerCase()+' ${'+`sm_${item.name}_units`+'} '+item.unit.label[language].toLowerCase()
           }), {})
         }),
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}___after___set`,
-          calculation: 'int(${'+item.name+'_after} div '+item.set.count+')'
+          name: `sm_${item.name}_after_sets`,
+          calculation: 'int(${sm_'+item.name+'_after} div '+item.set.count+')'
         }),
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}___after___unit`,
-          calculation: '${'+item.name+'_after} mod '+item.set.count
+          name: `sm_${item.name}_after_units`,
+          calculation: '${sm_'+item.name+'_after} mod '+item.set.count
         }),
       );
     } else {
       row.push(
         buildRowValues(header, {
           type: 'integer',
-          name: `${item.name}_order_qty`,
+          name: `sm_${item.name}_order_qty`,
           required: 'yes',
           constraint: '. > 0',
           default: 0,
@@ -113,18 +113,18 @@ function getItemRows(header, languages, messages, selectionFieldName, items) {
     row.push(
       buildRowValues(header, {
         type: 'note',
-        name: `${item.name}_after_note`,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.qty_after'] + ': ' + getItemCount(item, language, '___after', '_after') }), {})
+        name: `sm_${item.name}_after_note`,
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.qty_after'] + ': ' + getItemCount(item, language, '_after_sets', '_after', '_after_units') }), {})
       }),
       buildRowValues(header, {
         type: 'calculate',
-        name: `${item.name}___count`,
-        calculation: item.isInSet ? '${'+item.name+'___set} * ' + item.set.count + ' + ${'+item.name+'___unit}' : '${'+item.name+'_order_qty}',
+        name: `sm_${item.name}_qty`,
+        calculation: item.isInSet ? '${sm_'+item.name+'_sets} * ' + item.set.count + ' + ${sm_'+item.name+'_units}' : '${sm_'+item.name+'_order_qty}',
       }),
       buildRowValues(header, {
         type: 'calculate',
-        name: `${item.name}_after`,
-        calculation: '${' + item.name + '_current} + if(${' + `${item.name}_order_qty} != '',` + '${' + `${item.name}___count},0)`
+        name: `sm_${item.name}_after`,
+        calculation: '${sm_' + item.name + '_current} + if(${sm_' + `${item.name}_order_qty} != '',` + '${sm_' + `${item.name}_qty},0)`
       }),
       buildRowValues(header, {
         type: 'end group',
@@ -144,14 +144,14 @@ function addOrderSummaries(workSheet, languages, items, categories = []) {
       rows.push(
         buildRowValues(header, {
           type: 'note',
-          name: `${category.name}_summary`,
+          name: `sm_${category.name}_summary`,
           appearance: 'h1 blue',
           relevant: 'selected(${categories}, ' + `'${category.name}')`,
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
         }),
         ...items.filter(it => it.category === category.name).map((item) => (buildRowValues(header, {
           type: 'note',
-          name: `${item.name}_summary`,
+          name: `sm_${item.name}_summary`,
           appearance: 'li',
           relevant: 'selected(${' + category.name + '_items_selected}, ' + `'${item.name}')`,
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.label[language]}: ` + getItemCount(item, language) }), {})
@@ -161,7 +161,7 @@ function addOrderSummaries(workSheet, languages, items, categories = []) {
   } else {
     rows = items.map((item) => ({
       type: 'note',
-      name: `${item.name}_summary`,
+      name: `sm_${item.name}_summary`,
       appearance: 'li',
       relevant: 'selected(${list_items_selected}, ' + `'${item.name}')`,
       ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.name[language]}: ` + getItemCount(item, language) }), {})
@@ -182,8 +182,8 @@ function addExportCalculation(workSheet, items) {
   const itemRows = [
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
-      name: `${item.name}_ordered`, // Row name
-      calculation: 'if(${' + `${item.name}_order_qty} != '',` + '${' + `${item.name}___count},0)`
+      name: `sm_${item.name}_ordered`, // Row name
+      calculation: 'if(${sm_' + `${item.name}_order_qty} != '',` + '${sm_' + `${item.name}_qty},0)`
     }))
   ];
 
@@ -255,7 +255,7 @@ async function updateStockOrder(configs) {
       // Get stock count from summary
       return buildRowValues(header, {
         type: 'calculate',
-        name: `${item.name}_current`,
+        name: `sm_${item.name}_current`,
         default: 0,
         calculation: `instance('contact-summary')/context/stock_monitoring_${item.name}_qty`
       });

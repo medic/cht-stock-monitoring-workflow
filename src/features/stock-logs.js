@@ -14,13 +14,13 @@ function addStockLogCalculation(workSheet, items) {
   const itemRows = [
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
-      name: `${item.name}_received`, // Row name
-      calculation: '${' + `_${item.name}_received` + '}'
+      name: `sm_${item.name}_received`, // Row name
+      calculation: '${' + `sm_${item.name}_received_input` + '}'
     })),
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
-      name: `${item.name}_returned`, // Row name
-      calculation: '${' + `_${item.name}_returned` + '}'
+      name: `sm_${item.name}_returned`, // Row name
+      calculation: '${' + `sm_${item.name}_returned_input` + '}'
     }))
   ];
 
@@ -55,7 +55,7 @@ function addStockLogSummaries(workSheet, languages, items, messages, categories 
             relevant: 'selected(${' + `${category.name}_items_selected` + `}, '${item.name}')`,
             ...languages.reduce((prev, language) => ({
               ...prev,
-              [`label::${language}`]: messages[language]['stock_logs.message.item_qty_received'].replace('{{item}}', item.label[language]).replace('{{qty}}', '${' + item.name + '_received}')
+              [`label::${language}`]: messages[language]['stock_logs.message.item_qty_received'].replace('{{item}}', item.label[language]).replace('{{qty}}', '${sm_' + item.name + '_received}')
             }), {})
           }),
           buildRowValues(header, {
@@ -65,7 +65,7 @@ function addStockLogSummaries(workSheet, languages, items, messages, categories 
             relevant: 'selected(${' + `${category.name}_items_selected` + `}, '${item.name}')`,
             ...languages.reduce((prev, language) => ({
               ...prev,
-              [`label::${language}`]: messages[language]['stock_logs.message.item_qty_returned'].replace('{{item}}', item.label[language]).replace('{{qty}}', '${' + item.name + '_returned}')
+              [`label::${language}`]: messages[language]['stock_logs.message.item_qty_returned'].replace('{{item}}', item.label[language]).replace('{{qty}}', '${sm_' + item.name + '_returned}')
             }), {})
           }),
         ]).reduce((prev, next) => ([...prev, ...next]), []),
@@ -81,7 +81,7 @@ function addStockLogSummaries(workSheet, languages, items, messages, categories 
           relevant: 'selected(${' + `list_items_selected}, '${item.name}')`,
           ...languages.reduce((prev, language) => ({
             ...prev,
-            [`label::${language}`]: messages[language]['stock_logs.message.item_qty_received'].replace('{{item}}', item.label[language]).replace('{{qty}}', '${' + item.name + '_received}'),
+            [`label::${language}`]: messages[language]['stock_logs.message.item_qty_received'].replace('{{item}}', item.label[language]).replace('{{qty}}', '${sm_' + item.name + '_received}'),
           }), {})
         }),
         buildRowValues(header, {
@@ -91,7 +91,7 @@ function addStockLogSummaries(workSheet, languages, items, messages, categories 
           relevant: 'selected(${' + `list_items_selected}, '${item.name}')`,
           ...languages.reduce((prev, language) => ({
             ...prev,
-            [`label::${language}`]: messages[language]['stock_logs.message.item_qty_returned'].replace('{{item}}', item.label[language]).replace('{{qty}}', '${' + item.name + '_returned}')
+            [`label::${language}`]: messages[language]['stock_logs.message.item_qty_returned'].replace('{{item}}', item.label[language]).replace('{{qty}}', '${sm_' + item.name + '_returned}')
           }), {})
         }),
       ]).reduce((prev, next) => ([...prev, ...next]), []),
@@ -110,20 +110,20 @@ function getItemRows(header, languages, selectionFieldName, items, messages) {
     return [
       buildRowValues(header, {
         type: 'begin group',
-        name: `___${item.name}`,
+        name: `sm_${item.name}`,
         relevant: 'selected(${' + selectionFieldName + `}, '${item.name}')`,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
       }),
       buildRowValues(header, {
         type: 'decimal',
-        name: `_${item.name}_received`,
+        name: `sm_${item.name}_received_input`,
         required: 'yes',
         default: 0,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_logs.message.item_received'].replace('{{item}}', item.label[language]) }), {})
       }),
       buildRowValues(header, {
         type: 'decimal',
-        name: `_${item.name}_returned`,
+        name: `sm_${item.name}_returned_input`,
         required: 'yes',
         default: 0,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_logs.message.item_returned'].replace('{{item}}', item.label[language]) }), {})

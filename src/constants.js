@@ -29,12 +29,11 @@ module.exports = {
   COMMANDS,
   ADD_TYPES,
   TRANSLATION_PREFIX: 'cht-stock-monitoring-workflow.',
-  SUPPLY_ADDITIONAL_DOC: 'stock_supply_doc',
-  // Note: Value 'descrepancy_doc' is intentionally kept misspelled for backward
-  // compatibility with existing CHT deployments. Do not change without migration.
-  DISCREPANCY_ADD_DOC: 'descrepancy_doc',
-  RETURNED_ADD_DOC: 'sm---stock_returned',
-  FORM_ADDITIONAL_DOC_NAME: 'prescription_summary',
+  // V2 naming convention: sm_ prefix with single underscores
+  SUPPLY_ADDITIONAL_DOC: 'sm_supply_doc',
+  DISCREPANCY_ADD_DOC: 'sm_discrepancy_doc',
+  RETURNED_ADD_DOC: 'sm_returned_doc',
+  FORM_ADDITIONAL_DOC_NAME: 'sm_prescription_doc',
   FEATURES: {
     'stock_supply': 'Stock supply (Used to issue stock item)',
     'stock_count': 'Stock count',
