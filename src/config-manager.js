@@ -16,16 +16,28 @@ function getAppSettings() {
     throw new Error(`App settings file not found: ${baseSettingFile}`);
   }
 
+  let rawSettings;
   try {
-    const rawSettings = fs.readFileSync(baseSettingFile, {
+    rawSettings = fs.readFileSync(baseSettingFile, {
       encoding: 'utf-8'
     });
-    const settings = JSON.parse(rawSettings);
-    settings.locales = settings.locales.filter((locale) => locale.disabled !== true);
-    return settings;
   } catch (err) {
-    throw new Error(`Failed to read app settings: ${err.message}`);
+    throw new Error(`Failed to read app settings file: ${err.message}`);
   }
+
+  let settings;
+  try {
+    settings = JSON.parse(rawSettings);
+  } catch (err) {
+    throw new Error(`Invalid JSON in app settings file (${baseSettingFile}): ${err.message}`);
+  }
+
+  if (!settings.locales || !Array.isArray(settings.locales)) {
+    throw new Error('App settings missing required "locales" array');
+  }
+
+  settings.locales = settings.locales.filter((locale) => locale.disabled !== true);
+  return settings;
 }
 
 /**
@@ -90,18 +102,17 @@ function restoreConfigFromBackup(configFilePath, backupPath) {
  * Creates a backup of the existing config before writing. If the write fails,
  * the backup is restored automatically.
  *
- * Note: This function calls updateTranslations internally to sync translation files
- * with the configuration. The updateTranslations dependency will be imported from
- * './translation-manager' after the refactoring is complete.
- *
  * @param {object} config - The configuration object to write
  * @param {object} config.items - Item definitions with labels
  * @param {object} config.features - Feature configurations
  * @param {string} [config.version] - Version number (auto-populated from package.json if not provided)
+ * @param {object} [options] - Options for writing config
+ * @param {boolean} [options.updateTranslations=true] - Whether to update translation files after writing
  * @returns {void}
  * @throws {ConfigValidationError} If the configuration is invalid
  */
-function writeConfig(config) {
+function writeConfig(config, options = {}) {
+  const { updateTranslations: shouldUpdateTranslations = true } = options;
   const processDir = process.cwd();
   const configFilePath = path.join(processDir, 'stock-monitoring.config.json');
 
@@ -152,9 +163,13 @@ function writeConfig(config) {
     throw err;
   }
 
-  // Lazy require to avoid circular dependency
-  const { updateTranslations } = require('./translation-manager');
-  updateTranslations(config);
+  // Update translations if requested (default: true)
+  if (shouldUpdateTranslations) {
+    // Lazy require to avoid circular dependency during module initialization
+    // This is safe because it only executes at runtime, not during require()
+    const translationManager = require('./translation-manager');
+    translationManager.updateTranslations(config);
+  }
 }
 
 /**

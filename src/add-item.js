@@ -5,6 +5,12 @@ const fs = require('fs-extra');
 const validator = require('validator');
 
 /**
+ * Base index where item-specific args start in non-interactive mode
+ * Args before this are: node, script, action, type, and stock_count related args
+ */
+const NON_INTERACTIVE_BASE_INDEX = 14;
+
+/**
  * Check if running in non-interactive mode
  * @returns {boolean} True if non-interactive mode
  */
@@ -13,60 +19,76 @@ function isNonInteractive() {
 }
 
 /**
+ * Safely get argument value with validation
+ * @param {string[]} argv - Process arguments
+ * @param {number} index - Argument index
+ * @param {string} name - Argument name for error messages
+ * @param {string} [defaultValue] - Default value if not provided
+ * @returns {string} The argument value
+ */
+function getArg(argv, index, name, defaultValue = undefined) {
+  const value = argv[index];
+  if (value === undefined && defaultValue === undefined) {
+    throw new Error(`Missing required argument "${name}" at position ${index}`);
+  }
+  return value !== undefined ? value : defaultValue;
+}
+
+/**
+ * Parse comma-separated labels into language-keyed object
+ * @param {string} value - Comma-separated string
+ * @param {string[]} languages - Language codes
+ * @param {string} fallback - Fallback value if empty
+ * @returns {Object} Language-keyed label object
+ */
+function parseLabels(value, languages, fallback) {
+  const labels = {};
+  const parts = (value || '').split(',');
+  languages.forEach((lang, i) => {
+    labels[lang] = validator.escape((parts[i] || fallback).trim());
+  });
+  return labels;
+}
+
+/**
  * Parse item config from CLI args for non-interactive mode
- * Note: spawnSync converts nested arrays to comma-separated strings.
+ * Used primarily for integration testing where inquirer cannot be used.
  *
- * Expected arg positions:
- * argv[14] = form ID (e.g., 'patient_assessment_under_5')
- * argv[15] = isAlwaysCurrent ('Y' or 'N')
- * argv[16] = reportedDate
- * argv[17] = category name
- * argv[18] = category labels (comma-separated: 'Category,Categorie')
- * argv[19] = category descriptions (comma-separated)
- * argv[20] = item name
- * argv[21] = item labels (comma-separated: 'Paracetamol,Paracetamole')
- * argv[22] = isInSet ('Y' or 'N')
- * argv[23] = set labels (comma-separated) (if isInSet)
- * argv[24] = set count (if isInSet)
- * argv[25] = unit labels (comma-separated)
- * argv[26] = warning_total
- * argv[27] = danger_total
- * argv[28] = max_total
- * argv[29] = deduction_type
- * argv[30] = formular
+ * Note: spawnSync converts nested arrays to comma-separated strings.
+ * Labels for multiple languages should be comma-separated (e.g., 'English,French')
  *
  * @param {Object} configs - Stock monitoring configuration
+ * @param {string[]} configs.languages - Supported languages
+ * @param {boolean} configs.useItemCategory - Whether categories are enabled
  * @returns {Object} Parsed item configuration
+ * @throws {Error} If required arguments are missing
  */
 function parseItemCliArgs(configs) {
   const argv = process.argv;
   const languages = configs.languages || ['en', 'fr'];
 
-  // Fixed positions based on test scenario structure (after stock_count args at 8-13)
-  const formId = validator.escape(argv[14] || 'patient_assessment_under_5');
-  const isAlwaysCurrent = argv[15] === 'Y' || argv[15] === 'true';
-  const reportedDate = isAlwaysCurrent ? 'now()' : validator.escape(argv[16] || 'now()');
+  // Start parsing from base index
+  let idx = NON_INTERACTIVE_BASE_INDEX;
+
+  // Form configuration
+  const formId = validator.escape(getArg(argv, idx++, 'formId', 'patient_assessment_under_5'));
+
+  // isAlwaysCurrent flag - consume position
+  const isAlwaysCurrentValue = argv[idx++];
+  const isAlwaysCurrent = isAlwaysCurrentValue === 'Y' || isAlwaysCurrentValue === 'true';
+
+  // reportedDate - always consume position to maintain alignment with test data
+  // even when isAlwaysCurrent is true (value is ignored in that case)
+  const reportedDateArg = argv[idx++];
+  const reportedDate = isAlwaysCurrent ? 'now()' : validator.escape(reportedDateArg || 'now()');
 
   // Category config (if useItemCategory is true)
   let categoryConfig = null;
-  let idx = 17; // Start at category name
 
   if (configs.useItemCategory) {
-    const categoryName = validator.escape(argv[idx++] || 'default');
-
-    // Category labels are comma-separated
-    const categoryLabels = {};
-    const catLabelParts = (argv[idx++] || '').split(',');
-    languages.forEach((lang, i) => {
-      categoryLabels[lang] = validator.escape((catLabelParts[i] || categoryName).trim());
-    });
-
-    // Category descriptions are comma-separated
-    const categoryDescriptions = {};
-    const catDescParts = (argv[idx++] || '').split(',');
-    languages.forEach((lang, i) => {
-      categoryDescriptions[lang] = validator.escape((catDescParts[i] || '').trim());
-    });
+    const categoryName = validator.escape(getArg(argv, idx++, 'categoryName', 'default'));
+    const categoryLabels = parseLabels(argv[idx++], languages, categoryName);
+    const categoryDescriptions = parseLabels(argv[idx++], languages, '');
 
     categoryConfig = {
       name: categoryName,
@@ -76,40 +98,24 @@ function parseItemCliArgs(configs) {
   }
 
   // Item config
-  const itemName = validator.escape(argv[idx++] || 'item');
+  const itemName = validator.escape(getArg(argv, idx++, 'itemName', 'item'));
+  const itemLabels = parseLabels(argv[idx++], languages, itemName);
 
-  // Item labels are comma-separated
-  const itemLabels = {};
-  const itemLabelParts = (argv[idx++] || '').split(',');
-  languages.forEach((lang, i) => {
-    itemLabels[lang] = validator.escape((itemLabelParts[i] || itemName).trim());
-  });
-
-  const isInSet = argv[idx++] === 'Y' || argv[idx - 1] === 'true';
+  const isInSet = argv[idx] === 'Y' || argv[idx] === 'true';
+  idx++;
 
   let setConfig = null;
   if (isInSet) {
-    // Set labels are comma-separated
-    const setLabels = {};
-    const setLabelParts = (argv[idx++] || '').split(',');
-    languages.forEach((lang, i) => {
-      setLabels[lang] = validator.escape((setLabelParts[i] || 'Box').trim());
-    });
+    const setLabels = parseLabels(argv[idx++], languages, 'Box');
     const setCount = Number(argv[idx++]) || 1;
     setConfig = { label: setLabels, count: setCount };
   }
 
-  // Unit labels are comma-separated
-  const unitLabels = {};
-  const unitLabelParts = (argv[idx++] || '').split(',');
-  languages.forEach((lang, i) => {
-    unitLabels[lang] = validator.escape((unitLabelParts[i] || 'Unit').trim());
-  });
-
+  const unitLabels = parseLabels(argv[idx++], languages, 'Unit');
   const warningTotal = Number(argv[idx++]) || 20;
   const dangerTotal = Number(argv[idx++]) || 15;
   const maxTotal = Number(argv[idx++]) || -1;
-  const deductionType = validator.escape(argv[idx++] || 'by_user');
+  const deductionType = validator.escape(getArg(argv, idx++, 'deductionType', 'by_user'));
   const formular = argv[idx] !== undefined ? String(argv[idx]) : '0';
 
   const itemConfig = {

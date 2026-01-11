@@ -4,17 +4,25 @@ const rewire = require('rewire');
 
 describe('Config Manager', () => {
   const testDir = path.join(__dirname, 'test-config-manager');
+  let consoleErrorSpy;
+  let consoleLogSpy;
 
   beforeEach(() => {
     fs.ensureDirSync(testDir);
     process.chdir(testDir);
     // Clear require cache to ensure fresh module state
     jest.resetModules();
+    // Suppress console output during tests
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
   });
 
   afterEach(() => {
     process.chdir(path.join(__dirname, '..'));
     fs.removeSync(testDir);
+    // Restore console
+    consoleErrorSpy.mockRestore();
+    consoleLogSpy.mockRestore();
   });
 
   describe('isAlreadyInit', () => {
@@ -66,7 +74,7 @@ describe('Config Manager', () => {
       const config = {
         version: '1.0.0',
         languages: ['en'],
-        levels: { facility: { place_type: 'clinic', role: 'nurse' } },
+        levels: { facility: { place_type: 'clinic', contact_type: 'nurse', role: 'nurse' } },
         items: {
           paracetamol: {
             name: 'paracetamol',

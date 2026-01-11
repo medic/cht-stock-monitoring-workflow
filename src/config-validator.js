@@ -34,6 +34,10 @@ function validateConfig(config) {
     throw new ConfigValidationError('levels must be an object', 'levels');
   }
 
+  for (const [levelKey, level] of Object.entries(config.levels)) {
+    validateLevel(level, levelKey);
+  }
+
   // Validate items
   if (typeof config.items !== 'object') {
     throw new ConfigValidationError('items must be an object', 'items');
@@ -76,6 +80,10 @@ function validateItem(item, itemName) {
 function validateLevel(level, levelKey) {
   if (!level.place_type || typeof level.place_type !== 'string') {
     throw new ConfigValidationError(`Level ${levelKey} must have place_type`, `levels.${levelKey}.place_type`);
+  }
+
+  if (!level.contact_type || typeof level.contact_type !== 'string') {
+    throw new ConfigValidationError(`Level ${levelKey} must have contact_type`, `levels.${levelKey}.contact_type`);
   }
 
   if (!level.role || typeof level.role !== 'string') {
