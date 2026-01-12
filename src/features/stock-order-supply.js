@@ -1,7 +1,9 @@
-const { getNoLabelsColums, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getNumberOfSteps, getDefaultSurveyLabels,
+const { getNoLabelsColums, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getDefaultSurveyLabels,
   getContactParentHierarchy,
   getItemCount
-} = require('../common');
+} = require('../excel-utils');
+const { getTranslations } = require('../translation-manager');
+const { getNumberOfSteps } = require('../config-manager');
 const chalk = require('chalk');
 const path = require('path');
 const fs = require('fs-extra');
@@ -15,8 +17,8 @@ function addOrderSupplyCalculation(workSheet, items) {
   const itemRows = [
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
-      name: `${item.name}_supply`, // Row name
-      calculation: item.isInSet ? '${'+item.name+'___set} * ' + item.set.count + ' + ${'+item.name+'___unit}' : '${supply_'+item.name+'}',
+      name: `sm_${item.name}_supply`, // Row name
+      calculation: item.isInSet ? '${sm_'+item.name+'_sets} * ' + item.set.count + ' + ${sm_'+item.name+'_units}' : '${sm_'+item.name+'_supply_input}',
     }))
   ];
 
@@ -41,14 +43,14 @@ function addOrderSupplySummaries(workSheet, items, languages, categories = []) {
           type: 'note',
           name: `${category.name}_summary`,
           appearance: 'h1 blue',
-          relevant: categoryItems.map((item) => '${' + item.name + '_ordered} > 0').join(' or '),
+          relevant: categoryItems.map((item) => '${sm_' + item.name + '_ordered} > 0').join(' or '),
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
         }),
         ...categoryItems.map((item) => (buildRowValues(header, {
           type: 'note',
           name: `${item.name}_summary`,
           appearance: 'li',
-          relevant: '${' + `${item.name}_ordered` + '} > 0',
+          relevant: '${sm_' + item.name + '_ordered} > 0',
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.label[language]}: ` + getItemCount(item, language, '', '_supply') }), {})
         }))),
       );
@@ -59,7 +61,7 @@ function addOrderSupplySummaries(workSheet, items, languages, categories = []) {
         type: 'note',
         name: `${item.name}_summary`,
         appearance: 'li',
-        relevant: '${' + `${item.name}_ordered` + '} > 0',
+        relevant: '${sm_' + item.name + '_ordered} > 0',
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${item.name[language]}: ` + getItemCount(item, language, '', '_supply') }), {})
       }))
     );
@@ -144,8 +146,8 @@ function getAdditionalDoc(formName, languages, header, items, needConfirmation) 
     }),
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
-      name: `${item.name}_in`, // Row name
-      calculation: '${' + `${item.name}_supply}`,
+      name: `sm_${item.name}_qty_in`, // Row name
+      calculation: '${sm_' + item.name + '_supply}',
     })),
     buildRowValues(header, {
       type: 'end group',
@@ -162,13 +164,13 @@ function getItemRows(header, languages, items, messages) {
     const row = [
       buildRowValues(header, {
         type: 'begin group',
-        name: `___${item.name}`,
-        relevant: '${' + item.name + '_ordered} > 0',
+        name: `sm_${item.name}`,
+        relevant: '${sm_' + item.name + '_ordered} > 0',
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
       }),
       buildRowValues(header, {
         type: 'note',
-        name: `supply_${item.name}_note`,
+        name: `sm_${item.name}_supply_input_note`,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.supply.message.qty_ordered'].replace('{{qty}}', getItemCount(item, language, '_ordered', '_ordered')) }), {})
       }),
     ];
@@ -176,34 +178,34 @@ function getItemRows(header, languages, items, messages) {
       row.push(
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}_ordered___set`,
-          calculation: 'int(${'+item.name+'_ordered} div '+item.set.count+')'
+          name: `sm_${item.name}_ordered_sets`,
+          calculation: 'int(${sm_'+item.name+'_ordered} div '+item.set.count+')'
         }),
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}_ordered___unit`,
-          calculation: '${'+item.name+'_ordered} mod '+item.set.count
+          name: `sm_${item.name}_ordered_units`,
+          calculation: '${sm_'+item.name+'_ordered} mod '+item.set.count
         }),
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}___set`,
-          calculation: 'if(count-selected(${supply_'+item.name+'}) > 0 and count-selected(substring-before(${supply_'+item.name+'}, "/")) >= 0 and regex(substring-before(${supply_'+item.name+"}, \"/\"), '^[0-9]+$'),number(substring-before(${supply_"+item.name+'}, "/")),0)',
+          name: `sm_${item.name}_sets`,
+          calculation: 'if(count-selected(${sm_'+item.name+'_supply_input}) > 0 and count-selected(substring-before(${sm_'+item.name+'_supply_input}, "/")) >= 0 and regex(substring-before(${sm_'+item.name+"_supply_input}, \"/\"), '^[0-9]+$'),number(substring-before(${sm_"+item.name+'_supply_input}, "/")),0)',
         }),
         buildRowValues(header, {
           type: 'calculate',
-          name: `${item.name}___unit`,
-          calculation: 'if(count-selected(${supply_'+item.name+'}) > 0 and count-selected(substring-after(${supply_'+item.name+'}, "/")) >= 0 and regex(substring-after(${supply_'+item.name+"}, \"/\"), '^[0-9]+$'),number(substring-after(${supply_"+item.name+'}, "/")),0)',
+          name: `sm_${item.name}_units`,
+          calculation: 'if(count-selected(${sm_'+item.name+'_supply_input}) > 0 and count-selected(substring-after(${sm_'+item.name+'_supply_input}, "/")) >= 0 and regex(substring-after(${sm_'+item.name+"_supply_input}, \"/\"), '^[0-9]+$'),number(substring-after(${sm_"+item.name+'_supply_input}, "/")),0)',
         }),
         buildRowValues(header, {
           type: 'string',
-          name: `supply_${item.name}`,
+          name: `sm_${item.name}_supply_input`,
           required: 'yes',
           constraint: "regex(., '^\\d+\\/\\d+$')",
           default: '0/0',
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.supply.message.qty'] }), {}),
           ...languages.reduce((prev, language) => ({
             ...prev,
-            [`hint::${language}`]: '${'+`${item.name}___set`+'} '+item.set.label[language].toLowerCase()+' ${'+`${item.name}___unit`+'} '+item.unit.label[language].toLowerCase()
+            [`hint::${language}`]: '${sm_'+item.name+'_sets} '+item.set.label[language].toLowerCase()+' ${sm_'+item.name+'_units} '+item.unit.label[language].toLowerCase()
           }), {})
         }),
       );
@@ -211,7 +213,7 @@ function getItemRows(header, languages, items, messages) {
       row.push(
         buildRowValues(header, {
           type: 'integer',
-          name: `supply_${item.name}`,
+          name: `sm_${item.name}_supply_input`,
           required: 'yes',
           default: 0,
           ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.supply.message.qty'] }), {})
@@ -238,138 +240,145 @@ async function updateOrderStockSupply(configs) {
   const categories = Object.values(configs.categories);
   fs.copyFileSync(path.join(__dirname, '../../templates/stock_supply.xlsx'), stockSupplyPath);
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(stockSupplyPath);
-  const surveyWorkSheet = workbook.getWorksheet('survey');
-  const settingWorkSheet = workbook.getWorksheet('settings');
 
-  // Add language column
-  const [labelColumns, hintColumns ] = getDefaultSurveyLabels('stock_order.supply', messages, languages);
+  try {
+    await workbook.xlsx.readFile(stockSupplyPath);
+    const surveyWorkSheet = workbook.getWorksheet('survey');
+    const settingWorkSheet = workbook.getWorksheet('settings');
 
-  // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
-  let lastColumnIndex = Object.keys(firstRowData).length;
-  for (const labelColumn of labelColumns) {
-    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
-    lastColumnIndex++;
-  }
-  for (const hintColumn of hintColumns) {
-    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
-    lastColumnIndex++;
-  }
-  surveyWorkSheet.getColumn(lastColumnIndex + 1).values = [
-    `instance::db-doc`,
-  ];
-  surveyWorkSheet.getColumn(lastColumnIndex + 2).values = [
-    `instance::db-doc-ref`,
-  ];
-  surveyWorkSheet.getColumn(lastColumnIndex + 3).values = ['choice_filter'];
-  settingWorkSheet.getRow(2).getCell(1).value = featureConfigs.title[configs.defaultLanguage];
-  settingWorkSheet.getRow(2).getCell(2).value = featureConfigs.form_name;
+    // Add language column
+    const [labelColumns, hintColumns ] = getDefaultSurveyLabels('stock_order.supply', messages, languages);
 
-  const header = surveyWorkSheet.getRow(1).values;
-  header.shift();
-  // Get level 2
-  const nbParents = getNumberOfSteps(configs.levels[1].place_type, configs.levels[2].place_type);
-  const contactParentRows = getContactParentHierarchy(nbParents, header, languages);
-  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 1);
-  surveyWorkSheet.insertRows(
-    contactPosition + 3,
-    contactParentRows,
-    'i+'
-  );
+    // Add languages and hints columns
+    const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
+    let lastColumnIndex = Object.keys(firstRowData).length;
+    for (const labelColumn of labelColumns) {
+      surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
+      lastColumnIndex++;
+    }
+    for (const hintColumn of hintColumns) {
+      surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
+      lastColumnIndex++;
+    }
+    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = [
+      `instance::db-doc`,
+    ];
+    surveyWorkSheet.getColumn(lastColumnIndex + 2).values = [
+      `instance::db-doc-ref`,
+    ];
+    surveyWorkSheet.getColumn(lastColumnIndex + 3).values = ['choice_filter'];
+    settingWorkSheet.getRow(2).getCell(1).value = featureConfigs.title[configs.defaultLanguage];
+    settingWorkSheet.getRow(2).getCell(2).value = featureConfigs.form_name;
 
-  // Add inputs
-  const inputs = [
-    ...items.map((item) => buildRowValues(header, {
-      type: 'hidden',
-      name: `${item.name}_ordered`,
-      ...getNoLabelsColums(languages)
-    })),
-    buildRowValues(header, {
-      type: 'hidden',
-      name: 'order_id',
-      ...getNoLabelsColums(languages)
-    })
-  ];
-  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
-  surveyWorkSheet.insertRows(
-    inputPosition + 1,
-    inputs,
-    'i+'
-  );
-
-  const rows = [
-    buildRowValues(header, {
-      type: 'calculate',
-      name: 'supply_place_id',
-      calculation: `../inputs/contact/_id`
-    }),
-    buildRowValues(header, {
-      type: 'calculate',
-      name: 'user_contact_id',
-      calculation: `../inputs/user/contact_id`
-    })
-  ];
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
-  surveyWorkSheet.getRow(position).getCell(8).value = `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`;
-  if (configs.useItemCategory) {
-    rows.push(
-      ...categories.map((category) => {
-        const categoryItems = items.filter((item) => item.category === category.name);
-        return [
-          buildRowValues(header, {
-            type: 'begin group',
-            name: category.name,
-            appearance: 'field-list',
-            relevant: categoryItems.map((item) => '${' + item.name + '_ordered} > 0').join(' or '),
-            ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
-          }),
-          ...getItemRows(
-            header,
-            languages,
-            categoryItems,
-            messages,
-          ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
-          buildRowValues(header, {
-            type: 'end group',
-          }),
-        ];
-      }).reduce((prev, categoryRows) => ([...prev, ...categoryRows]), []),
+    const header = surveyWorkSheet.getRow(1).values;
+    header.shift();
+    // Get level 2
+    const nbParents = getNumberOfSteps(configs.levels[1].place_type, configs.levels[2].place_type);
+    const contactParentRows = getContactParentHierarchy(nbParents, header, languages);
+    const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', 1);
+    surveyWorkSheet.insertRows(
+      contactPosition + 3,
+      contactParentRows,
+      'i+'
     );
-  } else {
-    rows.push(
+
+    // Add inputs
+    const inputs = [
+      ...items.map((item) => buildRowValues(header, {
+        type: 'hidden',
+        name: `sm_${item.name}_ordered`,
+        ...getNoLabelsColums(languages)
+      })),
       buildRowValues(header, {
-        type: 'begin group',
-        name: 'supply_order',
-        appearance: 'field-list',
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.label.add_item_qty'] }), {})
-      }),
-      ...getItemRows(
-        header,
-        languages,
-        items,
-        messages,
-      ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
-      buildRowValues(header, {
-        type: 'end group',
-      }),
+        type: 'hidden',
+        name: 'order_id',
+        ...getNoLabelsColums(languages)
+      })
+    ];
+    const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
+    surveyWorkSheet.insertRows(
+      inputPosition + 1,
+      inputs,
+      'i+'
     );
+
+    const rows = [
+      buildRowValues(header, {
+        type: 'calculate',
+        name: 'supply_place_id',
+        calculation: `../inputs/contact/_id`
+      }),
+      buildRowValues(header, {
+        type: 'calculate',
+        name: 'user_contact_id',
+        calculation: `../inputs/user/contact_id`
+      })
+    ];
+    const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
+    surveyWorkSheet.getRow(position).getCell(8).value = `../inputs/contact/${Array(nbParents).fill('parent').join('/')}/_id`;
+    if (configs.useItemCategory) {
+      rows.push(
+        ...categories.map((category) => {
+          const categoryItems = items.filter((item) => item.category === category.name);
+          return [
+            buildRowValues(header, {
+              type: 'begin group',
+              name: category.name,
+              appearance: 'field-list',
+              relevant: categoryItems.map((item) => '${sm_' + item.name + '_ordered} > 0').join(' or '),
+              ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
+            }),
+            ...getItemRows(
+              header,
+              languages,
+              categoryItems,
+              messages,
+            ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
+            buildRowValues(header, {
+              type: 'end group',
+            }),
+          ];
+        }).reduce((prev, categoryRows) => ([...prev, ...categoryRows]), []),
+      );
+    } else {
+      rows.push(
+        buildRowValues(header, {
+          type: 'begin group',
+          name: 'supply_order',
+          appearance: 'field-list',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.label.add_item_qty'] }), {})
+        }),
+        ...getItemRows(
+          header,
+          languages,
+          items,
+          messages,
+        ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
+        buildRowValues(header, {
+          type: 'end group',
+        }),
+      );
+    }
+    surveyWorkSheet.insertRows(
+      position + 1,
+      rows,
+      'i+'
+    );
+    addOrderSupplySummaries(surveyWorkSheet, Object.values(configs.items), languages, categories);
+    addOrderSupplyCalculation(surveyWorkSheet, Object.values(configs.items));
+    const [, end] = getSheetGroupBeginEnd(surveyWorkSheet, 'out');
+    const additionalDocRows = getAdditionalDoc(featureConfigs.form_name, languages, header, items, supplyConfigs.confirm_supply.active);
+    surveyWorkSheet.insertRows(
+      end + 2,
+      additionalDocRows,
+      'i+'
+    );
+    await workbook.xlsx.writeFile(stockSupplyPath);
+    console.log(chalk.green(`INFO ${featureConfigs.title[configs.defaultLanguage]} form updated successfully`));
+  } catch (err) {
+    console.log(chalk.red(`ERROR Failed to process ${stockSupplyPath}: ${err.message}`));
+    throw err;
   }
-  surveyWorkSheet.insertRows(
-    position + 1,
-    rows,
-    'i+'
-  );
-  addOrderSupplySummaries(surveyWorkSheet, Object.values(configs.items), languages, categories);
-  addOrderSupplyCalculation(surveyWorkSheet, Object.values(configs.items));
-  const [, end] = getSheetGroupBeginEnd(surveyWorkSheet, 'out');
-  const additionalDocRows = getAdditionalDoc(featureConfigs.form_name, languages, header, items, supplyConfigs.confirm_supply.active);
-  surveyWorkSheet.insertRows(
-    end + 2,
-    additionalDocRows,
-    'i+'
-  );
-  await workbook.xlsx.writeFile(stockSupplyPath);
 
   // Add stock count form properties
   const formProperties = {
@@ -387,7 +396,6 @@ async function updateOrderStockSupply(configs) {
   };
   const stockSupplyPropertyPath = path.join(processDir, 'forms', 'app', `${featureConfigs.form_name}.properties.json`);
   fs.writeFileSync(stockSupplyPropertyPath, JSON.stringify(formProperties, null, 4));
-  console.log(chalk.green(`INFO ${featureConfigs.title[configs.defaultLanguage]} form updated successfully`));
 }
 
 module.exports = {

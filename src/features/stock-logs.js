@@ -4,7 +4,8 @@ const fs = require('fs-extra');
 const ExcelJS = require('exceljs');
 const chalk = require('chalk');
 
-const { getTranslations, buildRowValues, getRowWithValueAtPosition, addCategoryItemsToChoice, getSheetGroupBeginEnd } = require('../common');
+const { buildRowValues, getRowWithValueAtPosition, addCategoryItemsToChoice, getSheetGroupBeginEnd } = require('../excel-utils');
+const { getTranslations } = require('../translation-manager');
 
 function addStockLogCalculation(workSheet, items) {
   const [, end] = getSheetGroupBeginEnd(workSheet, 'out');
@@ -13,13 +14,13 @@ function addStockLogCalculation(workSheet, items) {
   const itemRows = [
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
-      name: `${item.name}_received`, // Row name
-      calculation: '${' + `_${item.name}_received` + '}'
+      name: `sm_${item.name}_received`, // Row name
+      calculation: '${' + `sm_${item.name}_received_input` + '}'
     })),
     ...items.map((item) => buildRowValues(header, {
       type: 'calculate', // Row type
-      name: `${item.name}_returned`, // Row name
-      calculation: '${' + `_${item.name}_returned` + '}'
+      name: `sm_${item.name}_returned`, // Row name
+      calculation: '${' + `sm_${item.name}_returned_input` + '}'
     }))
   ];
 
@@ -54,7 +55,7 @@ function addStockLogSummaries(workSheet, languages, items, messages, categories 
             relevant: 'selected(${' + `${category.name}_items_selected` + `}, '${item.name}')`,
             ...languages.reduce((prev, language) => ({
               ...prev,
-              [`label::${language}`]: messages[language]['stock_logs.message.item_qty_received'].replace('{{item}}', item.label[language]).replace('{{qty}}', '${' + item.name + '_received}')
+              [`label::${language}`]: messages[language]['stock_logs.message.item_qty_received'].replace('{{item}}', item.label[language]).replace('{{qty}}', '${sm_' + item.name + '_received}')
             }), {})
           }),
           buildRowValues(header, {
@@ -64,7 +65,7 @@ function addStockLogSummaries(workSheet, languages, items, messages, categories 
             relevant: 'selected(${' + `${category.name}_items_selected` + `}, '${item.name}')`,
             ...languages.reduce((prev, language) => ({
               ...prev,
-              [`label::${language}`]: messages[language]['stock_logs.message.item_qty_returned'].replace('{{item}}', item.label[language]).replace('{{qty}}', '${' + item.name + '_returned}')
+              [`label::${language}`]: messages[language]['stock_logs.message.item_qty_returned'].replace('{{item}}', item.label[language]).replace('{{qty}}', '${sm_' + item.name + '_returned}')
             }), {})
           }),
         ]).reduce((prev, next) => ([...prev, ...next]), []),
@@ -80,7 +81,7 @@ function addStockLogSummaries(workSheet, languages, items, messages, categories 
           relevant: 'selected(${' + `list_items_selected}, '${item.name}')`,
           ...languages.reduce((prev, language) => ({
             ...prev,
-            [`label::${language}`]: messages[language]['stock_logs.message.item_qty_received'].replace('{{item}}', item.label[language]).replace('{{qty}}', '${' + item.name + '_received}'),
+            [`label::${language}`]: messages[language]['stock_logs.message.item_qty_received'].replace('{{item}}', item.label[language]).replace('{{qty}}', '${sm_' + item.name + '_received}'),
           }), {})
         }),
         buildRowValues(header, {
@@ -90,7 +91,7 @@ function addStockLogSummaries(workSheet, languages, items, messages, categories 
           relevant: 'selected(${' + `list_items_selected}, '${item.name}')`,
           ...languages.reduce((prev, language) => ({
             ...prev,
-            [`label::${language}`]: messages[language]['stock_logs.message.item_qty_returned'].replace('{{item}}', item.label[language]).replace('{{qty}}', '${' + item.name + '_returned}')
+            [`label::${language}`]: messages[language]['stock_logs.message.item_qty_returned'].replace('{{item}}', item.label[language]).replace('{{qty}}', '${sm_' + item.name + '_returned}')
           }), {})
         }),
       ]).reduce((prev, next) => ([...prev, ...next]), []),
@@ -109,20 +110,20 @@ function getItemRows(header, languages, selectionFieldName, items, messages) {
     return [
       buildRowValues(header, {
         type: 'begin group',
-        name: `___${item.name}`,
+        name: `sm_${item.name}`,
         relevant: 'selected(${' + selectionFieldName + `}, '${item.name}')`,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: item.label[language] }), {})
       }),
       buildRowValues(header, {
         type: 'decimal',
-        name: `_${item.name}_received`,
+        name: `sm_${item.name}_received_input`,
         required: 'yes',
         default: 0,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_logs.message.item_received'].replace('{{item}}', item.label[language]) }), {})
       }),
       buildRowValues(header, {
         type: 'decimal',
-        name: `_${item.name}_returned`,
+        name: `sm_${item.name}_returned_input`,
         required: 'yes',
         default: 0,
         ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_logs.message.item_returned'].replace('{{item}}', item.label[language]) }), {})
@@ -144,148 +145,155 @@ async function updateStockLogs(configs) {
   const categories = Object.values(configs.categories);
   fs.copyFileSync(path.join(__dirname, '../../templates/stock_supply.xlsx'), formPath);
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(formPath);
-  const surveyWorkSheet = workbook.getWorksheet('survey');
-  const choiceWorkSheet = workbook.getWorksheet('choices');
-  const settingWorkSheet = workbook.getWorksheet('settings');
 
-  // Add language column
-  const labelColumns = [];
-  const hintColumns = [];
-  for (const language of configs.languages) {
-    labelColumns.push(
-      [
-        `label::${language}`,
-        'Patient',
-        'Source',
-        'Source ID',
-        'NO_LABEL',
-        'NO_LABEL',
-        '',
-        'NO_LABEL',
-        'NO_LABEL',
-        'NO_LABEL',
-        ...Array(6).fill(''),
-        messages[language]['stock_logs.message.summary_header'],
-        messages[language]['stock_logs.message.submit_note'],
-        messages[language]['stock_logs.message.summary_note'],
-        ...Array(2).fill(''),
-        'NO_LABEL',
-      ]
+  try {
+    await workbook.xlsx.readFile(formPath);
+    const surveyWorkSheet = workbook.getWorksheet('survey');
+    const choiceWorkSheet = workbook.getWorksheet('choices');
+    const settingWorkSheet = workbook.getWorksheet('settings');
+
+    // Add language column
+    const labelColumns = [];
+    const hintColumns = [];
+    for (const language of configs.languages) {
+      labelColumns.push(
+        [
+          `label::${language}`,
+          'Patient',
+          'Source',
+          'Source ID',
+          'NO_LABEL',
+          'NO_LABEL',
+          '',
+          'NO_LABEL',
+          'NO_LABEL',
+          'NO_LABEL',
+          ...Array(6).fill(''),
+          messages[language]['stock_logs.message.summary_header'],
+          messages[language]['stock_logs.message.submit_note'],
+          messages[language]['stock_logs.message.summary_note'],
+          ...Array(2).fill(''),
+          'NO_LABEL',
+        ]
+      );
+      hintColumns.push(
+        [
+          `hint::${language}`,
+        ]
+      );
+    }
+    // Add languages and hints columns
+    const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
+    let lastColumnIndex = Object.keys(firstRowData).length;
+    for (const labelColumn of labelColumns) {
+      surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
+      lastColumnIndex++;
+    }
+    for (const hintColumn of hintColumns) {
+      surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
+      lastColumnIndex++;
+    }
+    surveyWorkSheet.getColumn(lastColumnIndex + 3).values = ['choice_filter'];
+
+    const header = surveyWorkSheet.getRow(1).values;
+    header.shift();
+
+    const rows = [];
+    if (configs.useItemCategory) {
+      rows.push(
+        buildRowValues(header, {
+          type: 'begin group',
+          name: 's_reported',
+          appearance: 'field-list',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_logs.message.form_description'] }), {})
+        }),
+        buildRowValues(header, {
+          type: 'date',
+          name: 'reported_date',
+          require: 'yes',
+          constraint: '. <= today() and (floor(decimal-date-time(.)) >= (floor(decimal-date-time(today()) - 7)))',
+          constraint_message: "Date can't be more than 7 days ago. Also can't be a future date",
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_logs.message.date'] }), {})
+        }),
+        buildRowValues(header, {
+          type: 'select_multiple categories',
+          name: 'categories',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_logs.message.select_categories'] }), {})
+        }),
+        buildRowValues(header, {
+          type: 'end group',
+          name: 'category_select',
+        }),
+        ...categories.map((category) => {
+          return [
+            buildRowValues(header, {
+              type: 'begin group',
+              name: category.name,
+              appearance: 'field-list',
+              relevant: 'selected(${categories}, ' + `'${category.name}')`,
+              ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
+            }),
+            buildRowValues(header, {
+              type: 'select_multiple items',
+              required: 'yes',
+              name: `${category.name}_items_selected`,
+              choice_filter: `category_filter = '${category.name}'`,
+              ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_logs.message.select_items'] }), {})
+            }),
+            ...getItemRows(
+              header,
+              languages,
+              `${category.name}_items_selected`,
+              items.filter((item) => item.category === category.name),
+              messages
+            ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
+            buildRowValues(header, {
+              type: 'end group',
+              name: category.name,
+            }),
+          ];
+        }).reduce((prev, categoryRows) => ([...prev, ...categoryRows]), []),
+      );
+    } else {
+      rows.push(
+        buildRowValues(header, {
+          type: 'select_multiple items',
+          required: 'yes',
+          name: `list_items_selected`,
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_logs.message.select_items'] }), {})
+        }),
+        ...getItemRows(
+          header,
+          languages,
+          'list_items_selected',
+          items,
+          messages
+        ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
+      );
+    }
+    const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
+    surveyWorkSheet.insertRows(
+      position + 1,
+      rows,
+      'i+'
     );
-    hintColumns.push(
-      [
-        `hint:${language}`,
-      ]
-    );
+
+    addStockLogSummaries(surveyWorkSheet, languages, Object.values(configs.items), messages, categories);
+    addStockLogCalculation(surveyWorkSheet, Object.values(configs.items));
+
+    //Add choices
+    addCategoryItemsToChoice(categories, items, choiceWorkSheet, languages);
+
+    // SETTINGS
+    settingWorkSheet.getRow(2).getCell(1).value = featureConfigs.title[configs.defaultLanguage];
+    settingWorkSheet.getRow(2).getCell(2).value = featureConfigs.form_name;
+
+    await workbook.xlsx.writeFile(formPath);
+    console.log(chalk.green(`INFO ${featureConfigs.form_name} updated successfully`));
+  } catch (err) {
+    console.log(chalk.red(`ERROR Failed to process ${formPath}: ${err.message}`));
+    throw err;
   }
-  // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
-  let lastColumnIndex = Object.keys(firstRowData).length;
-  for (const labelColumn of labelColumns) {
-    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
-    lastColumnIndex++;
-  }
-  for (const hintColumn of hintColumns) {
-    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
-    lastColumnIndex++;
-  }
-  surveyWorkSheet.getColumn(lastColumnIndex + 3).values = ['choice_filter'];
-
-  const header = surveyWorkSheet.getRow(1).values;
-  header.shift();
-
-  const rows = [];
-  if (configs.useItemCategory) {
-    rows.push(
-      buildRowValues(header, {
-        type: 'begin group',
-        name: 's_reported',
-        appearance: 'field-list',
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_logs.message.form_description'] }), {})
-      }),
-      buildRowValues(header, {
-        type: 'date',
-        name: 'reported_date',
-        require: 'yes',
-        constraint: '. <= today() and (floor(decimal-date-time(.)) >= (floor(decimal-date-time(today()) - 7)))',
-        constraint_message: 'Date can’t be more than 7 days ago. Also can’t be a future date',
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_logs.message.date'] }), {})
-      }),
-      buildRowValues(header, {
-        type: 'select_multiple categories',
-        name: 'categories',
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_logs.message.select_categories'] }), {})
-      }),
-      buildRowValues(header, {
-        type: 'end group',
-        name: 'category_select',
-      }),
-      ...categories.map((category) => {
-        return [
-          buildRowValues(header, {
-            type: 'begin group',
-            name: category.name,
-            appearance: 'field-list',
-            relevant: 'selected(${categories}, ' + `'${category.name}')`,
-            ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
-          }),
-          buildRowValues(header, {
-            type: 'select_multiple items',
-            required: 'yes',
-            name: `${category.name}_items_selected`,
-            choice_filter: `category_filter = '${category.name}'`,
-            ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_logs.message.select_items'] }), {})
-          }),
-          ...getItemRows(
-            header,
-            languages,
-            `${category.name}_items_selected`,
-            items.filter((item) => item.category === category.name),
-            messages
-          ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
-          buildRowValues(header, {
-            type: 'end group',
-            name: category.name,
-          }),
-        ];
-      }).reduce((prev, categoryRows) => ([...prev, ...categoryRows]), []),
-    );
-  } else {
-    rows.push(
-      buildRowValues(header, {
-        type: 'select_multiple items',
-        required: 'yes',
-        name: `list_items_selected`,
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_logs.message.select_items'] }), {})
-      }),
-      ...getItemRows(
-        header,
-        languages,
-        'list_items_selected',
-        items,
-        messages
-      ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
-    );
-  }
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
-  surveyWorkSheet.insertRows(
-    position + 1,
-    rows,
-    'i+'
-  );
-
-  addStockLogSummaries(surveyWorkSheet, languages, Object.values(configs.items), messages, categories);
-  addStockLogCalculation(surveyWorkSheet, Object.values(configs.items));
-
-  //Add choices
-  addCategoryItemsToChoice(categories, items, choiceWorkSheet, languages);
-
-  // SETTINGS
-  settingWorkSheet.getRow(2).getCell(1).value = featureConfigs.title[configs.defaultLanguage];
-  settingWorkSheet.getRow(2).getCell(2).value = featureConfigs.form_name;
-
-  await workbook.xlsx.writeFile(formPath);
 
   // Add stock count form properties
   const expression = `user.parent.contact_type === '${configs.levels[1].place_type}' && contact.contact_type === '${configs.levels[1].place_type}'`;
@@ -305,7 +313,6 @@ async function updateStockLogs(configs) {
   };
   const propertyPath = path.join(processDir, 'forms', 'app', `${featureConfigs.form_name}.properties.json`);
   fs.writeFileSync(propertyPath, JSON.stringify(formProperties, null, 4));
-  console.log(chalk.green(`INFO ${featureConfigs.form_name} updated successfully`));
 }
 
 async function getStockLogsConfigs({

@@ -6,7 +6,7 @@ let config = null;
 
 module.exports = {
   FORM_DIR: path.join(processDir, 'forms', 'app'),
-  CONFIG_FILE_PATH: path.join(processDir, 'stm.config.json'),
+  CONFIG_FILE_PATH: path.join(processDir, 'stock-monitoring.config.json'),
   getAppSettings: () => {
     if (config) {
       return config;

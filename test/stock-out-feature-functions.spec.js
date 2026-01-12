@@ -1,6 +1,6 @@
-const { 
-  stockOutMockConfigs, 
-  mockConfigsWithNoFeauture 
+const {
+  stockOutMockConfigs,
+  mockConfigsWithNoFeature
 } = require('./mocks/mocks');
 
 const { 
@@ -15,7 +15,7 @@ const {
   resetTranslationMessages
 } = require('./test-utils');
 
-const { getTranslations } = require('../src/common');
+const { getTranslations } = require('../src/translation-manager');
 
 describe('Testing functions in Stock out feature file', () => {
   const processInitialArgv = process.argv; // Save the original argv
@@ -96,7 +96,7 @@ describe('Testing functions in Stock out feature file', () => {
 
   // Testing stock out config not generating with no or wrong item config
   it('This should throw error for xform configurations with no or wrong item config', async () => {
-    await expect(getStockOutConfigs(mockConfigsWithNoFeauture)).rejects.toThrow(Error);
+    await expect(getStockOutConfigs(mockConfigsWithNoFeature)).rejects.toThrow(Error);
   });
 
 });

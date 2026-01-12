@@ -1,5 +1,5 @@
 module.exports = {
-  mockConfigsWithNoFeauture: {
+  mockConfigsWithNoFeature: {
     features: {
       no_feature: {
         form_name: 'no_form'
@@ -108,10 +108,10 @@ module.exports = {
       'add', 'feature', 'stock_out', 'stock_out', 'item_danger_qty', ['Stock Out', 'Stock Out']
     ],
     productsScenario: [
-      'paracetamol_at_hand___set',
-      'paracetamol_at_hand___unit',
-      'paracetamol_required___set',
-      'paracetamol_required___unit'
+      'sm_paracetamol_at_hand_sets',
+      'sm_paracetamol_at_hand_units',
+      'sm_paracetamol_required_sets',
+      'sm_paracetamol_required_units'
     ],
     invalidCommandInitScenario: [
       'test', 
@@ -186,10 +186,10 @@ module.exports = {
       'malaria'
     ],
     productsScenario: [
-      'paracetamol___set',
-      'paracetamol___unit',
+      'sm_paracetamol_sets',
+      'sm_paracetamol_units',
       'paracetamol',
-      'paracetamol___count'
+      'sm_paracetamol_qty'
     ]
 
   }

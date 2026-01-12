@@ -1,7 +1,7 @@
 const ExcelJS = require('exceljs');
 const fs = require('fs');
 const path = require('path');
-const { stockOutMockConfigs, mockConfigsWithNoFeauture } = require('./mocks/mocks');
+const { stockOutMockConfigs, mockConfigsWithNoFeature } = require('./mocks/mocks');
 const { updateStockOut } = require('../src/features/stock-out'); 
 const {
   setDirToprojectConfig,
@@ -35,7 +35,7 @@ describe('Create and update stock_out.xlsx and properties files ', () => {
     }
     
     // Call the function updateStockOut and check it throws an exception when there is no match config
-    await expect( updateStockOut(mockConfigsWithNoFeauture)).rejects.toThrow(Error);
+    await expect( updateStockOut(mockConfigsWithNoFeature)).rejects.toThrow(Error);
     
   });
 
