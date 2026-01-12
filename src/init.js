@@ -1,11 +1,97 @@
 const chalk = require('chalk');
-const utils = require('./common');
+const { getAppSettings, writeConfig } = require('./config-manager');
 const inquirer = require('inquirer');
 const { getStockCountConfigs } = require('./features/stock-count');
 const validator = require('validator');
 
+/**
+ * Check if running in non-interactive mode (no TTY or CLI args provided)
+ * @returns {boolean} True if non-interactive mode
+ */
+function isNonInteractive() {
+  // Check if stdin is not a TTY (e.g., when spawned from tests)
+  if (!process.stdin.isTTY) {
+    return true;
+  }
+  // Check if CLI args are provided (argv[3] would be monitoring_type)
+  return process.argv.length > 3 && process.argv[3];
+}
+
+/**
+ * Parse command-line arguments for non-interactive init
+ * @param {Object} appSettings - App settings for validation
+ * @returns {Object} Parsed configuration from CLI args
+ */
+function parseCliArgs(appSettings) {
+  const argv = process.argv;
+  const monitoringType = validator.escape(argv[3] || '2_levels');
+
+  let nbLevels;
+  switch (monitoringType) {
+    case '2_levels':
+      nbLevels = 2;
+      break;
+    case '3_levels':
+      nbLevels = 3;
+      break;
+    default:
+      nbLevels = 1;
+      break;
+  }
+
+  const levels = {};
+  if (nbLevels >= 1) {
+    const contactType = validator.escape(argv[4] || '');
+    const contactTypeDetails = appSettings.contact_types.find((ct) => ct.id === contactType);
+    levels[1] = {
+      contact_type: contactType,
+      role: validator.escape(argv[5] || ''),
+      place_type: contactTypeDetails ? contactTypeDetails.parents[0] : ''
+    };
+  }
+  if (nbLevels >= 2) {
+    const contactType = validator.escape(argv[6] || '');
+    const contactTypeDetails = appSettings.contact_types.find((ct) => ct.id === contactType);
+    levels[2] = {
+      contact_type: contactType,
+      role: validator.escape(argv[7] || ''),
+      place_type: contactTypeDetails ? contactTypeDetails.parents[0] : ''
+    };
+  }
+
+  return { levels, nbLevels };
+}
+
+/**
+ * Interactively prompt user to configure initial stock monitoring settings
+ * Collects monitoring level configuration (1-3 levels), contact types, user roles,
+ * and stock count feature settings. Supports command-line arguments for non-interactive usage.
+ * @returns {Promise<Object>} Initial configuration object
+ * @returns {Object} returns.levels - Level configurations keyed by level number (1, 2, 3)
+ * @returns {string} returns.levels[n].contact_type - Contact type ID for the level
+ * @returns {string} returns.levels[n].role - User role for the level
+ * @returns {string} returns.levels[n].place_type - Place type (parent contact type) for the level
+ * @returns {Object} returns.features - Feature configurations including stock_count
+ * @returns {boolean} returns.useItemCategory - Whether to use item categories
+ * @throws {Error} If app settings cannot be read or user cancels prompts
+ * @example
+ * const initConfigs = await getInitConfigs();
+ * // User is prompted for monitoring type, contact types, roles
+ * console.log('Levels configured:', Object.keys(initConfigs.levels));
+ */
 async function getInitConfigs() {
-  const appSettings = utils.getAppSettings();
+  const appSettings = getAppSettings();
+
+  // Handle non-interactive mode (tests, CI, piped input)
+  if (isNonInteractive()) {
+    console.log(chalk.green(`INFO Stock monitoring configuration (non-interactive mode)`));
+    const { levels } = parseCliArgs(appSettings);
+    const answers = await getStockCountConfigs(levels, appSettings.locales);
+    return {
+      ...answers,
+      levels,
+    };
+  }
   const appPersonTypes = appSettings.contact_types.filter((ct) => ct.person);
   const appUserRoles = Object.keys(appSettings.roles);
   console.log(chalk.green(`INFO Stock monitoring configuration`));
@@ -200,8 +286,27 @@ async function getInitConfigs() {
   };
 }
 
+/**
+ * Create the initial stock monitoring configuration file
+ * Initializes a new stock-monitoring.config.json with the provided configuration,
+ * adding language settings from app_settings and empty containers for forms, items, and categories
+ * @param {Object} configs - Initial configuration from getInitConfigs()
+ * @param {Object} configs.levels - Level configurations
+ * @param {Object} configs.features - Feature configurations
+ * @param {boolean} configs.useItemCategory - Whether to use item categories
+ * @returns {Object} Complete configuration object that was written to disk
+ * @returns {string[]} returns.languages - Array of language codes from app settings
+ * @returns {string} returns.defaultLanguage - Default language code from app settings
+ * @returns {Object} returns.forms - Empty forms object (to be populated later)
+ * @returns {Object} returns.items - Empty items object (to be populated later)
+ * @returns {Object} returns.categories - Empty categories object (to be populated later)
+ * @example
+ * const initConfigs = await getInitConfigs();
+ * const fullConfig = createConfigFile(initConfigs);
+ * // Creates stock-monitoring.config.json in current directory
+ */
 function createConfigFile(configs) {
-  const appSettings = utils.getAppSettings();
+  const appSettings = getAppSettings();
   const languages = appSettings.locales.map((locale) => locale.code);
   console.log(chalk.blue.bold(`Initializing stock monitoring in level`));
 
@@ -211,7 +316,8 @@ function createConfigFile(configs) {
   configs.forms = {};
   configs.items = {};
   configs.categories = {};
-  utils.writeConfig(configs);
+  configs.features = configs.features || {};
+  writeConfig(configs);
   return configs;
 }
 

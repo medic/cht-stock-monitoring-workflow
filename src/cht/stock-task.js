@@ -2,6 +2,11 @@ var luxon = require('luxon');
 var constants = require('../constants');
 var common = require('./common');
 
+// Stock out threshold: items below 2/3 of weekly consumption trigger alerts
+var STOCK_OUT_CONSUMPTION_THRESHOLD = 2 / 3;
+// Number of days a stock out task remains active
+var STOCK_OUT_TASK_DURATION_DAYS = 30;
+
 /**
  * Get stock monitoring tasks
  * @param {Object} configs stock monitoring configs
@@ -24,7 +29,7 @@ function getTasks(configs) {
             return false;
           }
           var existStockCount = contact.reports.find(function (report){
-            report.form === configs.features.stock_count.form_name;
+            return report.form === configs.features.stock_count.form_name;
           });
           if (!existStockCount) {
             this.stockMonitoringStockCountDate = Date.now();
@@ -164,7 +169,7 @@ function getTasks(configs) {
         ],
         resolvedIf: function (contact, report) {
           return  contact.reports.find(function(current){
-            if (current.form !== constants.DESCREPANCY_ADD_DOC) {
+            if (current.form !== constants.DISCREPANCY_ADD_DOC) {
                 return false;
             }
             return report._id === Utils.getField(current, 'confirmation_id');
@@ -264,13 +269,13 @@ function getTasks(configs) {
             this.stockMonitoring_itemRequiredQty = consumption;
             Object.keys(this.stockMonitoring_itemRequiredQty).forEach(function(item) {
               if (typeof this.stockMonitoring_itemRequiredQty[item] === 'number') {
-                this.stockMonitoring_itemRequiredQty[item] = consumption[item] / 3 * 2 - this.stockMonitoring_itemCounts[item];
+                this.stockMonitoring_itemRequiredQty[item] = consumption[item] * STOCK_OUT_CONSUMPTION_THRESHOLD - this.stockMonitoring_itemCounts[item];
               }
             });
             var itemKeys = Object.keys(this.stockMonitoring_itemCounts);
             for (var i = 0; i < itemKeys.length; i++) {
               var itemKey = itemKeys[i];
-              var isItemInLow = this.stockMonitoring_itemCounts[itemKey] < consumption[itemKey] / 3 * 2;
+              var isItemInLow = this.stockMonitoring_itemCounts[itemKey] < consumption[itemKey] * STOCK_OUT_CONSUMPTION_THRESHOLD;
               if (isItemInLow) {
                 itemsInLowStock.push(itemKey);
               }
@@ -292,7 +297,7 @@ function getTasks(configs) {
         events: [
           {
             start: 0,
-            end: 30,
+            end: STOCK_OUT_TASK_DURATION_DAYS,
             dueDate: function () {
               return luxon.DateTime.now().toJSDate();
             },

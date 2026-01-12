@@ -3,7 +3,8 @@ const path = require('path');
 const inquirer = require('inquirer');
 const fs = require('fs-extra');
 const ExcelJS = require('exceljs');
-const { getNoLabelsColums, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getTranslations, getDefaultSurveyLabels } = require('../common');
+const { getNoLabelsColums, getSheetGroupBeginEnd, buildRowValues, getRowWithValueAtPosition, getDefaultSurveyLabels } = require('../excel-utils');
+const { getTranslations } = require('../translation-manager');
 
 function addStockCountSummaries(workSheet, items, languages) {
   const [, end] = getSheetGroupBeginEnd(workSheet, 'summary');
@@ -117,86 +118,94 @@ async function updateStockCount(configs) {
   const items = Object.values(configs.items);
   fs.copyFileSync(path.join(__dirname, '../../templates/stock_supply.xlsx'), stockCountPath);
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(stockCountPath);
-  const surveyWorkSheet = workbook.getWorksheet('survey');
-  const settingWorkSheet = workbook.getWorksheet('settings');
 
-  // Add language column
-  const [labelColumns, hintColumns] = getDefaultSurveyLabels(
-    'stock_count',
-    messages,
-    languages,
-  );
+  try {
+    await workbook.xlsx.readFile(stockCountPath);
+    const surveyWorkSheet = workbook.getWorksheet('survey');
+    const settingWorkSheet = workbook.getWorksheet('settings');
 
-  // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
-  let lastColumnIndex = Object.keys(firstRowData).length;
-  for (const labelColumn of labelColumns) {
-    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
-    lastColumnIndex++;
-  }
-  for (const hintColumn of hintColumns) {
-    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
-    lastColumnIndex++;
-  }
+    // Add language column
+    const [labelColumns, hintColumns] = getDefaultSurveyLabels(
+      'stock_count',
+      messages,
+      languages,
+    );
 
-  // Add items
-  // Find items group last row number
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
-  const itemRows = [];
-  const header = surveyWorkSheet.getRow(1).values;
-  header.shift();
-  if (configs.useItemCategory) {
-    for (const category of Object.values(configs.categories)) {
+    // Add languages and hints columns
+    const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
+    let lastColumnIndex = Object.keys(firstRowData).length;
+    for (const labelColumn of labelColumns) {
+      surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
+      lastColumnIndex++;
+    }
+    for (const hintColumn of hintColumns) {
+      surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
+      lastColumnIndex++;
+    }
+
+    // Add items
+    // Find items group last row number
+    const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
+    const itemRows = [];
+    const header = surveyWorkSheet.getRow(1).values;
+    header.shift();
+    if (configs.useItemCategory) {
+      for (const category of Object.values(configs.categories)) {
+        itemRows.push(
+          buildRowValues(
+            header,
+            {
+              type: 'begin group',
+              name: category.name,
+              appearance: 'field-list',
+              ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${category.label[language]} - ${category.description[language]}` || '' }), {})
+            }
+          ),
+          ...getItemRows(items.filter((item) => item.category === category.name), languages, header),
+          buildRowValues(header, {
+            type: 'end group',
+          }),
+        );
+      }
+    } else {
       itemRows.push(
-        buildRowValues(
-          header,
-          {
-            type: 'begin group',
-            name: category.name,
-            appearance: 'field-list',
-            ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: `${category.label[language]} - ${category.description[language]}` || '' }), {})
-          }
-        ),
-        ...getItemRows(items.filter((item) => item.category === category.name), languages, header),
-        buildRowValues(header, {
-          type: 'end group',
-        }),
+        ...getItemRows(items, languages, header)
       );
     }
-  } else {
-    itemRows.push(
-      ...getItemRows(items, languages, header)
+
+    const inputs = [
+      buildRowValues(header, {
+        type: 'hidden',
+        name: 'date_id',
+        ...getNoLabelsColums(languages)
+      }),
+    ];
+    const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
+    surveyWorkSheet.insertRows(
+      inputPosition + 1,
+      inputs,
+      'i+'
     );
+
+
+    //Insert item
+    surveyWorkSheet.insertRows(
+      position+1,
+      itemRows,
+      'i+'
+    );
+    addStockCountSummaries(surveyWorkSheet, Object.values(configs.items), languages);
+    addStockCountCalculation(surveyWorkSheet, Object.values(configs.items));
+    settingWorkSheet.getRow(2).getCell(1).value = stockCountConfigs.title[configs.defaultLanguage];
+    settingWorkSheet.getRow(2).getCell(2).value = stockCountConfigs.form_name;
+
+    await workbook.xlsx.writeFile(stockCountPath);
+    console.log(chalk.green(`INFO ${stockCountConfigs.title[configs.defaultLanguage]} form updated successfully`));
+  } catch (err) {
+    console.log(chalk.red(`ERROR Failed to process ${stockCountPath}: ${err.message}`));
+    throw err;
   }
 
-  const inputs = [
-    buildRowValues(header, {
-      type: 'hidden',
-      name: 'date_id',
-      ...getNoLabelsColums(languages)
-    }),
-  ];
-  const [inputPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
-  surveyWorkSheet.insertRows(
-    inputPosition + 1,
-    inputs,
-    'i+'
-  );
-
-
-  //Insert item
-  surveyWorkSheet.insertRows(
-    position+1,
-    itemRows,
-    'i+'
-  );
-  addStockCountSummaries(surveyWorkSheet, Object.values(configs.items), languages);
-  addStockCountCalculation(surveyWorkSheet, Object.values(configs.items));
-  settingWorkSheet.getRow(2).getCell(1).value = stockCountConfigs.title[configs.defaultLanguage];
-  settingWorkSheet.getRow(2).getCell(2).value = stockCountConfigs.form_name;
-
-  await workbook.xlsx.writeFile(stockCountPath);
   const expression = stockCountConfigs.contact_types.map((contact) => {
     return `((contact.contact_type === '${contact.place_type}' || contact.type === '${contact.place_type}') && (user.role === '${contact.role}'))`;
   }).join(' || ');
@@ -218,10 +227,83 @@ async function updateStockCount(configs) {
   };
   const stockCountPropertyPath = path.join(processDir, 'forms', 'app', `${stockCountConfigs.form_name}.properties.json`);
   fs.writeFileSync(stockCountPropertyPath, JSON.stringify(formProperties, null, 4));
-  console.log(chalk.green(`INFO ${stockCountConfigs.title[configs.defaultLanguage]} form updated successfully`));
+}
+
+/**
+ * Check if running in non-interactive mode
+ * @returns {boolean} True if non-interactive mode
+ */
+function isNonInteractive() {
+  return !process.stdin.isTTY || (process.argv.length > 8 && process.argv[8]);
+}
+
+/**
+ * Parse stock count config from CLI args for non-interactive mode
+ * Note: spawnSync converts nested arrays to comma-separated strings,
+ * so ['Stock count', 'Stock count'] becomes 'Stock count,Stock count'
+ * @param {Object} levels - Level configurations
+ * @param {Array} locales - Available locales
+ * @returns {Object} Parsed stock count configuration
+ */
+function parseStockCountCliArgs(levels, locales) {
+  const argv = process.argv;
+
+  // argv[8] = useItemCategory ('Y' or 'N')
+  // argv[9] = form_name
+  // argv[10] = contact_types JSON string
+  // argv[11] = type ('action' or 'task')
+  // argv[12] = frequency
+  // argv[13] = titles (comma-separated: 'Stock count,Stock count')
+
+  const useItemCategory = argv[8] === 'Y' || argv[8] === 'true' || argv[8] === true;
+  const formName = argv[9] || 'stock_count';
+
+  let contactTypes;
+  try {
+    // Handle JSON-like string format from test
+    const contactTypesStr = argv[10] || '[]';
+    contactTypes = JSON.parse(contactTypesStr.replace(/'/g, '"').replace(/(\w+):/g, '"$1":'));
+  } catch {
+    // Fallback to using all levels
+    contactTypes = Object.values(levels);
+  }
+
+  const type = argv[11] || 'action';
+  const frequency = type === 'task' ? (argv[12] || 'end_of_week') : undefined;
+
+  // Parse titles - comma-separated in single arg (spawnSync behavior)
+  const title = {};
+  const titleArg = argv[13] || 'Stock count,Stock count';
+  const titles = titleArg.split(',');
+  locales.forEach((locale, i) => {
+    title[locale.code] = (titles[i] || 'Stock count').trim();
+  });
+
+  const answers = {
+    useItemCategory,
+    features: {
+      stock_count: {
+        form_name: formName,
+        contact_types: contactTypes,
+        type,
+        title
+      }
+    }
+  };
+
+  if (frequency) {
+    answers.features.stock_count.frequency = frequency;
+  }
+
+  return answers;
 }
 
 async function getStockCountConfigs(levels, locales) {
+  // Handle non-interactive mode (tests, CI, piped input)
+  if (isNonInteractive()) {
+    return parseStockCountCliArgs(levels, locales);
+  }
+
   const answers = await inquirer.prompt([
     {
       type: 'confirm',
@@ -233,7 +315,7 @@ async function getStockCountConfigs(levels, locales) {
         if (!argv[9]){
           return true;
         }
-        answers.useItemCategory = argv[9];
+        answers.useItemCategory = argv[9] === 'true' || argv[9] === true;
         return false;
       }
     },
@@ -274,7 +356,7 @@ async function getStockCountConfigs(levels, locales) {
           return true;
         }
 
-        answers.features.stock_count.contact_types = eval(argv[10]);
+        answers.features.stock_count.contact_types = JSON.parse(argv[10]);
         
         return false;
       }

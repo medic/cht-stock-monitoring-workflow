@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { Workbook } = require('exceljs');
-const { getNoLabelsColums, buildRowValues, getSheetGroupBeginEnd, getRowWithValueAtPosition } = require('../common');
+const { getNoLabelsColums, buildRowValues, getSheetGroupBeginEnd, getRowWithValueAtPosition } = require('../excel-utils');
 const chalk = require('chalk');
 
 function getLabelColumns(languages, messages) {
@@ -241,135 +241,142 @@ async function updateStockConfirmation(configs, messages) {
   const stockConfirmPath = path.join(processDir, 'forms', 'app', `${confirmConfigs.form_name}.xlsx`);
   fs.copyFileSync(path.join(__dirname, '../../templates/stock_supply.xlsx'), stockConfirmPath);
   const workbook = new Workbook();
-  await workbook.xlsx.readFile(stockConfirmPath);
-  const surveyWorkSheet = workbook.getWorksheet('survey');
-  const choiceWorkSheet = workbook.getWorksheet('choices');
-  const settingWorkSheet = workbook.getWorksheet('settings');
 
-  const choiceLabelColumns = configs.languages.map((l) => [
-    `label::${l}`
-  ]);
-  let choiceLastColumn = 2;
-  for (const choiceLabelColumn of choiceLabelColumns) {
-    choiceWorkSheet.getColumn(choiceLastColumn + 1).values = choiceLabelColumn;
-    choiceLastColumn++;
-  }
-  const choiceHeader = choiceWorkSheet.getRow(1).values;
-  choiceHeader.shift();
-  const choices = ['yes', 'no'].map((ch) => {
-    const row = {
-      list_name: 'yes_no',
-      name: ch,
-    };
-    for (const language of configs.languages) {
-      row[`label::${language}`] = messages[language][`stock_supply.choices.yes_no.${ch}`];
+  try {
+    await workbook.xlsx.readFile(stockConfirmPath);
+    const surveyWorkSheet = workbook.getWorksheet('survey');
+    const choiceWorkSheet = workbook.getWorksheet('choices');
+    const settingWorkSheet = workbook.getWorksheet('settings');
+
+    const choiceLabelColumns = configs.languages.map((l) => [
+      `label::${l}`
+    ]);
+    let choiceLastColumn = 2;
+    for (const choiceLabelColumn of choiceLabelColumns) {
+      choiceWorkSheet.getColumn(choiceLastColumn + 1).values = choiceLabelColumn;
+      choiceLastColumn++;
     }
-    return buildRowValues(choiceHeader, row);
-  });
-  choiceWorkSheet.insertRows(
-    2,
-    choices,
-    'i+'
-  );
-
-  const [labelColumns, hintColumns] = getLabelColumns(configs.languages, messages);
-  // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
-  let lastColumnIndex = Object.keys(firstRowData).length;
-  for (const labelColumn of labelColumns) {
-    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
-    lastColumnIndex++;
-  }
-  for (const hintColumn of hintColumns) {
-    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
-    lastColumnIndex++;
-  }
-
-  // Add calculation
-  const header = surveyWorkSheet.getRow(1).values;
-  header.shift();
-  // inputs
-  const inputs = [
-    ...items.map((item) => buildRowValues(header, {
-      type: 'hidden',
-      name: `${item.name}_received`,
-      ...getNoLabelsColums(languages)
-    })),
-    buildRowValues(header, {
-      type: 'hidden',
-      name: 'supplier_id',
-      ...getNoLabelsColums(languages)
-    }),
-    buildRowValues(header, {
-      type: 'hidden',
-      name: 'supply_doc_id',
-      ...getNoLabelsColums(languages)
-    })
-  ];
-  const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
-  surveyWorkSheet.insertRows(
-    position + 1,
-    inputs,
-    'i+'
-  );
-
-  const rows = [];
-  if (configs.useItemCategory) {
-    rows.push(
-      ...categories.map((category) => {
-        const categoryItems = items.filter((item) => item.category === category.name);
-        return [
-          buildRowValues(header, {
-            type: 'begin group',
-            name: category.name,
-            appearance: 'field-list',
-            relevant: categoryItems.map((item) => '${' + item.name + '_received} > 0').join(' or '),
-            ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
-          }),
-          ...getItemRows(
-            header,
-            languages,
-            messages,
-            categoryItems,
-          ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
-          buildRowValues(header, {
-            type: 'end group',
-          }),
-        ];
-      }).reduce((prev, categoryRows) => ([...prev, ...categoryRows]), []),
+    const choiceHeader = choiceWorkSheet.getRow(1).values;
+    choiceHeader.shift();
+    const choices = ['yes', 'no'].map((ch) => {
+      const row = {
+        list_name: 'yes_no',
+        name: ch,
+      };
+      for (const language of configs.languages) {
+        row[`label::${language}`] = messages[language][`stock_supply.choices.yes_no.${ch}`];
+      }
+      return buildRowValues(choiceHeader, row);
+    });
+    choiceWorkSheet.insertRows(
+      2,
+      choices,
+      'i+'
     );
-  } else {
-    rows.push(
+
+    const [labelColumns, hintColumns] = getLabelColumns(configs.languages, messages);
+    // Add languages and hints columns
+    const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
+    let lastColumnIndex = Object.keys(firstRowData).length;
+    for (const labelColumn of labelColumns) {
+      surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
+      lastColumnIndex++;
+    }
+    for (const hintColumn of hintColumns) {
+      surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
+      lastColumnIndex++;
+    }
+
+    // Add calculation
+    const header = surveyWorkSheet.getRow(1).values;
+    header.shift();
+    // inputs
+    const inputs = [
+      ...items.map((item) => buildRowValues(header, {
+        type: 'hidden',
+        name: `${item.name}_received`,
+        ...getNoLabelsColums(languages)
+      })),
       buildRowValues(header, {
-        type: 'begin group',
-        name: 'confirm_received',
-        appearance: 'field-list',
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_supply.label.confirm_qty'] }), {})
+        type: 'hidden',
+        name: 'supplier_id',
+        ...getNoLabelsColums(languages)
       }),
-      ...getItemRows(
-        header,
-        languages,
-        messages,
-        items,
-      ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
       buildRowValues(header, {
-        type: 'end group',
-      }),
+        type: 'hidden',
+        name: 'supply_doc_id',
+        ...getNoLabelsColums(languages)
+      })
+    ];
+    const [position,] = getRowWithValueAtPosition(surveyWorkSheet, 'inputs', 1);
+    surveyWorkSheet.insertRows(
+      position + 1,
+      inputs,
+      'i+'
     );
+
+    const rows = [];
+    if (configs.useItemCategory) {
+      rows.push(
+        ...categories.map((category) => {
+          const categoryItems = items.filter((item) => item.category === category.name);
+          return [
+            buildRowValues(header, {
+              type: 'begin group',
+              name: category.name,
+              appearance: 'field-list',
+              relevant: categoryItems.map((item) => '${' + item.name + '_received} > 0').join(' or '),
+              ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
+            }),
+            ...getItemRows(
+              header,
+              languages,
+              messages,
+              categoryItems,
+            ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
+            buildRowValues(header, {
+              type: 'end group',
+            }),
+          ];
+        }).reduce((prev, categoryRows) => ([...prev, ...categoryRows]), []),
+      );
+    } else {
+      rows.push(
+        buildRowValues(header, {
+          type: 'begin group',
+          name: 'confirm_received',
+          appearance: 'field-list',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_supply.label.confirm_qty'] }), {})
+        }),
+        ...getItemRows(
+          header,
+          languages,
+          messages,
+          items,
+        ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
+        buildRowValues(header, {
+          type: 'end group',
+        }),
+      );
+    }
+    const [placePosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
+    surveyWorkSheet.insertRows(
+      placePosition + 1,
+      rows,
+      'i+'
+    );
+    addStockConfirmCalculation(surveyWorkSheet, items);
+    addStockConfirmSummaries(surveyWorkSheet, items, languages, categories);
+
+    settingWorkSheet.getRow(2).getCell(1).value = confirmConfigs.title[configs.defaultLanguage];
+    settingWorkSheet.getRow(2).getCell(2).value = confirmConfigs.form_name;
+
+    await workbook.xlsx.writeFile(stockConfirmPath);
+    console.log(chalk.green(`INFO ${confirmConfigs.title[configs.defaultLanguage]} form updated successfully`));
+  } catch (err) {
+    console.log(chalk.red(`ERROR Failed to process ${stockConfirmPath}: ${err.message}`));
+    throw err;
   }
-  const [placePosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
-  surveyWorkSheet.insertRows(
-    placePosition + 1,
-    rows,
-    'i+'
-  );
-  addStockConfirmCalculation(surveyWorkSheet, items);
-  addStockConfirmSummaries(surveyWorkSheet, items, languages, categories);
-
-  settingWorkSheet.getRow(2).getCell(1).value = confirmConfigs.title[configs.defaultLanguage];
-  settingWorkSheet.getRow(2).getCell(2).value = confirmConfigs.form_name;
-
-  await workbook.xlsx.writeFile(stockConfirmPath);
 
   // Add stock count form properties
   const formProperties = {
@@ -388,7 +395,6 @@ async function updateStockConfirmation(configs, messages) {
   };
   const configStockPropertyPath = path.join(processDir, 'forms', 'app', `${confirmConfigs.form_name}.properties.json`);
   fs.writeFileSync(configStockPropertyPath, JSON.stringify(formProperties, null, 4));
-  console.log(chalk.green(`INFO ${confirmConfigs.title[configs.defaultLanguage]} form updated successfully`));
 }
 
 module.exports = {

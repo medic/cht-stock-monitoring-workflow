@@ -156,7 +156,7 @@ function getItemCountInReports(itemName, reports, forms) {
        * *chw - in/out*
        * Chw form ajusted by supervisor discrepency
        */
-      case constants.DESCREPANCY_ADD_DOC:
+      case constants.DISCREPANCY_ADD_DOC:
         total += Number(Utils.getField(report, itemName + '_out')) || 0;
         break;
       /**
@@ -218,7 +218,7 @@ function getItemCountFromLastStockCount(configs, reports) {
     orderSupplyForm: configs.features.stock_order && configs.features.stock_order.stock_supply && configs.features.stock_order.stock_supply.form_name,
     supplyConfirm: (configs.features.stock_supply && configs.features.stock_supply.confirm_supply && configs.features.stock_supply.confirm_supply.active) ? configs.features.stock_supply.confirm_supply.form_name : '',
     supplyDiscrepancy: (configs.features.stock_supply && configs.features.stock_supply.discrepancy) ? configs.features.stock_supply.discrepancy.form_name : '',
-    DESCREPANCY_ADD_DOC: constants.DESCREPANCY_ADD_DOC,
+    DISCREPANCY_ADD_DOC: constants.DISCREPANCY_ADD_DOC,
     stockReturn: configs.features.stock_return && configs.features.stock_return.form_name,
     stockReturned: configs.features.stock_return && configs.features.stock_return.confirmation.form_name,
     stockReturnedCHW: configs.features.stock_return && constants.RETURNED_ADD_DOC,

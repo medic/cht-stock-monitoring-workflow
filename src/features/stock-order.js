@@ -3,9 +3,10 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const { Workbook } = require('exceljs');
-const { getTranslations, getRowWithValueAtPosition, getDefaultSurveyLabels, buildRowValues, addCategoryItemsToChoice, getSheetGroupBeginEnd,
+const { getRowWithValueAtPosition, getDefaultSurveyLabels, buildRowValues, addCategoryItemsToChoice, getSheetGroupBeginEnd,
   getItemCount
-} = require('../common');
+} = require('../excel-utils');
+const { getTranslations } = require('../translation-manager');
 
 /**
  * This function takes a header, a list of languages, a list of messages, a selection field name, and a list of items, and
@@ -205,146 +206,153 @@ async function updateStockOrder(configs) {
   const formPath = path.join(processDir, 'forms', 'app', `${orderConfigs.form_name}.xlsx`);
   fs.copyFileSync(path.join(__dirname, '../../templates/stock_supply.xlsx'), formPath);
   const workbook = new Workbook();
-  await workbook.xlsx.readFile(formPath);
-  const surveyWorkSheet = workbook.getWorksheet('survey');
-  const choiceWorkSheet = workbook.getWorksheet('choices');
-  const settingWorkSheet = workbook.getWorksheet('settings');
 
-  // Update survey columns
-  const [labelColumns, hintColumns] = getDefaultSurveyLabels(
-    'stock_order',
-    messages,
-    configs.languages,
-  );
-  // Add languages and hints columns
-  const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
-  let lastColumnIndex = Object.keys(firstRowData).length;
-  for (const labelColumn of labelColumns) {
-    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
-    lastColumnIndex++;
-  }
-  for (const hintColumn of hintColumns) {
-    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
-    lastColumnIndex++;
-  }
-  // Add choice filter column
-  surveyWorkSheet.getColumn(lastColumnIndex + 1).values = ['choice_filter'];
+  try {
+    await workbook.xlsx.readFile(formPath);
+    const surveyWorkSheet = workbook.getWorksheet('survey');
+    const choiceWorkSheet = workbook.getWorksheet('choices');
+    const settingWorkSheet = workbook.getWorksheet('settings');
 
-  const header = surveyWorkSheet.getRow(1).values;
-  header.shift();
-  const nameColumnIndex = header.indexOf('name');
-  const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', nameColumnIndex);
-  const contactTypeRow = [
-    buildRowValues(header, {
-      type: 'hidden',
-      name: 'contact_type',
-      appearance: 'hidden',
-      ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: 'NO_LABEL' }), {})
-    }),
-  ];
-  surveyWorkSheet.insertRows(
-    contactPosition + 3,
-    contactTypeRow,
-    'i+'
-  );
+    // Update survey columns
+    const [labelColumns, hintColumns] = getDefaultSurveyLabels(
+      'stock_order',
+      messages,
+      configs.languages,
+    );
+    // Add languages and hints columns
+    const [, firstRowData] = getRowWithValueAtPosition(surveyWorkSheet, 'type', 0);
+    let lastColumnIndex = Object.keys(firstRowData).length;
+    for (const labelColumn of labelColumns) {
+      surveyWorkSheet.getColumn(lastColumnIndex + 1).values = labelColumn;
+      lastColumnIndex++;
+    }
+    for (const hintColumn of hintColumns) {
+      surveyWorkSheet.getColumn(lastColumnIndex + 1).values = hintColumn;
+      lastColumnIndex++;
+    }
+    // Add choice filter column
+    surveyWorkSheet.getColumn(lastColumnIndex + 1).values = ['choice_filter'];
 
-  const rows = items.map((item) => {
-    // Get stock count from summary
-    return buildRowValues(header, {
-      type: 'calculate',
-      name: `${item.name}_current`,
-      default: 0,
-      calculation: `instance('contact-summary')/context/stock_monitoring_${item.name}_qty`
+    const header = surveyWorkSheet.getRow(1).values;
+    header.shift();
+    const nameColumnIndex = header.indexOf('name');
+    const [contactPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'contact', nameColumnIndex);
+    const contactTypeRow = [
+      buildRowValues(header, {
+        type: 'hidden',
+        name: 'contact_type',
+        appearance: 'hidden',
+        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: 'NO_LABEL' }), {})
+      }),
+    ];
+    surveyWorkSheet.insertRows(
+      contactPosition + 3,
+      contactTypeRow,
+      'i+'
+    );
+
+    const rows = items.map((item) => {
+      // Get stock count from summary
+      return buildRowValues(header, {
+        type: 'calculate',
+        name: `${item.name}_current`,
+        default: 0,
+        calculation: `instance('contact-summary')/context/stock_monitoring_${item.name}_qty`
+      });
     });
-  });
-  const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
+    const [placeIdPosition,] = getRowWithValueAtPosition(surveyWorkSheet, 'place_id', 1);
 
-  if (configs.useItemCategory) {
-    rows.push(
-      buildRowValues(header, {
-        type: 'begin group',
-        name: `select_categories`,
-        appearance: 'field-list',
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.select_category_label'] }), {})
-      }),
-      buildRowValues(header, {
-        type: 'select_multiple categories',
-        name: 'categories',
-        required: 'yes',
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.select_category'] }), {})
-      }),
-      buildRowValues(header, {
-        type: 'end group',
-      }),
-      ...categories.map((category) => {
-        return [
-          buildRowValues(header, {
-            type: 'begin group',
-            name: category.name,
-            appearance: 'field-list',
-            relevant: 'selected(${categories}, ' + `'${category.name}')`,
-            ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
-          }),
-          buildRowValues(header, {
-            type: 'select_multiple items',
-            required: 'yes',
-            name: `${category.name}_items_selected`,
-            choice_filter: `category_filter = '${category.name}'`,
-            ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.select_items'] }), {})
-          }),
-          ...getItemRows(
-            header,
-            languages,
-            messages,
-            `${category.name}_items_selected`,
-            items.filter((item) => item.category === category.name),
-          ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
-          buildRowValues(header, {
-            type: 'end group',
-          }),
-        ];
-      }).reduce((prev, categoryRows) => ([...prev, ...categoryRows]), []),
+    if (configs.useItemCategory) {
+      rows.push(
+        buildRowValues(header, {
+          type: 'begin group',
+          name: `select_categories`,
+          appearance: 'field-list',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.select_category_label'] }), {})
+        }),
+        buildRowValues(header, {
+          type: 'select_multiple categories',
+          name: 'categories',
+          required: 'yes',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.select_category'] }), {})
+        }),
+        buildRowValues(header, {
+          type: 'end group',
+        }),
+        ...categories.map((category) => {
+          return [
+            buildRowValues(header, {
+              type: 'begin group',
+              name: category.name,
+              appearance: 'field-list',
+              relevant: 'selected(${categories}, ' + `'${category.name}')`,
+              ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: category.label[language] }), {})
+            }),
+            buildRowValues(header, {
+              type: 'select_multiple items',
+              required: 'yes',
+              name: `${category.name}_items_selected`,
+              choice_filter: `category_filter = '${category.name}'`,
+              ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.select_items'] }), {})
+            }),
+            ...getItemRows(
+              header,
+              languages,
+              messages,
+              `${category.name}_items_selected`,
+              items.filter((item) => item.category === category.name),
+            ).reduce((prev, itemRows) => ([...prev, ...itemRows]), []),
+            buildRowValues(header, {
+              type: 'end group',
+            }),
+          ];
+        }).reduce((prev, categoryRows) => ([...prev, ...categoryRows]), []),
+      );
+    } else {
+      rows.push(
+        buildRowValues(header, {
+          type: 'begin group',
+          name: 'items_selection',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.items_selection'] }), {})
+        }),
+        buildRowValues(header, {
+          type: 'select_multiple items',
+          required: 'yes',
+          name: 'list_items_selected',
+          ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.select_items'] }), {})
+        }),
+        ...getItemRows(
+          header,
+          languages,
+          messages,
+          'list_items_selected',
+          items
+        ),
+        buildRowValues(header, {
+          type: 'end group',
+        }),
+      );
+    }
+    surveyWorkSheet.insertRows(
+      placeIdPosition + 1,
+      rows,
+      'i+'
     );
-  } else {
-    rows.push(
-      buildRowValues(header, {
-        type: 'begin group',
-        name: 'items_selection',
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.items_selection'] }), {})
-      }),
-      buildRowValues(header, {
-        type: 'select_multiple items',
-        required: 'yes',
-        name: 'list_items_selected',
-        ...languages.reduce((prev, language) => ({ ...prev, [`label::${language}`]: messages[language]['stock_order.message.select_items'] }), {})
-      }),
-      ...getItemRows(
-        header,
-        languages,
-        messages,
-        'list_items_selected',
-        items
-      ),
-      buildRowValues(header, {
-        type: 'end group',
-      }),
-    );
+
+    addOrderSummaries(surveyWorkSheet, languages, items, configs.useItemCategory ? categories : []);
+    addExportCalculation(surveyWorkSheet, items);
+    addCategoryItemsToChoice(categories, items, choiceWorkSheet, languages);
+
+    // SETTINGS
+    settingWorkSheet.getRow(2).getCell(1).value = orderConfigs.title[configs.defaultLanguage];
+    settingWorkSheet.getRow(2).getCell(2).value = orderConfigs.form_name;
+
+    await workbook.xlsx.writeFile(formPath);
+    console.log(chalk.green(`INFO ${orderConfigs.form_name} updated successfully`));
+  } catch (err) {
+    console.log(chalk.red(`ERROR Failed to process ${formPath}: ${err.message}`));
+    throw err;
   }
-  surveyWorkSheet.insertRows(
-    placeIdPosition + 1,
-    rows,
-    'i+'
-  );
-
-  addOrderSummaries(surveyWorkSheet, languages, items, configs.useItemCategory ? categories : []);
-  addExportCalculation(surveyWorkSheet, items);
-  addCategoryItemsToChoice(categories, items, choiceWorkSheet, languages);
-
-  // SETTINGS
-  settingWorkSheet.getRow(2).getCell(1).value = orderConfigs.title[configs.defaultLanguage];
-  settingWorkSheet.getRow(2).getCell(2).value = orderConfigs.form_name;
-
-  await workbook.xlsx.writeFile(formPath);
 
   // Add stock count form properties
   const expression = orderConfigs.actors.map((actor) => `contact.contact_type === '${actor.place_type}' && user.role === '${actor.role}'`).join(' || ');
@@ -364,7 +372,6 @@ async function updateStockOrder(configs) {
   };
   const propertyPath = path.join(processDir, 'forms', 'app', `${orderConfigs.form_name}.properties.json`);
   fs.writeFileSync(propertyPath, JSON.stringify(formProperties, null, 4));
-  console.log(chalk.green(`INFO ${orderConfigs.form_name} updated successfully`));
 }
 
 /**

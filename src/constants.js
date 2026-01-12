@@ -1,7 +1,38 @@
+/**
+ * Constants for stock monitoring workflow
+ * @module constants
+ */
+
+/**
+ * Command names for CLI actions
+ * @readonly
+ * @enum {string}
+ */
+const COMMANDS = {
+  INIT: 'init',
+  MIGRATE: 'migrate',
+  ADD: 'add',
+  BUILD: 'build',
+};
+
+/**
+ * Add command subtypes
+ * @readonly
+ * @enum {string}
+ */
+const ADD_TYPES = {
+  ITEM: 'item',
+  FEATURE: 'feature',
+};
+
 module.exports = {
+  COMMANDS,
+  ADD_TYPES,
   TRANSLATION_PREFIX: 'cht-stock-monitoring-workflow.',
   SUPPLY_ADDITIONAL_DOC: 'stock_supply_doc',
-  DESCREPANCY_ADD_DOC: 'descrepancy_doc',
+  // Note: Value 'descrepancy_doc' is intentionally kept misspelled for backward
+  // compatibility with existing CHT deployments. Do not change without migration.
+  DISCREPANCY_ADD_DOC: 'descrepancy_doc',
   RETURNED_ADD_DOC: 'sm---stock_returned',
   FORM_ADDITIONAL_DOC_NAME: 'prescription_summary',
   FEATURES: {

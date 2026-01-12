@@ -25,7 +25,7 @@ function stockItemToSafeHtml (value, item, language) {
     color = 'orange';
   }
 
-  return '<strong style="color: ' + color + '">' + innerHtml + '<strong>';
+  return '<strong style="color: ' + color + '">' + innerHtml + '</strong>';
 }
 
 function getSummary(configs, reports) {
