@@ -178,7 +178,7 @@ async function updateStockLogs(configs) {
       );
       hintColumns.push(
         [
-          `hint:${language}`,
+          `hint::${language}`,
         ]
       );
     }
