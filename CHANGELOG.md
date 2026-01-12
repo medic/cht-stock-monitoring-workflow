@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/medic/cht-stock-monitoring-workflow/compare/v1.2.0...v1.2.1) (2026-01-12)
+
+
+### Bug Fixes
+
+* code quality improvements ([#103](https://github.com/medic/cht-stock-monitoring-workflow/issues/103)) ([16796fc](https://github.com/medic/cht-stock-monitoring-workflow/commit/16796fc8c93391e62998757fb0fce1c3e4a081d6))
+
 # [1.2.0](https://github.com/medic/cht-stock-monitoring-workflow/compare/v1.1.3...v1.2.0) (2024-11-20)
 
 
