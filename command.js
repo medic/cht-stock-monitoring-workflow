@@ -25,6 +25,7 @@ const { updateOrderStockSupply } = require('./src/features/stock-order-supply');
 const { getInitConfigs, createConfigFile } = require('./src/init');
 const { getItemConfig, addConfigItem } = require('./src/add-item');
 const { getFeatureConfigs, addFeatureConfigs, selectFeature } = require('./src/add-feature');
+const { generateExtensions } = require('./src/generate-extensions');
 
 /**
  * Custom error class for validation errors
@@ -160,6 +161,9 @@ async function processFeatureForm(configs) {
 
   // Step 4: Update forms
   await updateForm(configs);
+
+  // Step 5: Generate extension files for cht-conf auto-include
+  generateExtensions();
 
   console.log(chalk.green(`INFO All actions completed`));
 }
